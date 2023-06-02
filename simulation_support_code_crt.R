@@ -66,6 +66,7 @@ get.estimates = function( df, ... ) {
 
 # Reassign treatment within a district (to do finite sample inference)
 rerandomize.data = function( dat, p ) {
+  stopifnot(length(unique(did)) == 1)
   dat %>%
     mutate(
       # sid = droplevels(sid),   # avoid empty factor level issues with clusters=sid
@@ -98,45 +99,57 @@ describe.data = function( df ) {
   #  - true correlations from district_key
   #  - etc...
   
-  df = rerandomize.data( df )
+  df = rerandomize.data.full( df )
   
-  params = df %>% 
-    group_by( did, sid ) %>%
-    summarise( ATE.clust = mean( Y1 ) - mean( Y0 ),
-               n = n() )
   
-  ATE.indiv = with( df, mean( Y1 - Y0 ) )
+  # district params
+  sstat_distr <- attr(df, "district_key") %>% 
+    summarize(cor.J.tau_dist = cor(J, district.tau),
+              cor.p.tau_dist = cor(p, district.tau),
+              sd.tau_dist = sd(district.tau),
+              sd.J_dist = sd(J),
+              sd.p_dist = sd(p))
   
-  attr(df, "district_key")
+  # compute true ATE values
+  ATEs <- df %>% 
+    group_by(did, sid) %>% 
+    summarize(Njk = n(),
+              Bjk = mean(Y1-Y0),
+              .groups="drop_last") %>% 
+    summarize(Nk = sum(Njk),
+              Jk = n(),
+              ATE.distr = sum(Njk*Bjk) / Nk,
+              ATE.clust = sum(Bjk),
+              ATE.indiv = sum(Njk*Bjk),
+              .groups="drop_last") %>% 
+    summarize(ATE.distr = mean(ATE.distr),
+              ATE.clust = sum(ATE.clust) / sum(Jk),
+              ATE.indiv = sum(ATE.indiv) / sum(Nk))
   
-  sd.p = sd( params$p )
-  sd.n = sd( params$n )
   
-  if (FALSE) {
-    M = lm( Yobs ~ Z * sid - 0 - Z, data=df )
-    summary( M )
-    (summary(M))$r.squared
-    sd( params$ATE - params$ATE.hat )
-    sd( params$ATE )
-    var( params$ATE )
-    var( params$ATE - params$ATE.hat )
-    sd( df$Y0 )
-  }
+  # compute design-based point ATE estimates
+  #  - district-weighted, cluster-weighted, and individual-weighted
+  ATEhats <- df %>% 
+    group_by(did, sid) %>% 
+    summarize(n.clust = n(),
+              Z.clust = mean(Z),
+              Yhat.clust = mean(Yobs),
+              .groups="drop_last") %>% 
+    summarize(J.k = length(unique(sid)),
+              n.k = sum(n.clust),
+              Bhat.k.clust = sum(Z.clust*Yhat.clust) / sum(Z.clust) -
+                sum((1-Z.clust)*Yhat.clust) / sum(1-Z.clust),
+              Bhat.k.indiv = sum(n.clust*Z.clust*Yhat.clust) / sum(Z.clust*n.clust) -
+                sum(n.clust*(1-Z.clust)*Yhat.clust) / sum((1-Z.clust)*n.clust)) %>% 
+    summarize(ATE.distr = mean(Bhat.k.clust),
+              ATE.clust = sum(J.k*Bhat.k.clust) / sum(J.k),
+              ATE.indiv = sum(n.k*Bhat.k.indiv) / sum(n.k))
   
-  sstat = params %>% 
-    summarise( ATE.site = mean( ATE ),
-               sd.ATE = sd( ATE ),
-               sd.ATE.hat = sd( ATE.hat ),
-               sd.n = sd( n ),
-               sd.p = sd( p ),
-               cor.p.Bhat = ifelse( sd.p > 0, cor( ATE.hat, p ), NA ),
-               cor.n.Bhat = ifelse( sd.n > 0, cor( ATE.hat, n ), NA ),
-               cor.p = ifelse( sd.p > 0, cor( ATE, p ), NA ),
-               cor.n = ifelse( sd.n > 0, cor( ATE, n ), NA ) )
+  res <- bind_rows(ATEs, ATEhats) %>% 
+    mutate(ATE = c("True ATEs", "Estimated ATEs"), .before=everything())
   
-  sstat = mutate( sstat,
-                  ATE.finite.person=ATE.person )
-  sstat
+  print(sstat_distr)
+  print(res)
 }
 
 
@@ -224,7 +237,6 @@ generate_districts <- function(
     proptx.impact.correlate.clust = F,
     correlate.strength.clust = 0.75,
     correlate.strength.indiv = 0.75,
-    
     ...) {
   # idea: induce noisy correlation by...
   #  1. sort (noised) random district effects
@@ -312,7 +324,7 @@ generate_districts <- function(
   sim.data
 }
 
-if (T) {
+if (F) {
   df <- generate_districts(
     K = 5, 
     J.bar = 20,
@@ -334,8 +346,6 @@ if (T) {
     proptx.impact.correlate.clust = F,
     correlate.strength.clust = 0.5,
     correlate.strength.indiv = 0.5)
-  
-  rerandomize.data.full(df)
   
   describe.data(df)
   
