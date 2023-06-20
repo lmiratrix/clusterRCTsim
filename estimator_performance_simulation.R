@@ -10,10 +10,10 @@
 rm(list=ls())
 
 
-source( "simulation_support_code.R" )
+source( "simulation_support_code_crt.R" )
 
 # Which set of simulation scenarios should we run?
-group = "main"
+group = "initial"
 
 
 library( tibble )
@@ -99,7 +99,7 @@ scenarios
 
 if ( TESTING ) {
   cat( "Cutting scenario list down for testing\n" )
-  scenarios = filter( scenarios, J < 60 )
+  scenarios = filter( scenarios, J.bar < 60 )
   scenarios = scenarios[1:5,]
 }
 
@@ -109,7 +109,7 @@ if ( TESTING ) {
 #NUM_TRIALS_PER_SCENARIO = round( APPROX_NUM_TRIALS_PER_RUN / nrow( scenarios ) )
 scat( "Running %d trials per scenario\n", NUM_TRIALS_PER_SCENARIO )
 
-scenarios$run = pmap( scenarios, run.scenario, R = NUM_TRIALS_PER_SCENARIO )
+scenarios$run = pmap( scenarios, run.scenario, R = NUM_TRIALS_PER_SCENARIO)
 
 scat("**\n**\tTotal time elapsed:\n")
 tot.time = proc.time() - ptm
@@ -137,14 +137,34 @@ scenarios
 # Add in (estimated) superpopulation person weighted ATE
 scenarios = mutate( scenarios, 
                     ATE.super.person = map_dbl( run, ~ mean( .$ATE.finite.person ) ) )
-scenarios = rename( scenarios, 
-                    ATE.super.site = ATE )
+scenarios = mutate( scenarios, 
+                    ATE.super.site = map_dbl( run, ~ mean(.$ATE.finite.site )) )
 
 # Rearrange and foreground relevant columns
-scenarios = dplyr::select( scenarios, ID, J, n.bar, tau, dependence, ATE.super.site, ATE.super.person, everything() )
+scenarios = dplyr::select( scenarios, ID, K, J.bar, p.bar, sd.district, variable.J,
+                           variable.p, n.bar, tau.11, ICC, variable.n,
+                           size.impact.correlate.clust, size.impact.correlate.indiv,
+                           proptx.impact.correlate.clust,
+                           ATE.super.distrcit = ATE.district, ATE.super.site, 
+                           ATE.super.person, everything() )
 scenarios
 
 filename = make.file.name(index)
 saveRDS( scenarios, file=filename )
 scat( "Simulations saved to '%s'\n", filename )
+
+
+
+
+
+
+# TODO:
+#
+# 1) fix ATE.finite.person, ATE.finite.site terminology / what we want!
+#     - ATE.finite.person is person-weighted
+#     - ATE.finite.site is school-weighted (rename this?)
+#     - added ATE.finite.district (this is just ATE.district in the superpop I think)
+#
+# 2) fix...?
+
 
