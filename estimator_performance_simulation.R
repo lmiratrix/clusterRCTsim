@@ -145,8 +145,10 @@ scenarios = dplyr::select( scenarios, ID, K, J.bar, p.bar, sd.district, variable
                            variable.p, n.bar, tau.11, ICC, variable.n,
                            size.impact.correlate.clust, size.impact.correlate.indiv,
                            proptx.impact.correlate.clust,
-                           ATE.super.distrcit = ATE.district, ATE.super.site, 
-                           ATE.super.person, everything() )
+                           ATE.super.district = ATE.district, 
+                           ATE.super.site, 
+                           ATE.super.person, 
+                           everything() )
 scenarios
 
 filename = make.file.name(index)
@@ -165,6 +167,7 @@ scat( "Simulations saved to '%s'\n", filename )
 #     - ATE.finite.site is school-weighted (rename this?)
 #     - added ATE.finite.district (this is just ATE.district in the superpop I think)
 #
-# 2) fix...?
+# 2) figure out full structure, what is needed, what is chaff
+# 
 
 

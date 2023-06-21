@@ -24,7 +24,7 @@ library( ggthemes )
 my_theme = theme_tufte() + theme( legend.position="bottom", 
                                   legend.direction="horizontal", legend.key.width=unit(1,"cm"),
                                   legend.box = "vertical", 
-                                  panel.border=element_rect(size=0.3, fill=NA))
+                                  panel.border=element_rect(linewidth=0.3, fill=NA))
 theme_set( my_theme )
 
 
