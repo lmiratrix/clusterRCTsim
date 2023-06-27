@@ -136,38 +136,26 @@ scenarios
 
 # Add in (estimated) superpopulation person weighted ATE
 scenarios = mutate( scenarios, 
-                    ATE.super.person = map_dbl( run, ~ mean( .$ATE.finite.person ) ) )
-scenarios = mutate( scenarios, 
-                    ATE.super.site = map_dbl( run, ~ mean(.$ATE.finite.site )) )
+                    ATE.super.student = map_dbl( run, ~ mean( .$ATE.finite.student ) ),
+                    ATE.super.school = map_dbl( run, ~ mean(.$ATE.finite.school )),
+                    ATE.super.dist.student = map_dbl( run, ~ mean(.$ATE.finite.dist.student ) ),
+                    ATE.super.dist.school = map_dbl( run, ~ mean(.$ATE.finite.dist.school ) ))
 
 # Rearrange and foreground relevant columns
-scenarios = dplyr::select( scenarios, ID, K, J.bar, p.bar, sd.district, variable.J,
-                           variable.p, n.bar, tau.11, ICC, variable.n,
-                           size.impact.correlate.clust, size.impact.correlate.indiv,
-                           proptx.impact.correlate.clust,
+scenarios = dplyr::select( scenarios, ID, K, J.bar, p.bar, sd.district, ICC.district, variable.J,
+                           variable.p, n.bar, sd.school, ICC.school, variable.n,
+                           size.impact.cor.district, size.impact.cor.school,
+                           proptx.impact.cor.district,
+                           
                            ATE.super.district = ATE.district, 
-                           ATE.super.site, 
-                           ATE.super.person, 
+                           ATE.super.school, 
+                           ATE.super.student, 
+                           ATE.super.dist.student,
+                           ATE.super.dist.school,
                            everything() )
 scenarios
 
 filename = make.file.name(index)
 saveRDS( scenarios, file=filename )
 scat( "Simulations saved to '%s'\n", filename )
-
-
-
-
-
-
-# TODO:
-#
-# 1) fix ATE.finite.person, ATE.finite.site terminology / what we want!
-#     - ATE.finite.person is person-weighted
-#     - ATE.finite.site is school-weighted (rename this?)
-#     - added ATE.finite.district (this is just ATE.district in the superpop I think)
-#
-# 2) figure out full structure, what is needed, what is chaff
-# 
-
 
