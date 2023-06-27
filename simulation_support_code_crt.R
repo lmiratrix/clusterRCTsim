@@ -665,7 +665,7 @@ make.scenario.list = function( group = "main" ) {
       ATE.district = 0.2, 
       sd.district = 0.1,
       ICC.district = 0.2,
-      variable.J = c(T),
+      variable.J = c(T,F),
       variable.p = c(T),
       
       # cluster-level params

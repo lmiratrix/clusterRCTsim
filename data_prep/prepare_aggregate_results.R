@@ -31,15 +31,17 @@ load( "results/processed_simulation_results.RData" )
 cat( "Now processing\n" )
 
 
-# Get characteristics of the different methods
-mc = blkvar::method.characteristics()
-mc
+# # Get characteristics of the different methods
+# mc = blkvar::method.characteristics()
+# mc
 
 table( sruns$method )
 
 # Select methods to get the unique point estimates
-selected = c( "DB-FP-Persons", "DB-FP-Sites", "FE", "RICC", "FIRC", "RIRC" )
-core.selected = c( "DB-Persons", "DB-Sites", "FE", "FIRC" )
+selected = c( "DB_clust (FE)", "DB_clust (int)", "DB_indiv (FE)", "DB_indiv (int)",
+              "LR (agg)", "LR (agg, wt)", "LR w/ CRSE", "MLM" )
+core.selected = c( "DB_clust (FE)", "DB_indiv (FE)",
+                   "LR (agg)", "LR w/ CRSE", "MLM" )
 cat( "Selecting:\n" )
 print( selected )
 cat( "Core Selecting:\n" )
@@ -50,6 +52,10 @@ print( core.selected )
 # sruns - dataframe of aggregated results.  These were calculated in prepare_aggregate_results
 head( sruns )
 nrow( sruns ) / length( unique( sruns$method ) )
+
+
+
+# TODO: below here!
 
 
 

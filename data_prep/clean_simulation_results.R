@@ -42,46 +42,48 @@ scenarios$ID
 head( scenarios$run[[1]] )
 head( scenarios$run[[10]] )
 
-table( scenarios$J, scenarios$tau )
-table( scenarios$proptx.dependence, scenarios$dependence )
-table( scenarios$variable.n, scenarios$variable.p )
-
-# Make the names of the factors better
-scenarios$dependence = ifelse( scenarios$dependence == 1, "corr", "indep" )
-scenarios$proptx.dependence = ifelse( scenarios$proptx.dependence == 1, "pcorr", 
-                                      ifelse( scenarios$proptx.dependence == -1, "ncorr", "indep" ) )
 
 
-# Cleverness: Merge the novariation and correlation factors to make single factor!
-table( scenarios$dependence, scenarios$variable.n )
-scenarios$dependence = ifelse( scenarios$variable.n, scenarios$dependence, "const" )
-scenarios$dependence = factor( scenarios$dependence, c( "const", "indep", "corr" ) )
-table( scenarios$dependence )
-
-table( scenarios$proptx.dependence, scenarios$variable.p )
-scenarios$proptx.dependence = ifelse( scenarios$variable.p, scenarios$proptx.dependence, "const" )
-scenarios$proptx.dependence = factor( scenarios$proptx.dependence, c( "ncorr", "const", "indep", "pcorr" ) )
-table( scenarios$proptx.dependence )
-
-# Turn to cross site variation in SD
-scenarios = mutate( scenarios, tau = sqrt( tau ) )
 
 
-# simple checks on data structure
-head( scenarios$run[[40]] )
-table( table( scenarios$run[[40]]$subrun ) )
-table( table( scenarios$run[[40]]$run ) )
-filter( scenarios$run[[40]], subrun=="1.3.1" )
+
+
+# # Make the names of the factors better
+# scenarios$dependence = ifelse( scenarios$dependence == 1, "corr", "indep" )
+# scenarios$proptx.dependence = ifelse( scenarios$proptx.dependence == 1, "pcorr", 
+#                                       ifelse( scenarios$proptx.dependence == -1, "ncorr", "indep" ) )
+# 
+# 
+# # Cleverness: Merge the novariation and correlation factors to make single factor!
+# table( scenarios$dependence, scenarios$variable.n )
+# scenarios$dependence = ifelse( scenarios$variable.n, scenarios$dependence, "const" )
+# scenarios$dependence = factor( scenarios$dependence, c( "const", "indep", "corr" ) )
+# table( scenarios$dependence )
+# 
+# table( scenarios$proptx.dependence, scenarios$variable.p )
+# scenarios$proptx.dependence = ifelse( scenarios$variable.p, scenarios$proptx.dependence, "const" )
+# scenarios$proptx.dependence = factor( scenarios$proptx.dependence, c( "ncorr", "const", "indep", "pcorr" ) )
+# table( scenarios$proptx.dependence )
+# 
+# # Turn to cross site variation in SD
+# scenarios = mutate( scenarios, tau = sqrt( tau ) )
+# 
+# 
+# # simple checks on data structure
+# head( scenarios$run[[40]] )
+# table( table( scenarios$run[[40]]$subrun ) )
+# table( table( scenarios$run[[40]]$run ) )
+# filter( scenarios$run[[40]], subrun=="1.3.1" )
 
 
 # Make a dataframe of each simulation
-simdata = unnest( scenarios )
+simdata = unnest( scenarios, cols=c(run) )
 
 # Drop simulations from the scenarios frame
 scenarios$run = NULL
 
-# Drop uninteresting estimators
-simdata = filter( simdata, !( method %in% c( "plug_in_big", "hybrid_p", "hybrid_m", "FE-IPTW(n)" )))
+# # Drop uninteresting estimators
+# simdata = filter( simdata, !( method %in% c( "plug_in_big", "hybrid_p", "hybrid_m", "FE-IPTW(n)" )))
 
 simdata
 
@@ -91,13 +93,13 @@ simdata
 filter( simdata, is.na( method ) )
 simdata = filter( simdata, !is.na( method ) )
 
-failed = filter( simdata, is.na( SE.hat ) )
+failed = filter( simdata, is.na( SE.hat ) | is.infinite( SE.hat ) )
 nrow( failed )
 table( failed$method, useNA ="always" )
 
 if ( nrow( failed ) > 0 ) {
   warning( "Dropping some runs without estimated SEs" )
-  simdata = filter( simdata, !is.na( SE.hat ) )
+  simdata = filter( simdata, !(is.na( SE.hat ) | is.infinite( SE.hat )) )
 }
 
 
@@ -109,34 +111,60 @@ cover.vector = function( ATE.hat, SE.hat, estimand ) {
 }
 
 simdata = mutate( simdata, 
-                  cov.fp = cover.vector( ATE.hat, SE.hat, ATE.finite.person ),
-                  cov.fs = cover.vector( ATE.hat, SE.hat, ATE.finite.site),
-                  cov.sp = cover.vector( ATE.hat, SE.hat, ATE.super.person ),
-                  cov.ss = cover.vector( ATE.hat, SE.hat, ATE.super.site ) )
-
+                  cov.f.stu = cover.vector( ATE.hat, SE.hat, ATE.finite.student ),
+                  cov.f.sch = cover.vector( ATE.hat, SE.hat, ATE.finite.school),
+                  cov.f.dstu = cover.vector( ATE.hat, SE.hat, ATE.finite.dist.student ),
+                  cov.f.dsch = cover.vector( ATE.hat, SE.hat, ATE.finite.dist.school),
+                  
+                  cov.s.stu = cover.vector( ATE.hat, SE.hat, ATE.super.student ),
+                  cov.s.sch = cover.vector( ATE.hat, SE.hat, ATE.super.school ),
+                  cov.s.dstu = cover.vector( ATE.hat, SE.hat, ATE.super.dist.student ),
+                  cov.s.dsch = cover.vector( ATE.hat, SE.hat, ATE.super.dist.school ))
 
 
 ##### Aggegate by scenario and calculate summary stats for these scenarios.  #####
 sruns = simdata %>% group_by( ID, method ) %>%
   summarise( mean.SE.hat = mean( SE.hat ),
-             bias.fp = mean( ATE.hat - ATE.finite.person ),
-             bias.fs = mean( ATE.hat - ATE.finite.site ),
-             bias.sp = mean( ATE.hat - ATE.super.person ),
-             bias.ss = mean( ATE.hat - ATE.super.site ),
-             RMSE.fp = sqrt( mean( ( ATE.hat - ATE.finite.person )^2 ) ),
-             RMSE.fs = sqrt( mean( ( ATE.hat - ATE.finite.site   )^2 ) ),
-             RMSE.sp = sqrt( mean( ( ATE.hat - ATE.super.person  )^2 ) ),
-             RMSE.ss = sqrt( mean( ( ATE.hat - ATE.super.site    )^2 ) ),
-             sd.ATE.fp = sd( ATE.finite.person ),
-             sd.ATE.fs = sd( ATE.finite.site ),
+             
+             bias.f.stu = mean( ATE.hat - ATE.finite.student ),
+             bias.f.sch = mean( ATE.hat - ATE.finite.school ),
+             bias.f.dstu = mean( ATE.hat - ATE.finite.dist.student ),
+             bias.f.dsch = mean( ATE.hat - ATE.finite.dist.school ),
+             bias.s.stu = mean( ATE.hat - ATE.super.student ),
+             bias.s.sch = mean( ATE.hat - ATE.super.school ),
+             bias.s.dstu = mean( ATE.hat - ATE.super.dist.student ),
+             bias.s.dsch = mean( ATE.hat - ATE.super.dist.school ),
+             
+             RMSE.f.stu = sqrt( mean( ( ATE.hat - ATE.finite.student )^2 ) ),
+             RMSE.f.sch = sqrt( mean( ( ATE.hat - ATE.finite.school   )^2 ) ),
+             RMSE.f.dstu = sqrt( mean( ( ATE.hat - ATE.finite.dist.student )^2 ) ),
+             RMSE.f.dsch = sqrt( mean( ( ATE.hat - ATE.finite.dist.school   )^2 ) ),
+             RMSE.s.stu = sqrt( mean( ( ATE.hat - ATE.super.student  )^2 ) ),
+             RMSE.s.sch = sqrt( mean( ( ATE.hat - ATE.super.school )^2 ) ),
+             RMSE.s.dstu = sqrt( mean( ( ATE.hat - ATE.super.dist.student  )^2 ) ),
+             RMSE.s.dsch = sqrt( mean( ( ATE.hat - ATE.super.dist.school )^2 ) ),
+             
+             sd.ATE.f.stu = sd( ATE.finite.student ),
+             sd.ATE.f.sch = sd( ATE.finite.school ),
+             sd.ATE.f.dstu = sd( ATE.finite.dist.student ),
+             sd.ATE.f.dsch = sd( ATE.finite.dist.school ),
+             
              SE.s = sd( ATE.hat ),
              sd.SE.hat.s = sd( SE.hat ),
-             cover.fp = mean( cov.fp ),
-             cover.fs = mean( cov.fs ),
-             cover.sp = mean( cov.sp ),
-             cover.ss = mean( cov.ss ),
-             var.err2.sp = var( ATE.hat - ATE.super.person ),
-             var.err2.ss = var( ATE.hat - ATE.super.site ) )
+             
+             cover.f.stu = mean( cov.f.stu ),
+             cover.f.sch = mean( cov.f.sch ),
+             cover.f.dstu = mean( cov.f.dstu ),
+             cover.f.dsch = mean( cov.f.dsch ),
+             cover.s.stu = mean( cov.s.stu ),
+             cover.s.sch = mean( cov.s.sch ),
+             cover.s.dstu = mean( cov.s.dstu ),
+             cover.s.dsch = mean( cov.s.dsch ),
+             
+             var.err2.s.stu = var( ATE.hat - ATE.super.student ),
+             var.err2.s.sch = var( ATE.hat - ATE.super.school ),
+             var.err2.s.dstu = var( ATE.hat - ATE.super.dist.student ),
+             var.err2.s.dsch = var( ATE.hat - ATE.super.dist.school ))
 
 # Add in the info on the scenario to the results.
 sruns = merge( scenarios, sruns, by="ID" )
@@ -145,7 +173,7 @@ head( sruns )
 
 ##### Ensure no bad sim runs #####
 # look for missing SE estimates
-badIDs = filter( sruns, is.na( mean.SE.hat ) | is.na( RMSE.fp )  )
+badIDs = filter( sruns, is.na( mean.SE.hat ) | is.na( RMSE.f.stu )  )
 if ( nrow( badIDs ) > 0 ) {
   warning( "Continuing to drop runs with missing estimated SEs or RMSEs" )
   badIDs = unique( badIDs$ID )
@@ -165,7 +193,6 @@ if ( nrow( failed ) > 0 ) {
   stop()
 }
 
-
 # Which IDs are missing stats for some of the methods?
 ss = sruns %>% ungroup() %>% dplyr::select( ID, method, mean.SE.hat ) %>%
   spread( method, mean.SE.hat )
@@ -176,7 +203,6 @@ if ( nrow( not.comp ) > 0 ) {
   print( not.comp )
   stop()
 }
-
 
 
 ##### calculate the finite sample SE using our nested simulations  #####
@@ -227,14 +253,14 @@ nrow( sruns )
 
 ##### Add in the different method characteristics #####
 
-# Get characteristics of the different methods
-mc = blkvar::method.characteristics()
-mc
-
-# Add method stats to the simulation results data
-sruns = merge( sruns, mc, by="method" )
-
-rm( mc )
+# # Get characteristics of the different methods
+# mc = clusterRCT::method.characteristics()
+# mc
+# 
+# # Add method stats to the simulation results data
+# sruns = merge( sruns, mc, by="method" )
+# 
+# rm( mc )
 
 
 

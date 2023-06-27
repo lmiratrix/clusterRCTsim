@@ -25,7 +25,7 @@ load.all.sims = function( filehead="results/" ) {
 }
 
 
-results = load.all.sims( filehead="raw_results/" )
+results = load.all.sims( filehead="results/" )
 #res2 = load.all.sims( filehead = "od_res_run1/" )
 #results
 #results = bind_rows( results, res2, .id="batch" )
@@ -78,36 +78,50 @@ if ( FALSE ) {
 #}
 #close(pb)
 
-results = unnest( results )
+results = unnest( results, cols=c(run) )
 nrow( results )
-results = mutate( results, run = paste( batch , run, sep="." ),
+results = mutate( results, 
+                  run = paste( batch , run, sep="." ),
                   subrun = paste( batch, subrun, sep="." ) )
 results
 head( results$subrun )
 head( results$run )
 
-results = results %>% dplyr::select( -filename, -batch ) %>%
+results = results %>% 
+  dplyr::select( -filename, -batch ) %>%
   group_by( ID ) %>%
-  mutate( ATE.super.person = mean( ATE.super.person ),
+  mutate( across(c(ATE.super.district, ATE.super.school, ATE.super.student,
+                          ATE.super.dist.school, ATE.super.dist.student),
+                 mean),
           sim.per.min = mean( sim.per.min ),
-          R = length( unique( run ) ) ) %>% ungroup() %>%
-  group_by( ID, J, n.bar, tau, dependence, proptx.dependence, variable.n, variable.p, ATE.super.site, ATE.super.person, sim.per.min, R ) %>%
-    nest()
+          R = length( unique( run ) ) ) %>% 
+  ungroup() %>%
+  group_by( ID, K, J.bar, p.bar, sd.district, ICC.district, variable.J, variable.p, 
+            n.bar, sd.school, ICC.school, variable.n,
+            size.impact.cor.district, size.impact.cor.school,
+            proptx.impact.cor.district,
+            ATE.super.district, ATE.super.school, ATE.super.student,
+            ATE.super.dist.school, ATE.super.dist.student,
+            sim.per.min, R) %>% 
+  nest()
 
 results = rename( results, run = data )
 results
 
-filter( results, duplicated( results$ID ) )
+# filter( results, duplicated( results$ID ) )   # ??? 
 
 saveRDS( results, file="results/complete_odyssey_results.rds" )
 
 
 
+
+# TODO: update below, e.g., instead of J*n.bar it's now K*J.bar*n.bar, etc.
+
 ##### Check that we got all scenarios and how many reps for each scenario #####
 
-source( "simulation_support_code.R" )
+source( "simulation_support_code_crt.R" )
 
-lst = make.scenario.list()
+lst = make.scenario.list(group="initial")
 lst$ID = 1:nrow(lst)
 setdiff( lst$ID, results$ID )
 setdiff( results$ID, lst$ID )
