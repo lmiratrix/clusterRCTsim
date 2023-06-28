@@ -108,7 +108,7 @@ results = results %>%
 results = rename( results, run = data )
 results
 
-# filter( results, duplicated( results$ID ) )   # ??? 
+# filter( results, duplicated( results$ID ) )   # ??? not sure why we did this?
 
 saveRDS( results, file="results/complete_odyssey_results.rds" )
 
@@ -117,67 +117,67 @@ saveRDS( results, file="results/complete_odyssey_results.rds" )
 
 # TODO: update below, e.g., instead of J*n.bar it's now K*J.bar*n.bar, etc.
 
-##### Check that we got all scenarios and how many reps for each scenario #####
-
-source( "simulation_support_code_crt.R" )
-
-lst = make.scenario.list(group="initial")
-lst$ID = 1:nrow(lst)
-setdiff( lst$ID, results$ID )
-setdiff( results$ID, lst$ID )
-nrow( results )
-nrow( lst )
-
-head( results$run[[1]] )
-
-results$R = map_dbl( results$run, function( dd ) { length( unique( dd$run ) ) } )
-
-results = arrange( results, ID )
-results
-
-table( results$ATE.super.site )
-
-summary( results$R )
-
-
-##### Make overall runtime stats for each scenario ######
-
-simstats = results %>% dplyr::select( -run )
-simstats
-
-#ggplot( simstats, aes( R ) ) +
-#  facet_wrap( ~ J ) +
-#  geom_histogram()
-
-quantile( simstats$sim.per.min, 0.05 )
-slow = filter( simstats, sim.per.min < quantile( sim.per.min, 0.05 ) )
-slow
-slow$J * slow$n.bar
-
-summary( simstats$sim.per.min )
-
-simstats$sec.per.sim = 60 / simstats$sim.per.min
-
-# Calculate how long 1000 trials would run, expected
-timings = 1000 * simstats$sec.per.sim / (60 * 60)
-summary( timings )
-
-simstats$n = simstats$n.bar * simstats$J
-M0 = lm( log(sec.per.sim) ~ I(J/5)  + I(n/100) + dependence + proptx.dependence + tau, data=simstats )
-summary( M0 )
-exp( coef( M0 ) )
-
-timings = simstats %>% group_by( J, n ) %>% summarise( low.time = quantile( sec.per.sim, 0.90 ),
-                                            median.time = median( sec.per.sim ) )
-ggplot( timings, aes( n, low.time, col=J, group=J ) ) + geom_line() + geom_point()
-
-
-simstats = mutate( simstats,
-                         e.time = 1.13^(J/5) +	1.0183^(n/100) )
-summary( simstats$e.time )
-
-qplot( e.time, sec.per.sim, data=simstats ) +
-  geom_abline(intercept = 0, slope = 1 )
+# ##### Check that we got all scenarios and how many reps for each scenario #####
+# 
+# source( "simulation_support_code_crt.R" )
+# 
+# lst = make.scenario.list(group="initial")
+# lst$ID = 1:nrow(lst)
+# setdiff( lst$ID, results$ID )
+# setdiff( results$ID, lst$ID )
+# nrow( results )
+# nrow( lst )
+# 
+# head( results$run[[1]] )
+# 
+# results$R = map_dbl( results$run, function( dd ) { length( unique( dd$run ) ) } )
+# 
+# results = arrange( results, ID )
+# results
+# 
+# table( results$ATE.super.site )
+# 
+# summary( results$R )
+# 
+# 
+# ##### Make overall runtime stats for each scenario ######
+# 
+# simstats = results %>% dplyr::select( -run )
+# simstats
+# 
+# #ggplot( simstats, aes( R ) ) +
+# #  facet_wrap( ~ J ) +
+# #  geom_histogram()
+# 
+# quantile( simstats$sim.per.min, 0.05 )
+# slow = filter( simstats, sim.per.min < quantile( sim.per.min, 0.05 ) )
+# slow
+# slow$J * slow$n.bar
+# 
+# summary( simstats$sim.per.min )
+# 
+# simstats$sec.per.sim = 60 / simstats$sim.per.min
+# 
+# # Calculate how long 1000 trials would run, expected
+# timings = 1000 * simstats$sec.per.sim / (60 * 60)
+# summary( timings )
+# 
+# simstats$n = simstats$n.bar * simstats$J
+# M0 = lm( log(sec.per.sim) ~ I(J/5)  + I(n/100) + dependence + proptx.dependence + tau, data=simstats )
+# summary( M0 )
+# exp( coef( M0 ) )
+# 
+# timings = simstats %>% group_by( J, n ) %>% summarise( low.time = quantile( sec.per.sim, 0.90 ),
+#                                             median.time = median( sec.per.sim ) )
+# ggplot( timings, aes( n, low.time, col=J, group=J ) ) + geom_line() + geom_point()
+# 
+# 
+# simstats = mutate( simstats,
+#                          e.time = 1.13^(J/5) +	1.0183^(n/100) )
+# summary( simstats$e.time )
+# 
+# qplot( e.time, sec.per.sim, data=simstats ) +
+#   geom_abline(intercept = 0, slope = 1 )
 
 
 

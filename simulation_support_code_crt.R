@@ -63,27 +63,17 @@ get.estimates = function( df, ... ) {
 }
 
 
-
-# Reassign treatment within a district (to do finite sample inference)
-rerandomize.data.district = function( dat, p ) {
-  stopifnot(length(unique(dat$did)) == 1)
-  dat %>%
-    mutate(
-      # sid = droplevels(sid),   # avoid empty factor level issues with clusters=sid
-      Z = randomizr::cluster_ra(clusters = sid, prob = p),
-      Yobs = ifelse( Z == 1, Y1, Y0 ) )
-}
 # Reassign treatment to all districts
 rerandomize.data = function( dat ) {
   grid <- attr(dat, "district_key")
   
-  dat <- dat %>% 
-    split(~did) %>% 
-    purrr::map2(grid$p, ~rerandomize.data.district(.x, .y)) %>% 
-    purrr::list_rbind()
-  
-  attr(dat, "district_key") <- grid
-  dat
+  dat %>% 
+    left_join(select(grid, did, p), by="did") %>% 
+    mutate(Z = randomizr::block_and_cluster_ra(
+      blocks=did,
+      clusters=sid, 
+      prob_unit=p)) %>% 
+    select(-p)
 }
 
 
@@ -299,6 +289,13 @@ generate_districts <- function(
   grid$J <- num_clusters
   grid$p <- prop_tx_clusters
   
+  # force rerandomize.data() to assign at least two treated/control clusters
+  #  to each district, by applying floor and ceiling to p, depending on J
+  #   - i.e., force 2 <= J*p <= J-2
+  grid <- grid %>% 
+    mutate(p = ifelse(J*p < 2, 2/J, p),
+           p = ifelse(J*p > J-2, (J-2)/J, p))
+  
   # make student-level dataset
   sim.data <- grid %>%
     rowwise() %>%
@@ -464,7 +461,7 @@ single.CRT = function( # district-level params
   ATE.dist.school <- beta_jks %>% 
     summarize(J_k = n(),
               s = sum(beta_jk)) %>% 
-    summarize(ATE.dist.school = sum(J_k*s) / sum(J_k) / n()) %>% 
+    summarize(ATE.dist.school = sum(s/J_k) / n()) %>% 
     pull(ATE.dist.school)
   
   # Do finite-sample simulation, rerandomizing n.runs times.  
@@ -490,7 +487,7 @@ if ( F ) {
   # NOTE: DB estimators will return infinite SEs if there are
   #  fewer than two tx and co clusters in any district
   res <- single.CRT(
-    K=10, J.bar=50, p.bar=0.5,
+    K=10, J.bar=10, p.bar=0.5,
     variable.J=T, variable.p=T,
     ATE.district=0.2, sd.district=0.1, 
     ICC.district=0.2,
@@ -502,7 +499,7 @@ if ( F ) {
     variable.n=T,
     include_method_characteristics=F)
   
-  res
+  head(res)
 }
 
 
