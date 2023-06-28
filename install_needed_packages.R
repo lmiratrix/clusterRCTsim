@@ -1,5 +1,11 @@
 
 install.packages( "tidyverse" )
+
+install.packages("randomizr")
+install.packages("estimatr")
+install.packages("lme4")
+install.packages("lmerTest")
+install.packages("multiwayvcov")
+
 install.packages("devtools")
-library(devtools)
-install_github("lmiratrix/blkvar")
+devtools::install_github("lmiratrix/clusterRCT")

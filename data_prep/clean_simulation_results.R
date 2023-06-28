@@ -40,7 +40,6 @@ head( scenarios )
 nrow( scenarios )
 scenarios$ID
 head( scenarios$run[[1]] )
-head( scenarios$run[[10]] )
 
 
 

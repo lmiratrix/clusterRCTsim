@@ -128,8 +128,6 @@ scat( "**\n**")
 
 #### Clean up the simulation results a wee bit ####
 
-#scenarios$ID = index
-
 # Rearrange columns to be nice
 scenarios = dplyr::select( scenarios, ID, everything() )
 scenarios
@@ -142,7 +140,8 @@ scenarios = mutate( scenarios,
                     ATE.super.dist.school = map_dbl( run, ~ mean(.$ATE.finite.dist.school ) ))
 
 # Rearrange and foreground relevant columns
-scenarios = dplyr::select( scenarios, ID, K, J.bar, p.bar, sd.district, ICC.district, variable.J,
+scenarios = dplyr::select( scenarios, 
+                           ID, K, J.bar, p.bar, sd.district, ICC.district, variable.J,
                            variable.p, n.bar, sd.school, ICC.school, variable.n,
                            size.impact.cor.district, size.impact.cor.school,
                            proptx.impact.cor.district,
@@ -158,4 +157,9 @@ scenarios
 filename = make.file.name(index)
 saveRDS( scenarios, file=filename )
 scat( "Simulations saved to '%s'\n", filename )
+
+
+# NOTE: ID refers to simulation scenario, NOT index variable!
+
+
 
