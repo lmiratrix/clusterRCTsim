@@ -1,10 +1,12 @@
 #!/bin/bash
 
+#SBATCH -A miratrix_lab # lab account
+
 #SBATCH -n 1  #Number of cores
 
-#SBATCH -t 300  #Runtime in minutes
+#SBATCH -t 60  #Runtime in minutes
 
-#SBATCH -p stats #Partition to submit to
+#SBATCH -p test #Partition to submit to
 
 #SBATCH --mem=1000 #Memory per node in MB (see also --mem-per-cpu)
 
