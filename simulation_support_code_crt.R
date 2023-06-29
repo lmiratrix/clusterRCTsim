@@ -670,13 +670,13 @@ make.scenario.list = function( group = "main" ) {
       variable.n = c(T,F),
       
       # size and correlation params
-      size.impact.cor.district = c(-0.75,0,0.75),
-      size.impact.cor.school = c(-0.75,0,0.75),
-      proptx.impact.cor.district = c(-1,0,1))
+      size.impact.cor.district = c(0,0.75),
+      size.impact.cor.school = c(0,1),
+      proptx.impact.cor.district = c(0, 0.75))
   } else if ( group == "initial" ) {
     scenarios = expand.grid( 
-      K = c(5,20), 
-      J.bar = c(20,80),
+      K = c(10), 
+      J.bar = c(20,50),
       p.bar = c(0.5),
       ATE.district = 0.2, 
       sd.district = 0.1,
@@ -685,15 +685,15 @@ make.scenario.list = function( group = "main" ) {
       variable.p = c(T,F),
       
       # cluster-level params
-      n.bar = c(25,100), 
+      n.bar = c(50), 
       sd.school = c(0.1), 
       ICC.school = 0.2,
       variable.n = c(T,F),
       
       # size and correlation params
       size.impact.cor.district = c(0,0.75),
-      size.impact.cor.school = c(0,0.75),
-      proptx.impact.cor.district = c(0,1))
+      size.impact.cor.school = c(0,1),
+      proptx.impact.cor.district = c(0,0.75))
     
   } else {
     error( "No defined group in make.scenario.list" )
