@@ -42,8 +42,14 @@ if ( length( args ) > 0 ) {
 }
 
 if ( !exists( "index" ) ) {
-  index <- as.numeric(as.character(Sys.getenv("INDEX_VAR")))
-  scat( "Retrieved index from environment variable INDEX_VAR: %d\n", index )
+  # check if we're using a slurm array -- if so, use SLURM_ARRAY_TASK_ID
+  if (Sys.getenv("SLURM_ARRAY_TASK_ID") != "") {
+    index <- as.numeric(as.character(Sys.getenv("SLURM_ARRAY_TASK_ID")))
+    scat( "Retrieved index from environment variable SLURM_ARRAY_TASK_ID: %d\n", index )
+  } else {   # otherwise use INDEX_VAR, from execute_runfullsim.sh
+    index <- as.numeric(as.character(Sys.getenv("INDEX_VAR")))
+    scat( "Retrieved index from environment variable INDEX_VAR: %d\n", index )
+  }
 }
 
 
