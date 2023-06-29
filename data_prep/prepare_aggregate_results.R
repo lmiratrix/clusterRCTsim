@@ -107,9 +107,10 @@ calc.stats = function( runs.m ) {
 
 
 # For making tables with intervals
+#  - computes (0.05, 0.95) quantile interval
 get.interval = function( vals, digits=0 ) {
   qt = quantile( vals, c( 0.05, 0.95 ) )
-  if ( diff( range( qt, 100 ) ) < 0.00001 ) {
+  if ( diff( range( qt, 100 ) ) < 0.00001 ) {   # what is this???
     "Pig"
   } else {
     #sprintf( "%.0f (%.0f-%.0f)", mean( vals ), qt[[1]], qt[[2]] )
@@ -130,13 +131,9 @@ mns.full = sruns.core %>%
   group_by( ID ) %>% 
   do( calc.stats(.) ) %>% 
   ungroup()
-mns = dplyr::filter( mns, method %in% core.selected )
+mns = mns.full %>% 
+  dplyr::filter(method %in% core.selected )
 # mns$method = droplevels( mns$method )
-
-
-# TODO: below here!
-stop("haven't updated beyond here")
-
 
 
 #### Divide scenarios into variable (main) scenarios and the rest  #####
@@ -155,7 +152,8 @@ sruns.novar = filter( sruns, variable.p == FALSE | variable.n == FALSE )
 cat( "Now processing SE performance metrics\n" )
 
 table( mns$method )
-SE.table = mns %>% filter( method %in% core.selected ) %>%
+SE.table = mns %>% 
+  filter( method %in% core.selected ) %>%
   group_by( method ) %>%
   summarise( finite = mean( SE.f ),
              range.f = get.interval( SE.f ),
@@ -168,25 +166,25 @@ SE.table[ SE.table=="Pig" ] = NA
 SE.table
 
 
-filter( mns, method=="FIRC", SE.f > 115 )
-mns$n = mns$n.bar * mns$J 
-ggplot( filter( mns, method=="FIRC" ), aes( n, SE.f, pch=dependence, col=proptx.dependence ) ) +
-  facet_grid( J ~ tau ) +
-  geom_point()
-
-
-filter( mns, method=="FIRC", tau==0, J == 20 )
-
-M0 = lm( SE.f ~ dependence + proptx.dependence + J + n.bar + n + tau, data=filter( mns, method=="FIRC" ) )
-summary( M0 )
-round( coef( M0 ), digits=1 )
+# filter( mns, method=="FIRC", SE.f > 115 )
+# mns$n = mns$n.bar * mns$J 
+# ggplot( filter( mns, method=="FIRC" ), aes( n, SE.f, pch=dependence, col=proptx.dependence ) ) +
+#   facet_grid( J ~ tau ) +
+#   geom_point()
+# 
+# 
+# filter( mns, method=="FIRC", tau==0, J == 20 )
+# M0 = lm( SE.f ~ dependence + proptx.dependence + J + n.bar + n + tau, data=filter( mns, method=="FIRC" ) )
+# summary( M0 )
+# round( coef( M0 ), digits=1 )
 
 
 # Looking at simulation uncertainty for the table
 head( mns )
 summary( mns$SE.SE.s )
 
-mns %>% filter( method %in% core.selected ) %>%
+mns %>% 
+  filter( method %in% core.selected ) %>%
   group_by( method ) %>%
   summarise( finite = mean( SE.f ),
              SE = sd( SE.f ) / sqrt( n() ),
@@ -198,72 +196,77 @@ mns %>% filter( method %in% core.selected ) %>%
 #### Looking at scenarios with no proportion or site size variation ####
 
 
-# Sanity check that no variation means point estimates are all the same.  They are
-simdata.const = filter( simdata, variable.p == FALSE, variable.n == FALSE ) %>%
-          filter( method %in% selected )
-head( simdata.const )
-dbs = simdata.const %>% filter( J == 40, n.bar == 200 ) %>%
-  dplyr::select( ID, subrun, method, ATE.hat ) %>% spread( key=method, value=ATE.hat )
-head( dbs )
-
-
-mns.const = sruns.novar %>%   filter( method %in% selected ) %>%
-  refactor_methods() %>%
-  group_by( ID ) %>% do( calc.stats(.) ) %>% ungroup()
-mns.const
-nrow( mns.const )
-
-table( mns.const$J, mns.const$n.bar )
-table( mns.const$tau )
-table( mns.const$ID )
-length( unique( mns.const$ID ) )
-
-# Should all be near 0.20
-summary( mns.const$ATE.super.person )
-
-head( mns.const )
-
-SE.table.const = mns.const %>% group_by( method ) %>%
-  summarise( finite = mean( SE.f ),
-             range.f = get.interval( SE.f ),
-             super = mean( SE.s ),
-             range.s = get.interval( SE.s ),
-             inflation = mean( SE.s.inf ),
-             range.i = get.interval( SE.s.inf ) )
-
-SE.table.const[ SE.table.const=="Pig" ] = NA
-SE.table.const
-  
-if ( FALSE ) {
-  tt = filter( mns, method == "DB-Sites" )
-  nrow( tt )
-  head( tt )
-  aa = dplyr::select( tt, method, tau, dependence, proptx.dependence )
-  aa = unique( aa )
-  aa
-  nrow( aa )
-}
+# # Sanity check that no variation means point estimates are all the same.  They are
+# simdata.const = filter( simdata, variable.p == FALSE, variable.n == FALSE ) %>%
+#           filter( method %in% selected )
+# head( simdata.const )
+# dbs = simdata.const %>% filter( J == 40, n.bar == 200 ) %>%
+#   dplyr::select( ID, subrun, method, ATE.hat ) %>% spread( key=method, value=ATE.hat )
+# head( dbs )
+# 
+# 
+# mns.const = sruns.novar %>%   filter( method %in% selected ) %>%
+#   refactor_methods() %>%
+#   group_by( ID ) %>% do( calc.stats(.) ) %>% ungroup()
+# mns.const
+# nrow( mns.const )
+# 
+# table( mns.const$J, mns.const$n.bar )
+# table( mns.const$tau )
+# table( mns.const$ID )
+# length( unique( mns.const$ID ) )
+# 
+# # Should all be near 0.20
+# summary( mns.const$ATE.super.person )
+# 
+# head( mns.const )
+# 
+# SE.table.const = mns.const %>% group_by( method ) %>%
+#   summarise( finite = mean( SE.f ),
+#              range.f = get.interval( SE.f ),
+#              super = mean( SE.s ),
+#              range.s = get.interval( SE.s ),
+#              inflation = mean( SE.s.inf ),
+#              range.i = get.interval( SE.s.inf ) )
+# 
+# SE.table.const[ SE.table.const=="Pig" ] = NA
+# SE.table.const
+#   
+# if ( FALSE ) {
+#   tt = filter( mns, method == "DB-Sites" )
+#   nrow( tt )
+#   head( tt )
+#   aa = dplyr::select( tt, method, tau, dependence, proptx.dependence )
+#   aa = unique( aa )
+#   aa
+#   nrow( aa )
+# }
 
 
 
 #### RMSE ####
 cat( "Now processing RMSE performance metrics\n" )
 
-RMSE.table = mns %>% filter( method %in% core.selected ) %>%
+RMSE.table = mns %>% 
+  filter( method %in% core.selected ) %>%
   group_by( method ) %>%
-  summarise( mn.fp = mean( RMSE.fp ),
-             rng.fp = get.interval( RMSE.fp ),
-             #sd.RMSE.fp = sd( RMSE.fp ),
-             mn.sp = mean( RMSE.sp ),
-             rng.sp = get.interval( RMSE.sp ),
-             #sd.RMSE.sp = sd( RMSE.sp ),
-             mn.fs = mean( RMSE.fs ),
-             rng.fs = get.interval( RMSE.fs ),
-             #    rng.fs = get.interval( RMSE.fs ),
-             #sd.RMSE.fs = sd( RMSE.fs ),
-             mn.ss = mean( RMSE.ss ),
-             rng.ss = get.interval( RMSE.ss ) )
-#sd.RMSE.ss = sd( RMSE.ss ) )
+  summarise( mn.f.stu = mean( RMSE.f.stu ),
+             rng.f.stu = get.interval( RMSE.f.stu ),
+             mn.s.stu = mean( RMSE.s.stu ),
+             rng.s.stu = get.interval( RMSE.s.stu ),
+             mn.f.dstu = mean( RMSE.f.dstu ),
+             rng.f.dstu = get.interval( RMSE.f.dstu ),
+             mn.s.dstu = mean( RMSE.s.dstu ),
+             rng.s.dstu = get.interval( RMSE.s.dstu ),
+             
+             mn.f.sch = mean( RMSE.f.sch ),
+             rng.f.sch = get.interval( RMSE.f.sch ),
+             mn.s.sch = mean( RMSE.s.sch ),
+             rng.s.sch = get.interval( RMSE.s.sch ),
+             mn.f.dsch = mean( RMSE.f.dsch ),
+             rng.f.dsch = get.interval( RMSE.f.dsch ),
+             mn.s.dsch = mean( RMSE.s.dsch ),
+             rng.s.dsch = get.interval( RMSE.s.dsch ) )
 
 RMSE.table[ RMSE.table == "Pig" ] = NA
 RMSE.table
@@ -271,16 +274,16 @@ RMSE.table
 #  mns.agg[ mns.agg[[i]] < 0.0001, i ] = NA
 #}
 
-if (FALSE) {
-# Looking at ranges
-mns2 = gather(mns, RMSE.fp, RMSE.sp, RMSE.fs, RMSE.ss, key="estimand", value="RMSE" )
-head( mns2 )
-mns2 = mns2 %>% group_by( method,estimand ) %>% 
-  summarise( q20 = quantile( RMSE, 0.20 ),
-             q80 = quantile( RMSE, 0.80 ) )
-head( mns2 )
-filter( mns2, method=="FIRC" )
-}
+# if (FALSE) {
+# # Looking at ranges
+# mns2 = gather(mns, RMSE.fp, RMSE.sp, RMSE.fs, RMSE.ss, key="estimand", value="RMSE" )
+# head( mns2 )
+# mns2 = mns2 %>% group_by( method,estimand ) %>% 
+#   summarise( q20 = quantile( RMSE, 0.20 ),
+#              q80 = quantile( RMSE, 0.80 ) )
+# head( mns2 )
+# filter( mns2, method=="FIRC" )
+# }
 
 
 #names(mns.agg) = gsub( "mean.", "", names(mns.agg ) )
@@ -292,16 +295,26 @@ filter( mns2, method=="FIRC" )
 
 
 # SE for the mean RMSE estimates
-mns %>% filter( method %in% core.selected ) %>%
+mns %>% 
+  filter( method %in% core.selected ) %>%
   group_by( method ) %>%
-  summarise( mn.fp = mean( RMSE.fp ),
-             SE.fp = sd( RMSE.fp ) / sqrt(n()),
-             mn.sp = mean( RMSE.sp ),
-             SE.sp = sd( RMSE.sp ) / sqrt(n()),
-             mn.fs = mean( RMSE.fs ),
-             SE.fs = sd( RMSE.fs ) / sqrt(n()),
-             mn.ss = mean( RMSE.ss ),
-             SE.ss = sd( RMSE.ss ) / sqrt(n()) ) %>%
+  summarise( mn.f.stu = mean( RMSE.f.stu ),
+             SE.f.stu = sd( RMSE.f.stu ) / sqrt(n()),
+             mn.s.stu = mean( RMSE.s.stu ),
+             SE.s.stu = sd( RMSE.s.stu ) / sqrt(n()),
+             mn.f.dstu = mean( RMSE.f.dstu ),
+             SE.f.dstu = sd( RMSE.f.dstu ) / sqrt(n()),
+             mn.s.dstu = mean( RMSE.s.dstu ),
+             SE.s.dstu = sd( RMSE.s.dstu ) / sqrt(n()),
+             
+             mn.f.sch = mean( RMSE.f.sch ),
+             SE.f.sch = sd( RMSE.f.sch ) / sqrt(n()),
+             mn.s.sch = mean( RMSE.s.sch ),
+             SE.s.sch = sd( RMSE.s.sch ) / sqrt(n()),
+             mn.f.dsch = mean( RMSE.f.dsch ),
+             SE.f.dsch = sd( RMSE.f.dsch ) / sqrt(n()),
+             mn.s.dsch = mean( RMSE.s.dsch ),
+             SE.s.dsch = sd( RMSE.s.dsch ) / sqrt(n()) ) %>%
   mutate_if( is.numeric, round, digits=2 )
 
 
@@ -326,95 +339,104 @@ get.interval.bias = function( vals ) {
   }
 }
 
-bias.table = mns %>% filter( method %in% core.selected ) %>%
+bias.table = mns %>% 
+  filter( method %in% core.selected ) %>%
   group_by( method ) %>%
-  summarise( mean.bias.per = mean( bias.per ),
-             rng.bias.per = get.interval.bias( bias.per ),
-             sd.bias.per = sd( bias.per ),
-             mean.bias.site= mean( bias.site ),
-             rng.bias.site = get.interval.bias( bias.site ),
-             sd.bias.site = sd( bias.site ) )
+  summarise( mean.bias.stu = mean( bias.stu ),
+             rng.bias.stu = get.interval.bias( bias.stu ),
+             sd.bias.stu = sd( bias.stu ),
+             mean.bias.sch= mean( bias.sch ),
+             rng.bias.sch = get.interval.bias( bias.sch ),
+             sd.bias.sch = sd( bias.sch ) )
 
-bias.table$sd.bias.per = bias.table$sd.bias.site = NULL
-
+bias.table$sd.bias.stu = bias.table$sd.bias.sch = NULL
 bias.table
 
 
-summary( mns$bias.p.pct )
+summary( mns$bias.stu.pct )
 
-bias.table.pct = mns %>% group_by( method ) %>%
-  summarise( mean.bias.per = mean( bias.p.pct ),
-             rng.bias.per = get.interval( bias.p.pct ),
-             mean.bias.site = mean( bias.s.pct ),
-             rng.bias.site = get.interval( bias.s.pct ) )
-
+bias.table.pct = mns %>% 
+  group_by( method ) %>%
+  summarise( mean.bias.stu = mean( bias.stu.pct ),
+             rng.bias.stu = get.interval( bias.stu.pct ),
+             mean.bias.sch = mean( bias.sch.pct ),
+             rng.bias.sch = get.interval( bias.sch.pct ) )
 bias.table.pct
 
 
-#### Examining RICC with respect to FE   and RIRC with respect to FIRC ####
 
-head( simdata )
-table( simdata$method )
-csim = filter( simdata, method %in% c( "RICC", "FE", "RIRC", "FIRC" ), variable.n == TRUE, variable.p == TRUE )
-
-head( csim )
-csim$SE.hat = NULL
-csim = spread( csim, method, ATE.hat )
-head( csim )
-
-cor( csim$FE, csim$RICC )
-round( summary( csim$FE - csim$RICC ), digits= 3 )
-mean( abs( csim$FE - csim$RICC ) > 0.01 )
-
-cor( csim$FE, csim$FIRC )
-round( summary( csim$FE - csim$FIRC ), digits= 3 )
-
-cor( csim$RIRC, csim$FIRC )
-round( summary( csim$RIRC - csim$FIRC ), digits= 3 )
-sd( csim$RIRC - csim$FIRC )
-quantile( csim$RIRC - csim$FIRC, c( 0.05, 0.95 ) )
-mean( abs( csim$RIRC - csim$FIRC ) >= 0.01 )
-mean( abs( csim$RIRC - csim$FIRC ) >= 0.02 )
-
-# How do RMSEs compare?
-cmns = filter( mns.full, method %in% c( "RICC", "FE", "RIRC", "FIRC" ) ) %>%
-  dplyr::select( method, ID, RMSE.fp ) %>%
-  spread( method, RMSE.fp )
-head( cmns )
-nrow( cmns )
-summary( cmns$RICC / cmns$FE )
-t.test( cmns$RICC / cmns$FE )
-qplot( cmns$RICC / cmns$FE )
-
-nrow( cmns )
-summary( cmns$RIRC / cmns$FIRC )
-t.test( cmns$RIRC / cmns$FIRC )
-qplot( cmns$RIRC / cmns$FIRC )
+# #### Examining RICC with respect to FE   and RIRC with respect to FIRC ####
+# 
+# head( simdata )
+# table( simdata$method )
+# csim = filter( simdata, method %in% c( "RICC", "FE", "RIRC", "FIRC" ), variable.n == TRUE, variable.p == TRUE )
+# 
+# head( csim )
+# csim$SE.hat = NULL
+# csim = spread( csim, method, ATE.hat )
+# head( csim )
+# 
+# cor( csim$FE, csim$RICC )
+# round( summary( csim$FE - csim$RICC ), digits= 3 )
+# mean( abs( csim$FE - csim$RICC ) > 0.01 )
+# 
+# cor( csim$FE, csim$FIRC )
+# round( summary( csim$FE - csim$FIRC ), digits= 3 )
+# 
+# cor( csim$RIRC, csim$FIRC )
+# round( summary( csim$RIRC - csim$FIRC ), digits= 3 )
+# sd( csim$RIRC - csim$FIRC )
+# quantile( csim$RIRC - csim$FIRC, c( 0.05, 0.95 ) )
+# mean( abs( csim$RIRC - csim$FIRC ) >= 0.01 )
+# mean( abs( csim$RIRC - csim$FIRC ) >= 0.02 )
+# 
+# # How do RMSEs compare?
+# cmns = filter( mns.full, method %in% c( "RICC", "FE", "RIRC", "FIRC" ) ) %>%
+#   dplyr::select( method, ID, RMSE.fp ) %>%
+#   spread( method, RMSE.fp )
+# head( cmns )
+# nrow( cmns )
+# summary( cmns$RICC / cmns$FE )
+# t.test( cmns$RICC / cmns$FE )
+# qplot( cmns$RICC / cmns$FE )
+# 
+# nrow( cmns )
+# summary( cmns$RIRC / cmns$FIRC )
+# t.test( cmns$RIRC / cmns$FIRC )
+# qplot( cmns$RIRC / cmns$FIRC )
 
 
 
 #### Sanity checking: RMSE^2 = bias^2 + SE^2 ####
 
 head( sruns )
-ss = sruns %>% mutate( tt.f = bias.fp^2 + SE.f^2,
-                       tt.s = bias.sp^2 + SE.s^2, 
-                       tt.ss = bias.ss^2 + SE.s^2,
-                       RMSE.check.f = tt.f - RMSE.fp^2,
-                       RMSE.check.ss = tt.ss / RMSE.ss^2,
-                       birat = bias.sp^2 / RMSE.sp^2 )
+ss = sruns %>% 
+  mutate( tt.f = bias.f.stu^2 + SE.f^2,
+          tt.s = bias.s.stu^2 + SE.s^2, 
+          tt.s.sch = bias.s.sch^2 + SE.s^2,
+          
+          RMSE.check.f = tt.f - RMSE.f.stu^2,
+          RMSE.check.s = tt.s - RMSE.s.stu^2,
+          RMSE.check.s.sch = tt.s.sch / RMSE.s.sch^2,
+          birat = bias.s.stu^2 / RMSE.s.stu^2 )
+ss$RMSE.check.f %>% summary()
+ss$RMSE.check.s %>% summary()
+ss$RMSE.check.s.sch %>% summary()
 
-summary( ss$RMSE.check.ss )
-filter( ss, RMSE.check.ss > 8 ) %>% dplyr::select( method, ID, bias.ss, RMSE.ss, SE.s )
-
-if (FALSE) {
-  sss = filter( simdata, ID == 1041, method=="FE" )
-  nrow( sss )
-  SE2.true = var( sss$ATE.hat )
-  unique( sss$ATE.super.site )
-  bias.true = mean( sss$ATE.hat ) - 0.2  
-  bias.true
-  RMSE.true = 4
-}
+# summary( ss$RMSE.check.s.sch )
+# ss %>% 
+#   filter( RMSE.check.s.sch > 8 ) %>% 
+#   dplyr::select( method, ID, bias.s.sch, RMSE.s.sch, SE.s )
+# 
+# if (FALSE) {
+#   sss = filter( simdata, ID == 1041, method=="FE" )
+#   nrow( sss )
+#   SE2.true = var( sss$ATE.hat )
+#   unique( sss$ATE.super.site )
+#   bias.true = mean( sss$ATE.hat ) - 0.2  
+#   bias.true
+#   RMSE.true = 4
+# }
 
 wack = filter( ss, birat > 1 )
 nrow( wack )
@@ -432,95 +454,99 @@ round( summary( ss$tt.s / ss$RMSE.fs^2 ), digits=3 )
 # Looking at SE vs RMSE
 head( sruns )
 
-summary( 100 * sruns$SE.f^2 / sruns$RMSE.fp^2)
+summary( 100 * sruns$SE.f^2 / sruns$RMSE.f.stu^2)
 
-summary( 100 * sruns$SE.s^2 / sruns$RMSE.sp^2)
-
-
+summary( 100 * sruns$SE.s^2 / sruns$RMSE.s.stu^2)
 
 
 
 
-##### Comparing the superpop SE.hat to finite pop SE.hat #####
-
-cat( "Now processing SE.hat comparison metrics\n" )
-
-# How often are superpop SEs lower than finite pop SEs?
-# Comparing FIRC to DB
-head( simdata )
-unique( simdata$method )
-ssub = filter( simdata, method %in% c( "FIRC", "DB-FP-Persons", "DB-FP-Sites", "FE-CR" ) ) %>% 
-  dplyr::select( ID, J, n.bar, tau, dependence, subrun, method, SE.hat )
-head( ssub )
-ssub = mutate( ssub, subrun = paste( ID, subrun, sep="." ) )
-ssub = spread( ssub, key=method, value=SE.hat )
-
-head( ssub )
-nrow( ssub )
-# Are SE estimates correlated?
-
-# This divided by dependance---but that seems unneeded.
-#ssub = ssub %>% group_by( J, n.bar, tau, dependence ) %>% 
-#  summarise( FIRC.less = mean( FIRC < `DB-FP-Persons` ),
-#             FE.CR.less = mean( `FE-CR` < `DB-FP-Persons` ),
-#             FIRC.way.less = mean( FIRC < `DB-FP-Persons` - 0.025 ),
-#             FE.CR.way.less = mean( `FE-CR` < `DB-FP-Persons` - 0.025 ),
-#             )
-#ggplot( ssub, aes( tau, percent, col=method, lty=dependence ) ) +
-#  facet_grid( J ~ n.bar, labeller = label_both ) +
-#  geom_point() + geom_line()
-ssub = ssub %>% group_by( J, n.bar, tau ) %>% 
-  summarise( FIRC.less = mean( FIRC < `DB-FP-Persons` ),
-             FE_CR.less = mean( `FE-CR` < `DB-FP-Persons` ),
-             FIRC.way_less = mean( FIRC < `DB-FP-Persons`*0.90 ),
-             FE_CR.way_less = mean( `FE-CR` < `DB-FP-Persons`*0.90 ),
-             FIRC.less_site = mean( FIRC < `DB-FP-Sites` ),
-             FIRC.way_less_site = mean( FIRC < `DB-FP-Sites`*0.90 )   )
-
-head( ssub )
-ssub2 = gather( ssub, FIRC.less, FE_CR.less, FIRC.way_less, FE_CR.way_less, FIRC.less_site, FIRC.way_less_site, key="method", value="percent" )
-head( ssub2 )
-table( ssub2$method )
-ssub2 = separate( ssub2, method, into=c("method","threshold"), sep="\\." )
-table(ssub2$method )
-table(ssub2$threshold )
-ssub2
-SE.comp.results = ssub2
 
 
+# ##### Comparing the superpop SE.hat to finite pop SE.hat #####
+# 
+# cat( "Now processing SE.hat comparison metrics\n" )
+# 
+# # How often are superpop SEs lower than finite pop SEs?
+# # Comparing FIRC to DB
+# head( simdata )
+# unique( simdata$method )
+# ssub = filter( simdata, method %in% c( "FIRC", "DB-FP-Persons", "DB-FP-Sites", "FE-CR" ) ) %>% 
+#   dplyr::select( ID, J, n.bar, tau, dependence, subrun, method, SE.hat )
+# head( ssub )
+# ssub = mutate( ssub, subrun = paste( ID, subrun, sep="." ) )
+# ssub = spread( ssub, key=method, value=SE.hat )
+# 
+# head( ssub )
+# nrow( ssub )
+# # Are SE estimates correlated?
+# 
+# # This divided by dependance---but that seems unneeded.
+# #ssub = ssub %>% group_by( J, n.bar, tau, dependence ) %>% 
+# #  summarise( FIRC.less = mean( FIRC < `DB-FP-Persons` ),
+# #             FE.CR.less = mean( `FE-CR` < `DB-FP-Persons` ),
+# #             FIRC.way.less = mean( FIRC < `DB-FP-Persons` - 0.025 ),
+# #             FE.CR.way.less = mean( `FE-CR` < `DB-FP-Persons` - 0.025 ),
+# #             )
+# #ggplot( ssub, aes( tau, percent, col=method, lty=dependence ) ) +
+# #  facet_grid( J ~ n.bar, labeller = label_both ) +
+# #  geom_point() + geom_line()
+# ssub = ssub %>% 
+#   group_by( J, n.bar, tau ) %>% 
+#   summarise( FIRC.less = mean( FIRC < `DB-FP-Persons` ),
+#              FE_CR.less = mean( `FE-CR` < `DB-FP-Persons` ),
+#              FIRC.way_less = mean( FIRC < `DB-FP-Persons`*0.90 ),
+#              FE_CR.way_less = mean( `FE-CR` < `DB-FP-Persons`*0.90 ),
+#              FIRC.less_site = mean( FIRC < `DB-FP-Sites` ),
+#              FIRC.way_less_site = mean( FIRC < `DB-FP-Sites`*0.90 )   )
+# 
+# head( ssub )
+# ssub2 = gather( ssub, FIRC.less, FE_CR.less, FIRC.way_less, FE_CR.way_less, FIRC.less_site, FIRC.way_less_site, key="method", value="percent" )
+# head( ssub2 )
+# table( ssub2$method )
+# ssub2 = separate( ssub2, method, into=c("method","threshold"), sep="\\." )
+# table(ssub2$method )
+# table(ssub2$threshold )
+# ssub2
+# SE.comp.results = ssub2
 
-##### Looking at correlation of the SE hats ######
 
-cat( "Now processing correlation of SE hats for specific scenario\n" )
 
-head( simdata )
-unique( simdata$method )
-ssub = simdata %>% filter( J %in% c( 20, 40 ), n.bar == 200, dependence == "indep", proptx.dependence == "indep" ) %>%
-  filter( method %in% c( "FIRC", "DB-FP-Persons", "FE-CR", "FE-Club", "DB-SP-Sites" ) ) %>% 
-  dplyr::select( ID, J, n.bar, tau, dependence, proptx.dependence, run, subrun, method, SE.hat )
-head( ssub )
-ssub = spread( ssub, key=method, value=SE.hat )
-head( ssub )
-ssub = separate(ssub, subrun, into=c("batch", "rr", "scount" ) )
-head( ssub )
-
-#s2 = filter( ssub, J  %in% c(20,80), n.bar == 100, tau %in% c(0, 0.2), dependence == "corr", proptx.dependence == 0 )
-s2 = filter( ssub, scount == 1)
-table( s2$ID )
-head( s2 )
-nrow( s2 )
-s2 = mutate( s2, smaller.FIRC = ifelse( 0.99*`DB-FP-Persons` > `FIRC`, "flip", "ok" ),
-             smaller.CR = ifelse( 0.99*`DB-FP-Persons` > `FE-CR`, "flip", "ok" ),
-             small = paste0( smaller.CR, "-", smaller.FIRC ) )
-
-SE.corr.results = s2
-head( SE.corr.results )
-#rm( simdata, s2, ssub2, ssub )
-#rm( scenarios )
+# ##### Looking at correlation of the SE hats ######
+# 
+# cat( "Now processing correlation of SE hats for specific scenario\n" )
+# 
+# head( simdata )
+# unique( simdata$method )
+# ssub = simdata %>% filter( J %in% c( 20, 40 ), n.bar == 200, dependence == "indep", proptx.dependence == "indep" ) %>%
+#   filter( method %in% c( "FIRC", "DB-FP-Persons", "FE-CR", "FE-Club", "DB-SP-Sites" ) ) %>% 
+#   dplyr::select( ID, J, n.bar, tau, dependence, proptx.dependence, run, subrun, method, SE.hat )
+# head( ssub )
+# ssub = spread( ssub, key=method, value=SE.hat )
+# head( ssub )
+# ssub = separate(ssub, subrun, into=c("batch", "rr", "scount" ) )
+# head( ssub )
+# 
+# #s2 = filter( ssub, J  %in% c(20,80), n.bar == 100, tau %in% c(0, 0.2), dependence == "corr", proptx.dependence == 0 )
+# s2 = filter( ssub, scount == 1)
+# table( s2$ID )
+# head( s2 )
+# nrow( s2 )
+# s2 = mutate( s2, smaller.FIRC = ifelse( 0.99*`DB-FP-Persons` > `FIRC`, "flip", "ok" ),
+#              smaller.CR = ifelse( 0.99*`DB-FP-Persons` > `FE-CR`, "flip", "ok" ),
+#              small = paste0( smaller.CR, "-", smaller.FIRC ) )
+# 
+# SE.corr.results = s2
+# head( SE.corr.results )
+# #rm( simdata, s2, ssub2, ssub )
+# #rm( scenarios )
 
 cat( "Saving all the processed results\n" )
 
-save( bias.table, bias.table.pct, RMSE.table, SE.table, SE.comp.results, SE.corr.results, mns, sruns, sruns.core,
+save( bias.table, bias.table.pct, 
+      RMSE.table, SE.table, 
+      # SE.comp.results, SE.corr.results, 
+      mns, sruns, sruns.core,
       get.interval, get.interval.bias, file = "results/aggregated_simulation_results.RData" )
 
 
