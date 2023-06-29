@@ -12,8 +12,6 @@
 ## to enrich the Rmd report.
 ##
 
-# setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
-# setwd( ".." )
 
 library( tidyverse )
 
@@ -27,77 +25,85 @@ theme_set( my_t )
 cat( "Loading the big data file\n" )
 load( "results/processed_simulation_results.RData" )
 
-
 cat( "Now processing\n" )
 
 
-# # Get characteristics of the different methods
-# mc = blkvar::method.characteristics()
-# mc
 
+# selected is just all methods
 table( sruns$method )
-
-# Select methods to get the unique point estimates
-selected = c( "DB_clust (FE)", "DB_clust (int)", "DB_indiv (FE)", "DB_indiv (int)",
-              "LR (agg)", "LR (agg, wt)", "LR w/ CRSE", "MLM" )
-core.selected = c( "DB_clust (FE)", "DB_indiv (FE)",
-                   "LR (agg)", "LR w/ CRSE", "MLM" )
+simdata %>% ungroup() %>% 
+  select(ID, subrun, method, ATE.hat)
+selected = c( "DB_clust (FE)", "DB_clust (int)", 
+              "DB_indiv (FE)", "DB_indiv (int)",
+              "LR (agg)", "LR (agg, wt)", "LR w/ CRSE", 
+              "MLM" )
+# core.selected have unique point estimates
+core.selected = c( "DB_clust (int)", 
+                   "DB_indiv (int)",
+                   "LR (agg)", "LR (agg, wt)", 
+                   "MLM" )
 cat( "Selecting:\n" )
 print( selected )
 cat( "Core Selecting:\n" )
 print( core.selected )
 
 
-# NOTE ON VARIABLES:
-# sruns - dataframe of aggregated results.  These were calculated in prepare_aggregate_results
-head( sruns )
-nrow( sruns ) / length( unique( sruns$method ) )
-
-
-
-# TODO: below here!
-
 
 
 # For each scenario, calculate relative performance rates using the design based
 # estimators as reference categories
 calc.stats = function( runs.m ) {
-  m.fp = filter( runs.m, method=="DB-Persons" )$RMSE.fp
-  m.sp = filter( runs.m, method=="DB-Persons" )$RMSE.sp
-  m.fs = filter( runs.m, method=="DB-Sites" )$RMSE.fs
-  m.ss = filter( runs.m, method=="DB-Sites" )$RMSE.ss
-  #fbase = filter( runs.m, method=="DB-FP-Persons" )
-  fbase = filter( runs.m, method=="DB-Persons" )
-  Var.s.base = fbase$SE.s^2 / ( 2 * (fbase$R-1) )
+  m.f.stu = filter( runs.m, method=="DB_indiv (FE)" )$RMSE.f.stu
+  m.s.stu = filter( runs.m, method=="DB_indiv (FE)" )$RMSE.s.stu
+  m.f.dstu = filter( runs.m, method=="DB_indiv (FE)" )$RMSE.f.dstu
+  m.s.dstu = filter( runs.m, method=="DB_indiv (FE)" )$RMSE.s.dstu
+  
+  m.f.sch = filter( runs.m, method=="DB_clust (FE)" )$RMSE.f.sch
+  m.s.sch = filter( runs.m, method=="DB_clust (FE)" )$RMSE.s.sch
+  m.f.dsch = filter( runs.m, method=="DB_clust (FE)" )$RMSE.f.dsch
+  m.s.dsch = filter( runs.m, method=="DB_clust (FE)" )$RMSE.s.dsch
+  
+  fbase = filter( runs.m, method=="DB_indiv (FE)" )
+  Var.s.base = fbase$SE.s^2 / ( 2 * (fbase$R-1) )     # WHAT IS R???
   
   #mns = filter( mns, method %in% selected )
   #  mns = dplyr::select( runs.m, method, tau, dependence, proptx.dependence, weight, population, 
   #                       SE.f, SE.s, RMSE.fp, RMSE.sp, RMSE.fs, RMSE.ss, bias.sp, bias.ss ) %>%
   mns = mutate( runs.m, 
-                bias.p.pct = 100 * bias.sp^2 / RMSE.sp^2,
-                bias.s.pct = 100 * bias.ss^2 / RMSE.ss^2,
-                RMSE.fp = 100 * RMSE.fp / m.fp,
-                RMSE.sp = 100 * RMSE.sp / m.sp,
-                RMSE.fs = 100 * RMSE.fs / m.fs,
-                RMSE.ss = 100 * RMSE.ss / m.ss,
+                
+                # proportion of RMSE that is bias, for superpopulation quantities only (?)
+                bias.stu.pct = 100 * bias.s.stu^2 / RMSE.s.stu^2,
+                bias.sch.pct = 100 * bias.s.sch^2 / RMSE.s.sch^2,
+                bias.dstu.pct = 100 * bias.s.dstu^2 / RMSE.s.dstu^2,
+                bias.dsch.pct = 100 * bias.s.dsch^2 / RMSE.s.dsch^2,
+                
+                RMSE.f.stu = 100 * RMSE.f.stu / m.f.stu,
+                RMSE.s.stu = 100 * RMSE.s.stu / m.s.stu,
+                RMSE.f.sch = 100 * RMSE.f.sch / m.f.sch,
+                RMSE.s.sch = 100 * RMSE.s.sch / m.s.sch,
+                RMSE.f.dstu = 100 * RMSE.f.dstu / m.f.dstu,
+                RMSE.s.dstu = 100 * RMSE.s.dstu / m.s.dstu,
+                RMSE.f.dsch = 100 * RMSE.f.dsch / m.f.dsch,
+                RMSE.s.dsch = 100 * RMSE.s.dsch / m.s.dsch,
+                
                 SE.s.inf = 100 * SE.s / SE.f,
                 SE.f = 100 * SE.f / fbase$SE.f,
                 SE.SE.s = 100 * sqrt( (1/fbase$SE.s^2) * (SE.s^2 / (2*(R-1))) + (SE.s^2/fbase$SE.s^4) * Var.s.base ),
                 SE.s = 100 * SE.s / fbase$SE.s
   )
   mns = rename( mns, 
-                bias.per = bias.sp,
-                bias.site = bias.ss )
+                bias.stu = bias.s.stu,
+                bias.sch = bias.s.sch )
   mns
 }
 
 
-# Change method names to names without reference to superpop vs. finite pop
-refactor_methods = function( dat ) {
-  mutate( dat, method = factor( method, 
-                                levels=c( "DB-FP-Persons", "DB-FP-Sites", "FE", "RICC", "FIRC", "RIRC" ),
-                                labels=c( "DB-Persons", "DB-Sites", "FE", "RICC", "FIRC", "RIRC" ) ) )
-}
+# # Change method names to names without reference to superpop vs. finite pop
+# refactor_methods = function( dat ) {
+#   mutate( dat, method = factor( method, 
+#                                 levels=c( "DB-FP-Persons", "DB-FP-Sites", "FE", "RICC", "FIRC", "RIRC" ),
+#                                 labels=c( "DB-Persons", "DB-Sites", "FE", "RICC", "FIRC", "RIRC" ) ) )
+# }
 
 
 # For making tables with intervals
@@ -116,20 +122,21 @@ get.interval = function( vals, digits=0 ) {
 
 
 sruns.core = sruns %>% 
-  filter( method %in% selected ) %>%
-  refactor_methods()
+  filter( method %in% selected )
+  # refactor_methods()
 
-mns = sruns.core %>%
-  group_by( ID ) %>% do( calc.stats(.) ) %>% ungroup()
-
-head( mns )
-nrow( mns ) / length( unique( mns$method ) )
-table( mns$method )
-
-mns.full = mns
+# runs.m <- sruns.core %>% filter(ID == 1)
+mns.full = sruns.core %>%
+  group_by( ID ) %>% 
+  do( calc.stats(.) ) %>% 
+  ungroup()
 mns = dplyr::filter( mns, method %in% core.selected )
-mns$method = droplevels( mns$method )
-table( mns$method )
+# mns$method = droplevels( mns$method )
+
+
+# TODO: below here!
+stop("haven't updated beyond here")
+
 
 
 #### Divide scenarios into variable (main) scenarios and the rest  #####

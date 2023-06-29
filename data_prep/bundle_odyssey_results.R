@@ -1,5 +1,4 @@
 
-# 
 # Take all the RDS files from Odyssey and bundle them up into a single results file
 #
 # These will be saved in 'complete_odyssey_results.rds'
@@ -9,8 +8,8 @@
 library( tidyverse )
 
 
-# Load a collection of files and put them all together into a single, very large
-# dataframe
+# Load a collection of files and put them all together into a single, 
+# very large dataframe
 load.all.sims = function( filehead="results/" ) {
   
   files = list.files( filehead, full.names=TRUE)
@@ -26,89 +25,45 @@ load.all.sims = function( filehead="results/" ) {
 
 
 results = load.all.sims( filehead="results/" )
-#res2 = load.all.sims( filehead = "od_res_run1/" )
-#results
-#results = bind_rows( results, res2, .id="batch" )
-head( results )
-nrow( results )
-length( unique( results$filename ) )
-#table( results$batch )
-
-#toplevel.sim.per.min = results$sim.per.min 
-#results$sim.per.min = NULL
-#summary( toplevel.sim.per.min )
-#qplot( toplevel.sim.per.min )
-
-results$batch = as.numeric( as.factor( results$filename ) )
-table( table( results$ID ) )
 
 
 ##### Merge all reps of a scenario together ######
 
 cat( "Merging results by ID\n" )
 
-head( results$run[[1]] )
-results$run[[4]]$run
-results$batch[[4]]
+# there are a bunch of ID columns, here's a summary:
+#  - ID: which simulation scenario (1 to nrow(make.scenario.list()))
+#  - batch: which slurm job (1 to a bajillion)
+#  - run: which run of the scenario (1 to NUM_TRIALS_PER_SCENARIO = 4)
+#  - subrun: which rerandomization of the run (1 to 3)
 
-head( results )
+results <- results %>% 
+  mutate(batch = as.numeric( as.factor( results$filename ))) %>% 
+  unnest(cols = run) %>% 
+  mutate(run = paste( batch , run, sep="." ),
+         subrun = paste( batch, subrun, sep="." )) %>% 
+  dplyr::select( -filename, -batch )
 
-if ( FALSE ) {
-  r.100 = filter( results, ID == 200 )
-  summary( r.100$ATE.super.person )
-  qplot( r.100$ATE.super.person )
-  filter( r.100, ATE.super.person < 0.202 )$filename
-  head( r.100 )
-  head( r.100$run[[1]] )
-  r.100$filename[[1]]
-  head( r.100$run[[2]] )
-  r.100$filename[[2]]
-  r.100$run[[1]]$ATE.hat == r.100$run[[2]]$ATE.hat
-  r.100$run[[1]]$ATE.hat == r.100$run[[50]]$ATE.hat
-}
-
-#results %>% group_by( ID ) %>% 
-#  summarise( ATE.super.person = )
-
-#pb<- txtProgressBar(min=0,max=nrow(results),style=3)
-#for ( r in 1:nrow( results ) ) {
-#  results$run[[r]]$run = paste( results$batch[[r]], results$run, sep="." )
-#  results$subrun[[r]]$run = paste( results$batch[[r]], results$subrun, sep="." )
-#  setTxtProgressBar(pb,r)
-#}
-#close(pb)
-
-results = unnest( results, cols=c(run) )
-nrow( results )
-results = mutate( results, 
-                  run = paste( batch , run, sep="." ),
-                  subrun = paste( batch, subrun, sep="." ) )
-results
-head( results$subrun )
-head( results$run )
-
-results = results %>% 
-  dplyr::select( -filename, -batch ) %>%
-  group_by( ID ) %>%
-  mutate( across(c(ATE.super.district, ATE.super.school, ATE.super.student,
-                          ATE.super.dist.school, ATE.super.dist.student),
-                 mean),
-          sim.per.min = mean( sim.per.min ),
-          R = length( unique( run ) ) ) %>% 
+results <- results %>%
+  group_by(ID) %>%
+  mutate(across(starts_with("ATE.super"), mean),   # true superpop ATEs are scenario-level averages
+         sim.per.min = mean( sim.per.min ),        # timing of each scenario
+         R = length( unique( run ) )) %>%          # ??? used later though
   ungroup() %>%
-  group_by( ID, K, J.bar, p.bar, sd.district, ICC.district, variable.J, variable.p, 
+  
+  # regroup data by scenario
+  group_by( ID, 
+            # keep all scenario-level data-generating parameters
+            K, J.bar, p.bar, sd.district, ICC.district, variable.J, variable.p, 
             n.bar, sd.school, ICC.school, variable.n,
-            size.impact.cor.district, size.impact.cor.school,
-            proptx.impact.cor.district,
+            size.impact.cor.district, size.impact.cor.school, proptx.impact.cor.district,
+            # superpop ATEs are scenario-level attributes, keep them
             ATE.super.district, ATE.super.school, ATE.super.student,
             ATE.super.dist.school, ATE.super.dist.student,
+            # scenario timing is scenario-level attribute, keep it
             sim.per.min, R) %>% 
-  nest()
-
-results = rename( results, run = data )
-results
-
-# filter( results, duplicated( results$ID ) )   # ??? not sure why we did this?
+  nest() %>% 
+  rename(run = data)
 
 saveRDS( results, file="results/complete_odyssey_results.rds" )
 
