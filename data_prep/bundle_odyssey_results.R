@@ -12,7 +12,7 @@ library( tidyverse )
 # very large dataframe
 load.all.sims = function( filehead="results/" ) {
   
-  files = list.files( filehead, full.names=TRUE)
+  files = list.files( filehead, pattern="^simulation_results", full.names=TRUE)
   
   res = map_df( files, function( fname ) {
     cat( "Reading results from ", fname, "\n" )

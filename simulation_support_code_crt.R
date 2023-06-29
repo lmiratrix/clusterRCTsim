@@ -69,10 +69,12 @@ rerandomize.data = function( dat ) {
   
   dat %>% 
     left_join(select(grid, did, p), by="did") %>% 
-    mutate(Z = randomizr::block_and_cluster_ra(
-      blocks=did,
-      clusters=sid, 
-      prob_unit=p)) %>% 
+    mutate(
+      Z = randomizr::block_and_cluster_ra(
+        blocks=did,
+        clusters=sid, 
+        prob_unit=p),
+      Yobs = ifelse(Z, Y1, Y0)) %>% 
     select(-p)
 }
 
@@ -476,6 +478,23 @@ single.CRT = function( # district-level params
                  ATE.finite.school = ATE.school,
                  ATE.finite.dist.student = ATE.dist.student,
                  ATE.finite.dist.school = ATE.dist.school)
+  
+  if (F) {
+    ests %>% filter(subrun==1)
+    
+    # dists of tx and co
+    df %>% 
+      group_by(did, sid) %>% 
+      summarize(Z = mean(Z),
+                mn = mean(Yobs)) %>% 
+      ggplot(aes(x=mn, group=Z, color=as.factor(Z))) +
+      geom_density()
+    
+    df %>% 
+      group_by(Z) %>% 
+      summarize(mn = mean(Yobs))
+  }
+  
   ests    
 }
 
@@ -487,13 +506,13 @@ if ( F ) {
   # NOTE: DB estimators will return infinite SEs if there are
   #  fewer than two tx and co clusters in any district
   res <- single.CRT(
-    K=10, J.bar=10, p.bar=0.5,
-    variable.J=T, variable.p=T,
+    K=10, J.bar=20, p.bar=0.5,
+    variable.J=F, variable.p=F,
     ATE.district=0.2, sd.district=0.1, 
     ICC.district=0.2,
     
-    size.impact.cor.district = 0.5,
-    proptx.impact.cor.district = -0.5,
+    size.impact.cor.district = 0,
+    proptx.impact.cor.district = -0,
     
     n.bar=50, sd.school=0.1, ICC.school=0.3,
     variable.n=T,
@@ -656,24 +675,24 @@ make.scenario.list = function( group = "main" ) {
       proptx.impact.cor.district = c(-1,0,1))
   } else if ( group == "initial" ) {
     scenarios = expand.grid( 
-      K = c(10), 
+      K = c(5,20), 
       J.bar = c(20,80),
       p.bar = c(0.5),
       ATE.district = 0.2, 
       sd.district = 0.1,
       ICC.district = 0.2,
       variable.J = c(T,F),
-      variable.p = c(T),
+      variable.p = c(T,F),
       
       # cluster-level params
       n.bar = c(25,100), 
       sd.school = c(0.1), 
       ICC.school = 0.2,
-      variable.n = c(T),
+      variable.n = c(T,F),
       
       # size and correlation params
-      size.impact.cor.district = c(0),
-      size.impact.cor.school = c(0),
+      size.impact.cor.district = c(0,0.75),
+      size.impact.cor.school = c(0,0.75),
       proptx.impact.cor.district = c(0,1))
     
   } else {
