@@ -237,6 +237,24 @@ sruns %>%
 
 Uhhh... not clear that any of these are actually that far off?
 
+## Checking: is MLM always targeting student-weighted?
+
+MLM is pretty consistently worse at sch (which it's good at nonetheless), and better at stu (which it's bad at regardless)
+
+```{r}
+sruns %>% 
+  filter(method %in% c("LR (agg)", "MLM"),
+         size.impact.cor.district == 0,
+         size.impact.cor.school == 1) %>% 
+  select(ID, method, starts_with("bias")) %>% 
+  ggplot(aes(x=abs(bias.f.stu), y=abs(bias.f.sch), color=method, label=ID)) +
+  geom_text() +
+  coord_cartesian(ylim=c(0,0.012), xlim=c(0,0.055))
+```
+
+Could be worth checking scenarios that exacerbate this behavior?
+
+
 
 ## To do in simulation 2
 
@@ -347,7 +365,7 @@ Torture the simulation parameters (in terms of data sizes, etc)!
 ### Results
 
 ```{r}
-load( "../results/aggregated_simulation_results3.RData" )
+load( "results/aggregated_simulation_results3.RData" )
 ```
 
 Does anything happen?
@@ -356,6 +374,7 @@ Check ranges of true estimand values
 
 ```{r}
 sruns %>% 
+  select(-ATE.super.district) %>% 
   group_by(ID) %>% 
   summarize(across(starts_with("ATE."), first)) %>% 
   pivot_longer(starts_with("ATE.")) %>% 
@@ -363,6 +382,115 @@ sruns %>%
   geom_histogram() +
   facet_wrap(~name)
 ```
+
+Not much variation still.
+Sample sizes don't matter!
+
+See if faceting by sample sizes does anything? Nope. Pretty flat lines.
+
+```{r}
+sruns %>% 
+  filter(method %in% key_methods) %>% 
+  # filter(size.impact.cor.district == 0) %>%
+  filter(size.impact.cor.school == 0) %>%
+  group_by(method, n.bar) %>% 
+  summarize(across(starts_with("bias"), ~mean(abs(.)))) %>% 
+  pivot_longer(starts_with("bias")) %>%
+  mutate(finite = str_detect(name, ".f"),
+         estimand = as.factor(str_extract(name, "([^.]+$)"))) %>% 
+  mutate(estimand = factor(estimand, levels= c("stu", "dstu", "sch", "dsch"))) %>% 
+  filter(finite) %>% 
+  ggplot(aes(x=n.bar, y=value, color=method)) +
+  geom_point() +
+  geom_line() +
+  facet_grid( ~ estimand, labeller = "label_both")
+```
+
+Seems to be a jump; once J increases, district-weighted estimands get worse?
+
+```{r}
+sruns %>% 
+  filter(method %in% key_methods) %>% 
+  # filter(size.impact.cor.district == 0) %>%
+  filter(size.impact.cor.school == 0) %>%
+  group_by(method, J.bar) %>% 
+  summarize(across(starts_with("bias"), ~mean(abs(.)))) %>% 
+  pivot_longer(starts_with("bias")) %>%
+  mutate(finite = str_detect(name, ".f"),
+         estimand = as.factor(str_extract(name, "([^.]+$)"))) %>% 
+  mutate(estimand = factor(estimand, levels= c("stu", "dstu", "sch", "dsch"))) %>% 
+  filter(finite) %>% 
+  ggplot(aes(x=J.bar, y=value, color=method)) +
+  geom_point() +
+  geom_line() +
+  facet_grid( ~ estimand, labeller = "label_both")
+```
+
+Now changing K... again, not much happens.
+Greater K might make district-weighted results worse.
+
+```{r}
+sruns %>% 
+  filter(method %in% key_methods) %>% 
+  # filter(size.impact.cor.district == 0) %>%
+  filter(size.impact.cor.school == 0) %>%
+  group_by(method, K) %>% 
+  summarize(across(starts_with("bias"), ~mean(abs(.)))) %>% 
+  pivot_longer(starts_with("bias")) %>%
+  mutate(finite = str_detect(name, ".f"),
+         estimand = as.factor(str_extract(name, "([^.]+$)"))) %>% 
+  mutate(estimand = factor(estimand, levels= c("stu", "dstu", "sch", "dsch"))) %>% 
+  filter(finite) %>% 
+  ggplot(aes(x=K, y=value, color=method)) +
+  geom_point() +
+  geom_line() +
+  facet_grid( ~ estimand, labeller = "label_both")
+```
+
+
+Conclusion: 
+* when there is only school-effect correlation: maybe increasing n.bar and J makes estimators worse for their non-target estimand?
+* when there is only district-effect correlation: maybe increasing J and K makes estimators worse for the district-weighted estimands?
+
+Unclear overall, not too much effect.
+
+
+### Exploring MLMs again
+
+MLM is pretty consistently worse at sch (which it's good at nonetheless), and better at stu (which it's bad at regardless)
+
+```{r}
+sruns %>% 
+  filter(method %in% c("LR (agg)", "MLM"),
+         size.impact.cor.district == 0,
+         size.impact.cor.school == 1) %>% 
+  ggplot(aes(x=abs(bias.f.stu), y=abs(bias.f.sch), color=method, label=ID)) +
+  geom_line(aes(group=ID), color="black", alpha=0.3) +
+  geom_text() +
+  facet_wrap(~n.bar)
+```
+
+Across almost all settings, MLM just has slightly less student bias, and slightly more school bias.
+There's no real patterns to see...?
+
+
+## Final takeaways
+
+1. We have three methods: LR with CRSE, MLM, LR (agg). 
+The first two target student-weighted estimands, the last targets school-weighted estimands
+
+2. Correlating district impacts with district sizes leads to bias for all district-weighted estimands, i.e., none of our methods are good at targeting the district-weighted estimands
+
+3. Correlating school impacts with school sizes leads to bias for non-target estimands (both district-weighted and non-district-weighted)
+
+4. Sample sizes don't strongly affect results. 
+Often increasing data makes estimators significantly more biased for the estimands they're not trying to target.
+
+5. Not sure how to get MLMs to more closely target a given estimand. MLMs just generally have more school-estimand bias, less student-estimand bias than LR (agg).
+
+
+
+
 
 
 
