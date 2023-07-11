@@ -695,12 +695,57 @@ make.scenario.list = function( group = "main" ) {
       size.impact.cor.school = c(0,1),
       proptx.impact.cor.district = c(0,0.75))
     
+  } else if ( group == "sim2" ) {
+    scenarios = expand.grid( 
+      K = c(10), 
+      J.bar = c(25),
+      p.bar = c(0.5),
+      ATE.district = 0.2, 
+      sd.district = 0.1,
+      ICC.district = 0.2,
+      variable.J = c(T),
+      variable.p = c(F),
+      
+      # cluster-level params
+      n.bar = c(25,100), 
+      sd.school = c(0.1), 
+      ICC.school = 0.2,
+      variable.n = c(T),
+      
+      # size and correlation params
+      size.impact.cor.district = c(-0.75,0,0.75),
+      size.impact.cor.school = c(-1,0,1),
+      proptx.impact.cor.district = c(0))
+    
+  } else if ( group == "sim3" ) {
+    scenarios = expand.grid( 
+      K = c(5,10,20), 
+      J.bar = c(10,25,80),
+      p.bar = c(0.5),
+      ATE.district = 0.2, 
+      sd.district = 0.1,
+      ICC.district = 0.2,
+      variable.J = c(T),
+      variable.p = c(T),
+      
+      # cluster-level params
+      n.bar = c(25,50,100), 
+      sd.school = c(0.1), 
+      ICC.school = 0.2,
+      variable.n = c(T),
+      
+      # size and correlation params
+      size.impact.cor.district = c(0,0.75),
+      size.impact.cor.school = c(0,1),
+      proptx.impact.cor.district = c(0))
+    
   } else {
     error( "No defined group in make.scenario.list" )
   }
   
   nrow( scenarios )
   
+  # filter out replicated correlation rows (if no room for variation)
   scenarios <- scenarios %>% 
     filter(
       variable.J | size.impact.cor.district==0,

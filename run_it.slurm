@@ -4,7 +4,7 @@
 
 #SBATCH -n 1  #Number of cores
 
-#SBATCH -t 20  #Runtime in minutes
+#SBATCH -t 30  #Runtime in minutes
 
 #SBATCH -p serial_requeue #Partition to submit to
 
@@ -12,7 +12,7 @@
 
 #SBATCH -o logs/sim%a.out # Standard output
 #SBATCH -e logs/sim%a.err # Standard error
-#SBATCH -a 4-100
+#SBATCH -a 3-100
 
 ## Load software modules
 module load R/4.2.2-fasrc01
