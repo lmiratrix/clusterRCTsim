@@ -13,7 +13,7 @@ rm(list=ls())
 source( "simulation_support_code_crt.R" )
 
 # Which set of simulation scenarios should we run?
-group = "sim3"
+group = "sim_icc"
 
 
 library( tibble )

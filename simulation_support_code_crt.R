@@ -739,6 +739,28 @@ make.scenario.list = function( group = "main" ) {
       size.impact.cor.school = c(0,1),
       proptx.impact.cor.district = c(0))
     
+  } else if ( group == "sim_icc" ) {
+    scenarios = expand.grid( 
+      K = c(10), 
+      J.bar = c(20),
+      p.bar = c(0.5),
+      ATE.district = 0.2, 
+      sd.district = 0.1,
+      ICC.district = c(0.1, 0.25, 0.4),
+      variable.J = c(T),
+      variable.p = c(T),
+      
+      # cluster-level params
+      n.bar = c(50), 
+      sd.school = c(0.1), 
+      ICC.school = c(0.1, 0.25, 0.4),
+      variable.n = c(T),
+      
+      # size and correlation params
+      size.impact.cor.district = c(0,0.75),
+      size.impact.cor.school = c(0,1),
+      proptx.impact.cor.district = c(0))
+    
   } else {
     error( "No defined group in make.scenario.list" )
   }

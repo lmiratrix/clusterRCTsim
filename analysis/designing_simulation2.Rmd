@@ -488,6 +488,96 @@ Often increasing data makes estimators significantly more biased for the estiman
 
 5. Not sure how to get MLMs to more closely target a given estimand. MLMs just generally have more school-estimand bias, less student-estimand bias than LR (agg).
 
+6. Changing ICCs doesn't really affect things either?
+
+## Messing with ICC values
+
+```{r}
+load( "results/aggregated_simulation_results_icc.RData" )
+```
+
+```{r}
+sruns %>% 
+  filter(method %in% key_methods) %>% 
+  group_by(method, size.impact.cor.school, size.impact.cor.district) %>% 
+  summarize(across(starts_with("bias"), ~mean(abs(.)))) %>% 
+  pivot_longer(starts_with("bias")) %>%
+  mutate(finite = str_detect(name, ".f"),
+         estimand = as.factor(str_extract(name, "([^.]+$)"))) %>% 
+  mutate(estimand = factor(estimand, levels= c("stu", "dstu", "sch", "dsch"))) %>% 
+  filter(finite) %>% 
+  ggplot(aes(x=method, y=value, fill=estimand)) +
+  geom_col(position="dodge") +
+  facet_grid(size.impact.cor.school ~ size.impact.cor.district, labeller = "label_both")
+```
+
+Increasing ICC.school maybe makes things worse for MLMs?
+
+```{r}
+sruns %>% 
+  filter(method %in% key_methods) %>%
+  filter(size.impact.cor.district == 0) %>% 
+  group_by(method, ICC.district) %>% 
+  summarize(across(starts_with("bias"), ~mean(abs(.)))) %>% 
+  pivot_longer(starts_with("bias")) %>%
+  mutate(finite = str_detect(name, ".f"),
+         estimand = as.factor(str_extract(name, "([^.]+$)"))) %>% 
+  mutate(estimand = factor(estimand, levels= c("stu", "dstu", "sch", "dsch"))) %>% 
+  filter(finite) %>% 
+  ggplot(aes(x=ICC.district, y=value, color=method)) +
+  geom_point() +
+  geom_line() +
+  facet_grid( ~ estimand, labeller = "label_both")
+
+sruns %>% 
+  filter(method %in% key_methods) %>%
+  filter(size.impact.cor.district == 0) %>% 
+  group_by(method, ICC.school) %>% 
+  summarize(across(starts_with("bias"), ~mean(abs(.)))) %>% 
+  pivot_longer(starts_with("bias")) %>%
+  mutate(finite = str_detect(name, ".f"),
+         estimand = as.factor(str_extract(name, "([^.]+$)"))) %>% 
+  mutate(estimand = factor(estimand, levels= c("stu", "dstu", "sch", "dsch"))) %>% 
+  filter(finite) %>% 
+  ggplot(aes(x=ICC.school, y=value, color=method)) +
+  geom_point() +
+  geom_line() +
+  facet_grid( ~ estimand, labeller = "label_both")
+```
+
+No effect below, when only district-level cor varies.
+
+```{r}
+sruns %>% 
+  filter(method %in% key_methods) %>%
+  filter(size.impact.cor.school == 0) %>% 
+  group_by(method, ICC.district) %>% 
+  summarize(across(starts_with("bias"), ~mean(abs(.)))) %>% 
+  pivot_longer(starts_with("bias")) %>%
+  mutate(finite = str_detect(name, ".f"),
+         estimand = as.factor(str_extract(name, "([^.]+$)"))) %>% 
+  mutate(estimand = factor(estimand, levels= c("stu", "dstu", "sch", "dsch"))) %>% 
+  filter(finite) %>% 
+  ggplot(aes(x=ICC.district, y=value, color=method)) +
+  geom_point() +
+  geom_line() +
+  facet_grid( ~ estimand, labeller = "label_both")
+
+sruns %>% 
+  filter(method %in% key_methods) %>%
+  filter(size.impact.cor.school == 0) %>% 
+  group_by(method, ICC.school) %>% 
+  summarize(across(starts_with("bias"), ~mean(abs(.)))) %>% 
+  pivot_longer(starts_with("bias")) %>%
+  mutate(finite = str_detect(name, ".f"),
+         estimand = as.factor(str_extract(name, "([^.]+$)"))) %>% 
+  mutate(estimand = factor(estimand, levels= c("stu", "dstu", "sch", "dsch"))) %>% 
+  filter(finite) %>% 
+  ggplot(aes(x=ICC.school, y=value, color=method)) +
+  geom_point() +
+  geom_line() +
+  facet_grid( ~ estimand, labeller = "label_both")
+```
 
 
 
