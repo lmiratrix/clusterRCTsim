@@ -474,22 +474,6 @@ Across almost all settings, MLM just has slightly less student bias, and slightl
 There's no real patterns to see...?
 
 
-## Final takeaways
-
-1. We have three methods: LR with CRSE, MLM, LR (agg). 
-The first two target student-weighted estimands, the last targets school-weighted estimands
-
-2. Correlating district impacts with district sizes leads to bias for all district-weighted estimands, i.e., none of our methods are good at targeting the district-weighted estimands
-
-3. Correlating school impacts with school sizes leads to bias for non-target estimands (both district-weighted and non-district-weighted)
-
-4. Sample sizes don't strongly affect results. 
-Often increasing data makes estimators significantly more biased for the estimands they're not trying to target.
-
-5. Not sure how to get MLMs to more closely target a given estimand. MLMs just generally have more school-estimand bias, less student-estimand bias than LR (agg).
-
-6. Changing ICCs doesn't really affect things either?
-
 ## Messing with ICC values
 
 ```{r}
@@ -581,7 +565,21 @@ sruns %>%
 
 
 
+## Final takeaways
 
+1. We have three methods: LR with CRSE, MLM, LR (agg). 
+The first two target student-weighted estimands, the last targets school-weighted estimands
+
+2. Correlating district impacts with district sizes leads to bias for all district-weighted estimands, i.e., none of our methods are good at targeting the district-weighted estimands
+
+3. Correlating school impacts with school sizes leads to bias for non-target estimands (both district-weighted and non-district-weighted)
+
+4. Sample sizes don't strongly affect results. 
+Often increasing data makes estimators significantly more biased for the estimands they're not trying to target.
+
+5. Not sure how to get MLMs to more closely target a given estimand. MLMs just generally have more school-estimand bias, less student-estimand bias than LR (agg).
+
+6. Changing ICCs doesn't really affect things either?
 
 
 
