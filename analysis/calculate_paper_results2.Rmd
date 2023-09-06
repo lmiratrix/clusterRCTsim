@@ -1,0 +1,200 @@
+---
+title: "Calculating paper results"
+author: "Jonathan Che"
+date: '2023-06-30'
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(tidyverse)
+
+ESTIMAND_LEVELS <- c("stu", "dstu", "sch", "dsch")
+ESTIMATOR_LEVELS <- c("LR w/ CRSE", "LR (agg, wt)", "DB_indiv (FE)", "DB_indiv (int)",
+                      "LR (agg)", "DB_clust (int)", "DB_clust (FE)",
+                      "MLM")
+```
+
+## Overview
+
+This note covers the second set of simulations.
+These include two different scenarios:
+
+1. Simulation with district intercepts correlated with district sizes
+
+    * Hypothesis: CRSE 
+
+2. Simulation with only 4 districts and 6 schools per district on average
+
+    * Hypothesis: if there are very few blocks, CRSE should blow it
+    
+We're also using $\bar{p}=0.75$ instead of 0.5 to avoid "nice" cancellations.
+
+    * Hypothesis: if there is correlation with district-level impact, CRSE should be biased
+    * Since $p_j(1-p_j)$ weights can be quite low/high for particular clusters
+
+TODO: in blkvar, implement correlations between site-level intercepts and site sizes?
+
+
+
+Recall key for estimand names:
+
+* "stu": student-weighted
+* "sch": school-weighted
+* "dstu": district-weighted student-weighted
+* "dsch": district-weighted school-weighted
+
+Recall also the three representative methods:
+
+1. LR with CRSE (will also use DB_indiv to compare)
+2. LR (agg)
+3. MLM
+
+\newpage
+
+## Simulation 1: correlation between district-level intercepts and sizes
+
+```{r}
+load( "results/aggregated_simulation_results_interceptcor.RData" )
+```
+
+### Overview of results
+
+Absolute bias behaves roughly as expected, though weird results for dstu still (student-weighted estimators not much better than school-weighted).
+
+```{r}
+sruns %>% 
+  group_by(method) %>% 
+  summarize(across(starts_with("bias"), ~mean(abs(.)))) %>% 
+  pivot_longer(starts_with("bias")) %>%
+  mutate(finite = str_detect(name, ".f"),
+         estimand = factor(str_extract(name, "([^.]+$)"),
+                           levels = ESTIMAND_LEVELS),
+         method = factor(method, levels = ESTIMATOR_LEVELS)) %>% 
+  filter(finite) %>% 
+  ggplot(aes(x=method, y=value)) +
+  geom_col() +
+  facet_grid( ~ estimand) +
+  coord_flip()  
+```
+
+RMSE is super bizarre -- student-weighted methods are strictly dominated by school-weighted methods
+
+```{r}
+RMSE.table
+
+sruns %>% 
+  group_by(method) %>% 
+  summarize(across(starts_with("RMSE"), ~mean(abs(.)))) %>% 
+  pivot_longer(starts_with("RMSE")) %>%
+  mutate(finite = str_detect(name, ".f"),
+         estimand = factor(str_extract(name, "([^.]+$)"),
+                           levels = ESTIMAND_LEVELS),
+         method = factor(method, levels = ESTIMATOR_LEVELS)) %>% 
+  ggplot(aes(x=method, y=value)) +
+  geom_col() +
+  facet_grid(finite ~ estimand) +
+  coord_flip()
+```
+
+We see larger standard errors for the student-weighted methods.
+
+```{r}
+SE.table 
+
+sruns %>% 
+  group_by(method) %>% 
+  summarize(across(starts_with("SE."), ~mean(.)), 
+            mean.SE.hat = mean(mean.SE.hat)) %>% 
+  pivot_longer(contains("SE")) %>%
+  mutate(method = factor(method, levels = ESTIMATOR_LEVELS)) %>% 
+  ggplot(aes(x=method, y=value, group=name, fill=name)) +
+  geom_col(position="dodge")
+```
+
+Coverage is all still generally sub-nominal.
+DB_indiv (int) is particularly bad.
+
+```{r}
+sruns %>% 
+  pivot_longer(starts_with("cover")) %>% 
+  mutate(finite = str_detect(name, ".f"),
+         estimand = factor(str_extract(name, "([^.]+$)"),
+                           levels = ESTIMAND_LEVELS),
+         method = factor(method, levels = ESTIMATOR_LEVELS)) %>% 
+  ggplot(aes(x=method, y=value)) +
+  geom_boxplot() +
+  facet_grid(finite ~ estimand) +
+  geom_hline(aes(yintercept=0.95),
+             lty="dashed", color="red") +
+  coord_flip(ylim = c(0.8, 1))
+```
+
+\newpage
+
+### Faceting by simulation setting
+
+The simulation settings:
+
+ISSUE: not parsing out by size.intercept.cor.district...........
+Manual fix? Just join for IDs 8 thru 16 lol...
+
+```{r}
+sruns %>% 
+  group_by(across(c(ID, size.impact.cor.district, size.impact.cor.school, proptx.impact.cor.district))) %>% 
+  summarize(n = n()) %>% 
+  View()
+```
+
+
+```{r}
+
+
+names(sruns)
+sruns %>% 
+  group_by(across(size.impact.cor.district:proptx.impact.cor.district)) %>% 
+  summarize(n = n())
+```
+
+
+Absolute bias behaves roughly as expected, though weird results for dstu still (student-weighted estimators not much better than school-weighted).
+
+```{r}
+sruns %>% 
+  group_by(method) %>% 
+  summarize(across(starts_with("bias"), ~mean(abs(.)))) %>% 
+  pivot_longer(starts_with("bias")) %>%
+  mutate(finite = str_detect(name, ".f"),
+         estimand = factor(str_extract(name, "([^.]+$)"),
+                           levels = ESTIMAND_LEVELS),
+         method = factor(method, levels = ESTIMATOR_LEVELS)) %>% 
+  filter(finite) %>% 
+  ggplot(aes(x=method, y=value)) +
+  geom_col() +
+  facet_grid( ~ estimand) +
+  coord_flip()  
+```
+
+RMSE is super bizarre -- student-weighted methods are strictly dominated by school-weighted methods
+
+```{r}
+RMSE.table
+
+sruns %>% 
+  group_by(method) %>% 
+  summarize(across(starts_with("RMSE"), ~mean(abs(.)))) %>% 
+  pivot_longer(starts_with("RMSE")) %>%
+  mutate(finite = str_detect(name, ".f"),
+         estimand = factor(str_extract(name, "([^.]+$)"),
+                           levels = ESTIMAND_LEVELS),
+         method = factor(method, levels = ESTIMATOR_LEVELS)) %>% 
+  ggplot(aes(x=method, y=value)) +
+  geom_col() +
+  facet_grid(finite ~ estimand) +
+  coord_flip()
+```
+
+
+
