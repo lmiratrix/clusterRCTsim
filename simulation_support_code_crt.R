@@ -209,6 +209,15 @@ cluster_distn <- function(K, J.bar, size.ratio) {
   nk
 }
 
+# preserving order of x, rearrange y to correlate x
+#  via a magic hacky fuzzy sort
+#  - `cor` sets strength of correlation
+#  - returns: rearranged y
+induce_cor <- function(x, y, cor) {
+  temp <- y[order(cor^2 * y + (1-cor^2) * rnorm(length(y), sd=sd(y)))]
+  y <- temp[ order(order(sign(cor)*x)) ]
+}
+
 # Generate a cluster-randomized trial, with multiple districts
 generate_districts <- function(
     # district-level params
@@ -222,6 +231,7 @@ generate_districts <- function(
     size.ratio.district = 0.6, 
     size.impact.cor.district = 0,
     proptx.impact.cor.district = 0,
+    size.intercept.cor.district = 0,
     
     # school-level params
     n.bar, sd.school, ICC.school = 0.20,
@@ -236,6 +246,8 @@ generate_districts <- function(
               size.impact.cor.district >= -1 & size.impact.cor.district <= 1)
   stopifnot("proptx.impact.cor.district must be in (-1,1)" = 
               proptx.impact.cor.district >= -1 & proptx.impact.cor.district <= 1)
+  stopifnot("size.intercept.cor.district must be in (-1,1)" = 
+              size.intercept.cor.district >= -1 & size.intercept.cor.district <= 1)
   stopifnot(size.impact.cor.school %in% c(-1,0,1))
   
   # district J values
@@ -271,21 +283,27 @@ generate_districts <- function(
   if (size.impact.cor.district != 0) {
     stopifnot("Cannot correlate district sizes and average impacts if sizes do not vary" = 
                 variable.J)
-    
-    # fuzzy sort num_clusters
-    num_clusters_temp <- num_clusters[order(
-      size.impact.cor.district^2 * num_clusters + 
-        (1-size.impact.cor.district^2) * rnorm(K, sd=sd(num_clusters)) )]
-    num_clusters <- num_clusters_temp[ order(order(sign(size.impact.cor.district)*grid$district.tau)) ]
+    num_clusters <- induce_cor(x = grid$district.tau,
+                               y = num_clusters,
+                               cor = size.impact.cor.district)
   }
   if (proptx.impact.cor.district != 0) {
     stopifnot("Cannot correlate district proportions treated and average impacts if proportions treated do not vary" = 
                 variable.p)
-    # fuzzy sort prop_tx_clusters
-    p_temp <- prop_tx_clusters[order(
-      proptx.impact.cor.district^2 * prop_tx_clusters + 
-        (1-proptx.impact.cor.district^2) * rnorm(K, sd=sd(prop_tx_clusters)) )]
-    prop_tx_clusters <- p_temp[ order(order(sign(proptx.impact.cor.district)*grid$district.tau)) ]
+    prop_tx_clusters <- induce_cor(x = grid$district.tau,
+                                   y = prop_tx_clusters,
+                                   cor = proptx.impact.cor.district)
+    # p_temp <- prop_tx_clusters[order(
+    #   proptx.impact.cor.district^2 * prop_tx_clusters + 
+    #     (1-proptx.impact.cor.district^2) * rnorm(K, sd=sd(prop_tx_clusters)) )]
+    # prop_tx_clusters <- p_temp[ order(order(sign(proptx.impact.cor.district)*grid$district.tau)) ]
+  }
+  if (size.intercept.cor.district != 0) {
+    stopifnot("Cannot correlate district sizes and intercepts if ICC.district = 0" = 
+                (ICC.district != 0))
+    grid$district.alpha <- induce_cor(x = num_clusters,
+                                      y = grid$district.alpha,
+                                      cor = size.intercept.cor.district)
   }
   
   grid$J <- num_clusters
@@ -358,6 +376,7 @@ if (F) {
     size.ratio.district = 0.6, 
     size.impact.cor.district = 0.2,
     proptx.impact.cor.district = 0.2,
+    size.intercept.cor.district = 0.2,
     
     # school-level params
     n.bar = 50, 
@@ -372,6 +391,10 @@ if (F) {
   )
   
   describe_clusterRCT(Yobs ~ Z | sid | did, df)
+  df %>% 
+    group_by(did) %>% 
+    summarize(mn = mean(Y0), n=n()) %>% 
+    summarize(cor = cor(mn, n))
 }
 
 
@@ -395,6 +418,7 @@ single.CRT = function( # district-level params
   size.ratio.district = 0.6, 
   size.impact.cor.district = 0,
   proptx.impact.cor.district = 0,
+  size.intercept.cor.district = 0,
   
   # school-level params
   n.bar, sd.school, ICC.school = 0.20,
@@ -431,6 +455,7 @@ single.CRT = function( # district-level params
     size.ratio.district = size.ratio.district, 
     size.ratio.school = size.ratio.school,
     size.impact.cor.district = size.impact.cor.district,
+    size.intercept.cor.district = size.intercept.cor.district,
     size.impact.cor.school = size.impact.cor.school,
     proptx.impact.cor.district = proptx.impact.cor.district,
     cor.strength.school = cor.strength.school)
@@ -533,6 +558,7 @@ run.scenario = function(
     # correlation params at cluster level
     size.ratio.district = 0.6,
     size.impact.cor.district,
+    size.intercept.cor.district = 0,
     proptx.impact.cor.district,
     
     # school-level params
@@ -600,6 +626,7 @@ run.scenario = function(
     size.ratio.district = size.ratio.district, 
     size.ratio.school = size.ratio.school,
     size.impact.cor.district = size.impact.cor.district,
+    size.intercept.cor.district = size.intercept.cor.district,
     size.impact.cor.school = size.impact.cor.school,
     proptx.impact.cor.district = proptx.impact.cor.district,
     cor.strength.school = cor.strength.school,
@@ -637,6 +664,7 @@ if ( FALSE ) {
                      
                      # size and correlation params
                      size.impact.cor.district = 0,
+                     size.intercept.cor.district = 0.5,
                      size.impact.cor.school = 0,
                      proptx.impact.cor.district = 0,
 
@@ -761,6 +789,52 @@ make.scenario.list = function( group = "main" ) {
       size.impact.cor.school = c(0,1),
       proptx.impact.cor.district = c(0))
     
+  } else if ( group == "sim_interceptcor" ) {
+    scenarios = expand.grid( 
+      K = c(15), 
+      J.bar = c(15),
+      p.bar = c(0.75),       # higher pbar
+      ATE.district = 0.2, 
+      sd.district = 0.1,
+      ICC.district = c(0.2),
+      variable.J = c(T),
+      variable.p = c(T),
+      
+      # cluster-level params
+      n.bar = c(50), 
+      sd.school = c(0.1), 
+      ICC.school = c(0.2),
+      variable.n = c(T),
+      
+      # size and correlation params
+      size.impact.cor.district = c(0, 0.8),
+      size.impact.cor.school = c(0, 1),
+      proptx.impact.cor.district = c(0, 0.8),
+      size.intercept.cor.district = c(0, 0.8))
+    
+  } else if ( group == "sim_small" ) {
+    scenarios = expand.grid( 
+      K = c(4), 
+      J.bar = c(6),
+      p.bar = c(0.75),
+      ATE.district = 0.2, 
+      sd.district = 0.1,
+      ICC.district = c(0.2),
+      variable.J = c(T),
+      variable.p = c(T),
+      
+      # cluster-level params
+      n.bar = c(50), 
+      sd.school = c(0.1), 
+      ICC.school = c(0.2),
+      variable.n = c(T),
+      
+      # size and correlation params
+      size.impact.cor.district = c(0, 0.75),
+      size.impact.cor.school = c(0, 1),
+      proptx.impact.cor.district = c(0, 0.75),
+      size.intercept.cor.district = c(0, 0.75))
+    
   } else {
     error( "No defined group in make.scenario.list" )
   }
@@ -771,6 +845,7 @@ make.scenario.list = function( group = "main" ) {
   scenarios <- scenarios %>% 
     filter(
       variable.J | size.impact.cor.district==0,
+      variable.J | size.intercept.cor.district==0,
       variable.p | proptx.impact.cor.district==0,
       sd.district!=0 | (size.impact.cor.district == 0 & proptx.impact.cor.district == 0),
       variable.n | size.impact.cor.school == 0,
