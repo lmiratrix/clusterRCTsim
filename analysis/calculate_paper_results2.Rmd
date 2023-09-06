@@ -63,6 +63,7 @@ Recall also the three representative methods:
 
 ```{r}
 load( "results/aggregated_simulation_results_interceptcor.RData" )
+# load( "results/aggregated_simulation_results_small.RData" )
 ```
 
 ### Overview of results
@@ -85,7 +86,7 @@ sruns %>%
   coord_flip()  
 ```
 
-RMSE is super bizarre -- student-weighted methods are strictly dominated by school-weighted methods
+RMSE is basically same as before, but still student-weighted methods are strictly dominated by school-weighted methods??
 
 ```{r}
 RMSE.table
@@ -116,7 +117,8 @@ sruns %>%
   pivot_longer(contains("SE")) %>%
   mutate(method = factor(method, levels = ESTIMATOR_LEVELS)) %>% 
   ggplot(aes(x=method, y=value, group=name, fill=name)) +
-  geom_col(position="dodge")
+  geom_col(position="dodge") +
+  coord_flip()
 ```
 
 Coverage is all still generally sub-nominal.
@@ -206,33 +208,19 @@ marginal_plot(2,4, "sch")
 
 # marginal_plot(2,4, "dstu")
 # marginal_plot(2,4, "dsch")
-```
 
-Checking if size.intercept.cor has any effects:
-```{r}
+# other side
+marginal_plot(1,3, "stu")
+marginal_plot(1,3, "sch")
 
-```
-
-
-
-RMSE is super bizarre -- student-weighted methods are strictly dominated by school-weighted methods
-
-```{r}
-RMSE.table
-
-sruns %>% 
-  group_by(method) %>% 
-  summarize(across(starts_with("RMSE"), ~mean(abs(.)))) %>% 
-  pivot_longer(starts_with("RMSE")) %>%
-  mutate(finite = str_detect(name, ".f"),
-         estimand = factor(str_extract(name, "([^.]+$)"),
-                           levels = ESTIMAND_LEVELS),
-         method = factor(method, levels = ESTIMATOR_LEVELS)) %>% 
-  ggplot(aes(x=method, y=value)) +
-  geom_col() +
-  facet_grid(finite ~ estimand) +
-  coord_flip()
 ```
 
 
+
+
+## Takeaways
+
+1. DB_clust (int) and DB_indiv (int) seem to do much better in some settings? Need to dig here. In particular, it's now different from LR w/ CRSE, whereas it was the same before.
+
+2. MLM generally does better than everything else in small sample sizes
 

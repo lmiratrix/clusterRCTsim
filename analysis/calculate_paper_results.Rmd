@@ -108,7 +108,9 @@ sruns %>%
   summarize(across(starts_with("RMSE"), ~mean(abs(.)))) %>% 
   pivot_longer(starts_with("RMSE")) %>%
   mutate(finite = str_detect(name, ".f"),
-         estimand = as.factor(str_extract(name, "([^.]+$)"))) %>% 
+         estimand = factor(str_extract(name, "([^.]+$)"),
+                           levels = ESTIMAND_LEVELS),
+         method = factor(method, levels = ESTIMATOR_LEVELS)) %>% 
   ggplot(aes(x=method, y=value)) +
   geom_col() +
   facet_grid(finite ~ estimand) +
@@ -136,6 +138,7 @@ sruns %>%
   summarize(across(starts_with("SE."), ~mean(.)), 
             mean.SE.hat = mean(mean.SE.hat)) %>% 
   pivot_longer(contains("SE")) %>%
+  mutate(method = factor(method, levels = ESTIMATOR_LEVELS)) %>%
   ggplot(aes(x=method, y=value, group=name, fill=name)) +
   geom_col(position="dodge") +
   coord_flip(ylim=c(0.05, 0.07))
