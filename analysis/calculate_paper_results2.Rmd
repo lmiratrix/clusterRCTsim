@@ -15,6 +15,10 @@ ESTIMAND_LEVELS <- c("stu", "dstu", "sch", "dsch")
 ESTIMATOR_LEVELS <- c("LR w/ CRSE", "LR (agg, wt)", "DB_indiv (FE)", "DB_indiv (int)",
                       "LR (agg)", "DB_clust (int)", "DB_clust (FE)",
                       "MLM")
+MAIN_ESTIMATORS <- c("LR w/ CRSE", "LR (agg)", "MLM")
+
+COR_COLS <- c("size.impact.cor.district", "size.intercept.cor.district",
+              "size.impact.cor.school", "proptx.impact.cor.district")
 ```
 
 ## Overview
@@ -24,7 +28,7 @@ These include two different scenarios:
 
 1. Simulation with district intercepts correlated with district sizes
 
-    * Hypothesis: CRSE 
+    * Hypothesis: CRSE is biased?
 
 2. Simulation with only 4 districts and 6 schools per district on average
 
@@ -39,12 +43,13 @@ TODO: in blkvar, implement correlations between site-level intercepts and site s
 
 
 
-Recall key for estimand names:
+Recall key for estimand names. 
+We'll focus more on the first two, since none of our estimators target the second two:
 
 * "stu": student-weighted
 * "sch": school-weighted
-* "dstu": district-weighted student-weighted
-* "dsch": district-weighted school-weighted
+* ("dstu": district-weighted student-weighted)
+* ("dsch": district-weighted school-weighted)
 
 Recall also the three representative methods:
 
@@ -136,46 +141,79 @@ sruns %>%
 
 ### Faceting by simulation setting
 
-The simulation settings:
-
-ISSUE: not parsing out by size.intercept.cor.district...........
-Manual fix? Just join for IDs 8 thru 16 lol...
+The simulation settings are below.
+Note that I messed up some recording in the run, so I've manually fixed things.
 
 ```{r}
-sruns %>% 
-  group_by(across(c(ID, size.impact.cor.district, size.impact.cor.school, proptx.impact.cor.district))) %>% 
-  summarize(n = n()) %>% 
-  View()
+size.intercept.table <- tibble(
+  ID = 1:16,
+  size.intercept.cor.district = c(rep(0, 8), rep(0.8, 8))
+)
+sruns2 <- sruns %>% 
+  left_join(size.intercept.table, by="ID") %>% 
+  relocate(size.intercept.cor.district, .after=size.impact.cor.district)
+
+# sruns2 %>% 
+#   group_by(across(all_of(c("ID", COR_COLS)))) %>% 
+#   summarize(n = n())
 ```
-
-
-```{r}
-
-
-names(sruns)
-sruns %>% 
-  group_by(across(size.impact.cor.district:proptx.impact.cor.district)) %>% 
-  summarize(n = n())
-```
-
 
 Absolute bias behaves roughly as expected, though weird results for dstu still (student-weighted estimators not much better than school-weighted).
 
 ```{r}
-sruns %>% 
-  group_by(method) %>% 
-  summarize(across(starts_with("bias"), ~mean(abs(.)))) %>% 
-  pivot_longer(starts_with("bias")) %>%
+# all 2^4 settings
+sruns2 %>% 
+  select(ID, method, COR_COLS, starts_with("bias")) %>% 
+  pivot_longer(starts_with("bias")) %>% 
   mutate(finite = str_detect(name, ".f"),
          estimand = factor(str_extract(name, "([^.]+$)"),
                            levels = ESTIMAND_LEVELS),
          method = factor(method, levels = ESTIMATOR_LEVELS)) %>% 
-  filter(finite) %>% 
-  ggplot(aes(x=method, y=value)) +
-  geom_col() +
-  facet_grid( ~ estimand) +
-  coord_flip()  
+  filter(finite, estimand == "stu")
+  
+  # TODO: a bunch of marginal plots?
+  #  - or a big colored table?
+
+marginal_plot <- function(i1, i2, est) {
+  sruns2 %>% 
+    group_by(across(all_of(c("method", COR_COLS[c(i1,i2)])))) %>% 
+    summarize(across(starts_with("bias"), ~mean(abs(.)))) %>% 
+    ungroup() %>% 
+    pivot_longer(starts_with("bias")) %>%
+    mutate(finite = str_detect(name, ".f"),
+           estimand = factor(str_extract(name, "([^.]+$)"),
+                             levels = ESTIMAND_LEVELS),
+           method = factor(method, levels = ESTIMATOR_LEVELS)) %>% 
+    filter(finite, estimand == est) %>% 
+    ggplot(aes(x=method, y=value)) +
+    geom_col() +
+    facet_grid(reformulate(COR_COLS[i1], COR_COLS[i2]),
+               labeller = label_both) +
+    coord_flip() +
+    labs(title = paste("Average absolute bias"),
+         subtitle = paste("Estimand:", est))
+}
 ```
+
+We know that: size.impact.cor makes a difference
+
+Checking if proptx has any effect now: some effects
+
+```{r}
+COR_COLS
+marginal_plot(2,4, "stu")
+marginal_plot(2,4, "sch")
+
+# marginal_plot(2,4, "dstu")
+# marginal_plot(2,4, "dsch")
+```
+
+Checking if size.intercept.cor has any effects:
+```{r}
+
+```
+
+
 
 RMSE is super bizarre -- student-weighted methods are strictly dominated by school-weighted methods
 
