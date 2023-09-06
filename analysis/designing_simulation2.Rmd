@@ -9,7 +9,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-load( "../results/aggregated_simulation_results.RData" )
+load( "~/R/clusterRCTsim/results/aggregated_simulation_results.RData" )
 require(tidyverse)
 
 scenarios = expand.grid( 
@@ -263,7 +263,7 @@ More futzing around with the correlations!
 ### Correlation results
 
 ```{r}
-load( "../results/aggregated_simulation_results2.RData" )
+load( "~/R/clusterRCTsim/results/aggregated_simulation_results2.RData" )
 ```
 
 ```{r}
@@ -365,7 +365,7 @@ Torture the simulation parameters (in terms of data sizes, etc)!
 ### Results
 
 ```{r}
-load( "results/aggregated_simulation_results3.RData" )
+load( "~/R/clusterRCTsim/results/aggregated_simulation_results3.RData" )
 ```
 
 Does anything happen?
@@ -477,7 +477,7 @@ There's no real patterns to see...?
 ## Messing with ICC values
 
 ```{r}
-load( "results/aggregated_simulation_results_icc.RData" )
+load( "~/R/clusterRCTsim/results/aggregated_simulation_results_icc.RData" )
 ```
 
 ```{r}
