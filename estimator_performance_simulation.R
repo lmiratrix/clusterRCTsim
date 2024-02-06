@@ -13,6 +13,9 @@ rm(list=ls())
 source( "simulation_support_code_crt.R" )
 
 # Which set of simulation scenarios should we run?
+#
+# See the make_scenario_list function to figure out which table of
+# simulations to pull from.
 group = "sim_interceptcor"
 
 

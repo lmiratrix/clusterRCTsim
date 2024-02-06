@@ -5,15 +5,11 @@ The estimators themselves are implemented in the clusterRCT package.
 The clusterRCT package also (EVENTUALLY) will contain code for generating fake data for this simulation study.
 
 ## Acknowledgements
-The data generating code is adapted from two sources: the PUMP package simulation code and the data generation code found in the multisite estimand paper.
+The current data generating code is adapted from two sources: the PUMP package simulation code and the data generation code found in the Miratrix, Weiss & Henderson multisite estimands, estimators and estimates paper.
 
 
 
 # WARNING: Readme from this point on needs to be updated
-
-# Multisite ATE Estimator Simulation Study
-
-This is the code for the simulation study discussed in Miratrix & Weiss "Estimands, Estimators, and Estimates." This code heavily uses the `blkvar` package, also on GitHub (see https://github.com/lmiratrix/blkvar) that implements all the methods in easy-to-use functions and also provides code for generating fake multisite experiments.
 
 
 ## Running the simulation

@@ -1,19 +1,11 @@
 
-# temporary copy of simulation_support_code.R
-#  so that I can easily see the original simulation_support_code 
-#  as I adapt it to multisite trials
 
-# mapping:
-#  - single.MLM.trial <=> single.CRT
-# updated:
-#  - rerandomize.data: now re-cluster-randomizes data
-
-# This script has all the support code to run a large simulation to look at
-# stability of the different SE estimators and true performances of the ATE
-# estimators.
+# This script has all the support code to run large simulations to
+# look at stability of the different SE estimators and true
+# performances of the ATE estimators.
 #
-# The simulation script runs a bunch of scenarios and saves the massive amount
-# of results to a file to be processed.
+# The simulation script runs a bunch of scenarios and saves the
+# massive amount of results to a file to be processed.
 #
 # This script has the code to run a single trial, etc.
 

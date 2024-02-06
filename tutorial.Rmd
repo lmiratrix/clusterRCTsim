@@ -11,19 +11,22 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Overview
 
-This document walks through running simulations for the clusterRCT project, both locally and on the FASRC cluster.
+This document walks through running simulations for the clusterRCT project, both locally and on the FASRC cluster at Harvard University.
+
+# Notes on policy
+
+Final simulation results (i.e., processed and aggregated results) are checked in to the github repo, so when you run the full simulation, it can then be used to update these results.
+
+Scripts exist to run the simulations, and separate scripts exist to analyze simulation results which are loaded from result files.
 
 
-# Running simulations locally
-
-This section covers how to run a single set of simulations locally.
-
-> TL;DR: source `estimator_performance_simulation.R` to run a simulation and source `data_prep/fully_prepare_simulation_results.R` to clean up and process the results of the simulation
 
 ## File structure
 
 *	`simulation_support_code_crt.R`: contains functions for running simulation
 *	`estimator_performance_simulation.R`: script for running simulations
+* `raw_results` folder: no longer needed.
+* `results` folder: Final aggegated and condensed simulation results that would be pulled off the cluster.
 *	`data_prep` folder
     + `fully_prepare_simulation_results.R`: calls the three scripts below, in order
     + `bundle_odyssey_results.R`: aggregates all results files
@@ -32,6 +35,15 @@ This section covers how to run a single set of simulations locally.
 *	`analysis` folder
     + `calculate_paper_results.Rmd`: basic summaries of simulation results
     + `designing_simulation2.Rmd`: (don’t try to source this file) random collection of a bunch of explorations of different simulations 
+    
+    
+    
+# Running simulations locally
+
+This section covers how to run a single set of simulations locally.
+
+> TL;DR: source `estimator_performance_simulation.R` to run a simulation and source `data_prep/fully_prepare_simulation_results.R` to clean up and process the results of the simulation.
+
 
 ## How to run a set of local simulations
 
