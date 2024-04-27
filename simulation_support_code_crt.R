@@ -4,13 +4,10 @@
 # look at stability of the different SE estimators and true
 # performances of the ATE estimators.
 #
-# The simulation script runs a bunch of scenarios and saves the
-# massive amount of results to a file to be processed.
-#
-# This script has the code to run a single trial, etc.
+# This script has functions to run a single trial, generate a list of
+# all scenarios, and a few other things.
 
-library( dplyr )
-library( blkvar )
+library( tidyverse )
 library( purrr )
 library( multiwayvcov )
 
@@ -21,7 +18,7 @@ library( clusterRCT )
 
 if ( FALSE ) {
   # for testing crashing in the simulator.  This wrapper will make things crash sometimes.
-  my_compare_methods = function( ... ){
+  my_compare_methods = function( ... ) {
     if ( sample(5,1) == 1 ) {
       asdfadfga
     } else {
@@ -31,11 +28,19 @@ if ( FALSE ) {
 }
 
 
+# Print things to console using sprintf.
 scat = function( str, ... ) {
   cat( sprintf( str, ... ) )
 }
 
 
+
+# Given dataframe df, estimate impacts.
+# 
+# df has to be in canonical form of Yobs ~ Z | sid | did.
+#
+# @return Dataframe with estimates of ATE and SE, one row per method, 
+# from compare_methods() function
 get.estimates = function( df, ... ) {
   safe_comp = safely( clusterRCT::compare_methods )
   ests = safe_comp( Yobs ~ Z | sid | did, data=df, ... )
@@ -55,26 +60,41 @@ get.estimates = function( df, ... ) {
 }
 
 
-# Reassign treatment to all districts
+# Reassign treatment to all clusters within blocks.
 rerandomize.data = function( dat ) {
-  grid <- attr(dat, "district_key")
   
-  dat %>% 
-    left_join(select(grid, did, p), by="did") %>% 
-    mutate(
-      Z = randomizr::block_and_cluster_ra(
-        blocks=did,
-        clusters=sid, 
-        prob_unit=p),
-      Yobs = ifelse(Z, Y1, Y0)) %>% 
-    select(-p)
+  grid <- attr( dat, "district_key" )
+  
+  if ( "did" %in% names(dat) ) {
+    dat <- dat %>% group_by( did ) %>% 
+      mutate( p = mean( Z[ !duplicated( sid ) ] ),
+              Z = randomizr::block_and_cluster_ra(
+                blocks=did,
+                clusters=sid, 
+                prob_unit=p),
+              Yobs = ifelse(Z, Y1, Y0)) %>% 
+      dplyr::select(-p)
+  } else {
+    dat <- dat %>% 
+      mutate( p = mean( Z[ !duplicated( sid ) ] ),
+              Z = randomizr::cluster_ra(
+                clusters=sid, 
+                prob_unit=p),
+              Yobs = ifelse(Z, Y1, Y0)) %>%
+      dplyr::select(-p)
+  }
+  
+  attr( dat, "district_key" ) <- grid
+  
+  return( dat )
 }
 
 
-##### Code to explore scenarios and sample datasets #####
+#### Code to explore scenarios and sample datasets ####
 
-# Utility function to describe a given data set to explore the data generation
-# process
+# Utility function to describe a given data set to explore the data
+# generation process
+#
 # TODO
 describe.data = function( df ) {
   
@@ -83,16 +103,24 @@ describe.data = function( df ) {
   #  - true correlations from district_key
   #  - etc...
   
+  # Why this needed?
   df = rerandomize.data( df )
   
   
   # district params
-  sstat_distr <- attr(df, "district_key") %>% 
-    summarize(cor.J.tau_dist = cor(J, district.tau),
-              cor.p.tau_dist = cor(p, district.tau),
-              sd.tau_dist = sd(district.tau),
-              sd.J_dist = sd(J),
-              sd.p_dist = sd(p))
+  d_key = attr(df, "district_key")
+  if ( !is.null( d_key ) ) {
+    sstat_distr <-d_key %>% 
+      summarize(cor.J.tau_dist = cor(J, district.tau),
+                cor.p.tau_dist = cor(p, district.tau),
+                sd.tau_dist = sd(district.tau),
+                sd.J_dist = sd(J),
+                sd.p_dist = sd(p))
+    print(sstat_distr)
+    
+  } else {
+    df$did = "single"
+  }
   
   # compute true ATE values
   ATEs <- df %>% 
@@ -132,27 +160,28 @@ describe.data = function( df ) {
   res <- bind_rows(ATEs, ATEhats) %>% 
     mutate(ATE = c("True ATEs", "Estimated ATEs"), .before=everything())
   
-  print(sstat_distr)
   print(res)
 }
 
 # use describe_clusterRCT()
 
 
+##### Testing code #####
 
-# Testing code
+# Testing code of blkvar's generate_multilevel_data_no_cov
+# and describe_data method
 if ( FALSE ) {
   library( tidyverse )
   
-  df = generate_multilevel_data_no_cov( n.bar=200, J=50,
-                                        tau.11.star = 0.1^2,
-                                        ICC = 0.20,
-                                        p = 0.70,
-                                        variable.n = TRUE,
-                                        variable.p = TRUE,
-                                        size.impact.correlate = TRUE,
-                                        proptx.impact.correlate = TRUE,
-                                        finite.model = FALSE )
+  df = blkvar::generate_multilevel_data_no_cov( n.bar=200, J=50,
+                                                tau.11.star = 0.1^2,
+                                                ICC = 0.20,
+                                                p = 0.70,
+                                                variable.n = TRUE,
+                                                variable.p = TRUE,
+                                                size.impact.correlate = TRUE,
+                                                proptx.impact.correlate = TRUE,
+                                                finite.model = FALSE )
   
   # empirical sd of true treatment effects across clusters
   tau.S = attr( df, "tau.S")
@@ -178,7 +207,7 @@ if ( FALSE ) {
   
   
   head( df )  
-  df = rerandomize_data(df)
+  df = rerandomize.data(df)
   head( df )
   
   describe.data(df)
@@ -189,208 +218,8 @@ if ( FALSE ) {
 }
 
 
-##### Data-generating process #####
 
-# generate variable cluster sizes
-#  - analogue to blkvar::block_distn()
-cluster_distn <- function(K, J.bar, size.ratio) {
-  stopifnot(J.bar > 5)
-  nk <- blkvar::block_distn(J=K, n.bar=J.bar-4, size.ratio)
-  nk[nk<4] <- 4
-  
-  nk
-}
-
-# preserving order of x, rearrange y to correlate x
-#  via a magic hacky fuzzy sort
-#  - `cor` sets strength of correlation
-#  - returns: rearranged y
-induce_cor <- function(x, y, cor) {
-  temp <- y[order(cor^2 * y + (1-cor^2) * rnorm(length(y), sd=sd(y)))]
-  y <- temp[ order(order(sign(cor)*x)) ]
-}
-
-# Generate a cluster-randomized trial, with multiple districts
-generate_districts <- function(
-    # district-level params
-    K, J.bar, p.bar=0.5,
-    ATE.district, sd.district,
-    ICC.district,
-    variable.J = FALSE,
-    variable.p = FALSE,
-    
-    # correlation params at district level
-    size.ratio.district = 0.6, 
-    size.impact.cor.district = 0,
-    proptx.impact.cor.district = 0,
-    size.intercept.cor.district = 0,
-    
-    # school-level params
-    n.bar, sd.school, ICC.school = 0.20,
-    variable.n = FALSE,
-    
-    # correlation params at school level
-    size.ratio.school = 0.6,
-    size.impact.cor.school = 0,
-    cor.strength.school = 0.75) {
-  
-  stopifnot("size.impact.cor.district must be in (-1,1)" = 
-              size.impact.cor.district >= -1 & size.impact.cor.district <= 1)
-  stopifnot("proptx.impact.cor.district must be in (-1,1)" = 
-              proptx.impact.cor.district >= -1 & proptx.impact.cor.district <= 1)
-  stopifnot("size.intercept.cor.district must be in (-1,1)" = 
-              size.intercept.cor.district >= -1 & size.intercept.cor.district <= 1)
-  stopifnot(size.impact.cor.school %in% c(-1,0,1))
-  
-  # district J values
-  if (variable.J) {
-    num_clusters <- cluster_distn(K, J.bar, size.ratio=size.ratio.district)
-  } else {
-    num_clusters <- rep(J.bar, K)
-  }
-  # district proportions treated
-  if (variable.p) {
-    pp <- min(p.bar, 1-p.bar)
-    prop_tx_clusters <- runif(K, min=p.bar-pp/2, max=p.bar+pp/2)
-  } else {
-    prop_tx_clusters <- rep(p.bar, K)
-  }
-  
-  # district-level parameters
-  #  - note: ensure var of district-level effects is exactly sd.district^2, ICC.district
-  grid <- tibble(
-    did = 1:K,
-    # district.tau = rnorm(K, mean=ATE.district, sd=sd.district))
-    district.tau = MASS::mvrnorm(K, mu=ATE.district, Sigma=sd.district^2, 
-                                 empirical=T) %>% 
-      as.vector(),
-    district.alpha = MASS::mvrnorm(K, mu=0, Sigma=ICC.district,
-                                   empirical=T) %>% 
-      as.vector())
-  
-  # generate correlations between district.tau and num_clusters & prop_tx_clusters
-  #  - uses some magic hacks; idea is to keep order of district.tau,
-  #    and to reorder num_clusters & prop_tx_clusters, to avoid automatically
-  #    correlating the two of them
-  if (size.impact.cor.district != 0) {
-    stopifnot("Cannot correlate district sizes and average impacts if sizes do not vary" = 
-                variable.J)
-    num_clusters <- induce_cor(x = grid$district.tau,
-                               y = num_clusters,
-                               cor = size.impact.cor.district)
-  }
-  if (proptx.impact.cor.district != 0) {
-    stopifnot("Cannot correlate district proportions treated and average impacts if proportions treated do not vary" = 
-                variable.p)
-    prop_tx_clusters <- induce_cor(x = grid$district.tau,
-                                   y = prop_tx_clusters,
-                                   cor = proptx.impact.cor.district)
-    # p_temp <- prop_tx_clusters[order(
-    #   proptx.impact.cor.district^2 * prop_tx_clusters + 
-    #     (1-proptx.impact.cor.district^2) * rnorm(K, sd=sd(prop_tx_clusters)) )]
-    # prop_tx_clusters <- p_temp[ order(order(sign(proptx.impact.cor.district)*grid$district.tau)) ]
-  }
-  if (size.intercept.cor.district != 0) {
-    stopifnot("Cannot correlate district sizes and intercepts if ICC.district = 0" = 
-                (ICC.district != 0))
-    grid$district.alpha <- induce_cor(x = num_clusters,
-                                      y = grid$district.alpha,
-                                      cor = size.intercept.cor.district)
-  }
-  
-  grid$J <- num_clusters
-  grid$p <- prop_tx_clusters
-  
-  # force rerandomize.data() to assign at least two treated/control clusters
-  #  to each district, by applying floor and ceiling to p, depending on J
-  #   - i.e., force 2 <= J*p <= J-2
-  grid <- grid %>% 
-    mutate(p = ifelse(J*p < 2, 2/J, p),
-           p = ifelse(J*p > J-2, (J-2)/J, p))
-  
-  # make student-level dataset
-  sim.data <- grid %>%
-    rowwise() %>%
-    mutate(sim_data = list(
-      generate_multilevel_data_no_cov( 
-        n.bar = n.bar, 
-        J = J,
-        p = 0.5,   # doesn't matter, since we rerandomize tx to clusters anyways
-        gamma.00 = district.alpha,
-        gamma.10 = district.tau,
-        tau.11 = sd.school^2,
-        ICC = ICC.school,
-        
-        variable.n = variable.n,
-        finite.model = FALSE,
-        size.impact.correlate = size.impact.cor.school,
-        proptx.impact.correlate = FALSE,
-        correlate.strength = cor.strength.school,
-        size.ratio = size.ratio.school
-      ))) %>%
-    tidyr::unnest(cols=sim_data) %>% 
-    select(-J, -p, -district.tau, -district.alpha)
-  
-  # sim.data %>% filter(Z==0) %>% summarize(sd = sd(Yobs))
-  
-  # ensure that sids are unique
-  sid_key <- sim.data %>%
-    select(did, sid) %>%
-    unique() %>%
-    mutate(sid_new = 1:n())
-  
-  sim.data <- sim.data %>%
-    left_join(sid_key, by=c("did", "sid")) %>%
-    mutate(sid = sid_new) %>%
-    select(-sid_new)
-  
-  # record J, p, district.tau for each district
-  attr(sim.data, "district_key") <- grid
-  
-  # assign cluster-randomized treatment
-  sim.data <- rerandomize.data(sim.data)
-  
-  sim.data
-}
-
-if (F) {
-  df <- generate_districts(
-    K = 25,
-    J.bar = 50, 
-    p.bar = 0.5,
-    ATE.district = 0.2, 
-    sd.district = 0.1,
-    ICC.district = 0.5,
-    variable.J = T,
-    variable.p = T,
-    
-    # correlation params at cluster level
-    size.ratio.district = 0.6, 
-    size.impact.cor.district = 0.2,
-    proptx.impact.cor.district = 0.2,
-    size.intercept.cor.district = 0.2,
-    
-    # school-level params
-    n.bar = 50, 
-    sd.school = 0.1, 
-    ICC.school = 0.2,
-    variable.n = T,
-    
-    # correlation params at individual level
-    size.ratio.school = 0.6,
-    size.impact.cor.school = 0,
-    cor.strength.school = 0.75
-  )
-  
-  describe_clusterRCT(Yobs ~ Z | sid | did, df)
-  df %>% 
-    group_by(did) %>% 
-    summarize(mn = mean(Y0), n=n()) %>% 
-    summarize(cor = cor(mn, n))
-}
-
-
-##### Simulation code #####
+#### Simulation code ####
 
 # Run a single round of simulation.
 #
@@ -464,7 +293,7 @@ single.CRT = function( # district-level params
   beta_jks <- df %>% 
     group_by(did, sid) %>% 
     summarize(n_jk = n(), 
-              beta_jk = mean(Y1-Y0))
+              beta_jk = mean(Y1-Y0), .groups="drop")
   
   ATE.student <- with( df, mean( Y1 - Y0 ) )
   # ATE.student = beta_jks %>% 
@@ -484,9 +313,9 @@ single.CRT = function( # district-level params
     pull(ATE.dist.school)
   
   # Do finite-sample simulation, rerandomizing n.runs times.  
-  ests = plyr::rdply( n.runs, {
+  ests = map_dfr( 1:n.runs, function( x ) {
     df = rerandomize.data( df )
-    get.estimates( df, ... ) 
+    get.estimates( df, ... )
   }, .id="subrun" )
   
   # Gather results and ship!
@@ -518,7 +347,7 @@ single.CRT = function( # district-level params
 
 
 # Test the simulation code
-if ( F ) {
+if ( FALSE ) {
   
   # NOTE: DB estimators will return infinite SEs if there are
   #  fewer than two tx and co clusters in any district
@@ -532,7 +361,7 @@ if ( F ) {
     proptx.impact.cor.district = -0,
     
     n.bar=50, sd.school=0.1, ICC.school=0.3,
-    variable.n=T,
+    variable.n=TRUE,
     include_method_characteristics=F)
   
   head(res)
@@ -565,8 +394,9 @@ run.scenario = function(
     # method params
     n.runs = 3,
     R = 10,
-
+    
     ID=NULL, .progress="none", ... ) {
+  
   ptm = proc.time()
   
   #  n = n.bar * J
@@ -598,7 +428,7 @@ run.scenario = function(
         size.impact.cor.school,
         R)
   
-  rps = plyr::rdply( R, single.CRT( 
+  rps = map_dfr( 1:R, ~ single.CRT( 
     K = K, 
     J.bar = J.bar,
     p.bar = p.bar,
@@ -659,7 +489,7 @@ if ( FALSE ) {
                      size.intercept.cor.district = 0.5,
                      size.impact.cor.school = 0,
                      proptx.impact.cor.district = 0,
-
+                     
                      R = 2,
                      .progress="text",
                      include_method_characteristics=F)
@@ -861,12 +691,14 @@ get.scenario.by.id = function( index, group = "main" ) {
 }
 
 
+##### Testing code #####
+
 # Testing code
 if ( FALSE ) {
-  sc = make.scenario.list(group="initial")
+  sc = make.scenario.list(group="main")
   nrow( sc )
   head( sc )
-
+  
   get.scenario.by.id(12, group="main")
 }
 

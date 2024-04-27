@@ -1,4 +1,10 @@
+#
 # Run a single scenario
+#
+# This will provide a nested simulation with R superpopulation
+# replications.
+#
+# Output is a tibble, one row per method per simulation run.
 
 
 source( "simulation_support_code_crt.R" )
@@ -28,5 +34,10 @@ rr = run.scenario( K = 10,
                    R = 2,
                    .progress="text",
                    include_method_characteristics=FALSE)
+
+
+rr = as_tibble( rr )
+rr
+table( rr$run, rr$subrun )
 
 head( rr )  
