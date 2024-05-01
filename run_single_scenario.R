@@ -10,6 +10,7 @@
 source( "simulation_support_code_crt.R" )
 
 
+# This will run a single scenario!
 rr = run.scenario( K = 10, 
                    J.bar = 10,
                    p.bar = 0.5,
