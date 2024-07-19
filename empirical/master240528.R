@@ -1,3 +1,12 @@
+
+# This script analyzes the datasets and stacks them and saves them
+# into a final results file.
+#
+# Files saved: 
+# - Three excel sheets
+# - master240528_combined.RDS (or whatever date)
+
+
 # load libraries ----
 # devtools::install_github("https://github.com/lmiratrix/clusterRCT")
 library(tidyverse)
