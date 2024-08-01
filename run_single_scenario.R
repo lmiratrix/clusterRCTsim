@@ -14,7 +14,7 @@ source( "simulation_support_code_crt.R" )
 rr = run.scenario( K = 10, 
                    J.bar = 10,
                    p.bar = 0.5,
-                   ATE.district = 0.2, 
+                   ATE.district = 10.2, 
                    sd.district = 0.1,
                    ICC.district = 0.2,
                    variable.J = F,
@@ -39,6 +39,7 @@ rr = run.scenario( K = 10,
 
 rr = as_tibble( rr )
 rr
+summary( rr$ATE.hat )
 table( rr$run, rr$subrun )
 
 head( rr )  

@@ -369,8 +369,10 @@ if (FALSE) {
     size.impact.cor.school = 0,
     cor.strength.school = 0.75
   )
+  head( df )
   
   describe_clusterRCT(Yobs ~ Z | sid | did, df)
+  
   df %>% 
     group_by(did) %>% 
     summarize(mn = mean(Y0), n=n()) %>% 

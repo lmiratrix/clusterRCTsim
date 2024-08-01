@@ -428,7 +428,11 @@ run.scenario = function(
         size.impact.cor.school,
         R)
   
-  rps = map_dfr( 1:R, ~ single.CRT( 
+  # Get all the ... arguments in list
+  dots = list(...)
+  scat( "\tExtra arguments: %s\n", paste(names(dots), collapse=", ") )
+  
+  rps = map_dfr( 1:R, \(i) single.CRT( 
     K = K, 
     J.bar = J.bar,
     p.bar = p.bar,
