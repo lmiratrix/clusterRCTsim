@@ -8,4 +8,4 @@ install.packages("lmerTest")
 install.packages("multiwayvcov")
 
 install.packages("devtools")
-devtools::install_github("lmiratrix/clusterRCT")
+devtools::install_github("lmiratrix/clusterRCT",force = T)

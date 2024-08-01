@@ -57,7 +57,7 @@ results <- results %>%
             K, J.bar, p.bar, sd.district, ICC.district, variable.J, variable.p, 
             n.bar, sd.school, ICC.school, variable.n,
             size.impact.cor.district, size.impact.cor.school, proptx.impact.cor.district,
-            size.intercept.cor.district,
+            size.intercept.cor.district,sim.id,
             # superpop ATEs are scenario-level attributes, keep them
             ATE.super.district, ATE.super.school, ATE.super.student,
             ATE.super.dist.school, ATE.super.dist.student,

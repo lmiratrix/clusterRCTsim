@@ -503,6 +503,49 @@ if ( FALSE ) {
 
 
 #### Make scenario configurations #####
+#base.values
+#function to replicate base valuse across the rows and only change one variable
+expand.fixed.one<-function(manip.var.name,manip.var.vals, base.values){
+  base.comp<-base.values %>% select(!sim.id)
+  scenarios<- base.comp %>% slice(rep(1:n(),each=length(manip.var.vals))) %>%
+    select(-all_of(manip.var.name)) %>% mutate(!!manip.var.name:=manip.var.vals) %>% 
+    filter(!pmap_lgl(.,~all(c(...)==base.comp))) %>% mutate (sim.id=manip.var.name)}
+
+#set base.values
+base.values<-data.frame(K=10, 
+                        J.bar = 10,
+                        p.bar = 0.5,
+                        ATE.district = 0.2, 
+                        sd.district = 0.1,
+                        ICC.district = 0.2,
+                        variable.J = T,
+                        variable.p = F,
+                        n.bar=25,
+                        sd.school = 0.1, 
+                        ICC.school = 0.2,
+                        variable.n = T,
+                        size.impact.cor.district = 0,
+                        size.impact.cor.school = 0,
+                        proptx.impact.cor.district = 0,
+                        size.intercept.cor.district = 0,
+                        cor.strength.school=0,  
+                        sim.id="base.values")
+
+base.values.variable.p<- base.values %>% mutate(variable.p = T,sim.id="base.values.variable.p")
+base.values.sch.cor<- base.values %>% mutate( size.impact.cor.school = 1,sim.id="base.values.sch.cor")
+base.values.sch.cor.neg<- base.values %>% mutate( size.impact.cor.school = -1,sim.id="base.values.sch.cor.neg")  
+base.values.estimand<- base.values %>% mutate( size.impact.cor.school = 1,cor.strength.school=.75,sim.id="base.values.estimand")
+base.values.estimand.variable.p<- base.values.estimand %>% mutate(variable.p = T,sim.id="base.values.estimand.variable.p")
+base.values.estimand.2<-base.values.estimand %>% mutate(sd.district=.3,sd.school=.3,sim.id="base.values.estimand.2")
+base.values.estimand.variable.p.2<- base.values.estimand.2 %>% mutate(variable.p = T,sim.id="base.values.estimand.variable.p.2")
+base.values.performance<- base.values %>% mutate(size.impact.cor.district = .2, 
+                                                 size.impact.cor.school =1, cor.strength.school=.2,sim.id="base.values.performance")
+base.values.performance.variable.p<- base.values.performance %>% mutate(variable.p = T,sim.id="base.values.performance.variable.p")
+base.values.performance.sch.cor<- base.values.performance %>% mutate( size.impact.cor.school = 1,sim.id="base.values.performance.sch.cor")
+base.values.performance.sch.cor.neg<- base.values.performance %>% mutate( size.impact.cor.school = -1,sim.id="base.values.performance.sch.cor.neg")  
+
+
+
 
 make.scenario.list = function( group = "main" ) {
   
@@ -527,6 +570,29 @@ make.scenario.list = function( group = "main" ) {
       size.impact.cor.district = c(0,0.75),
       size.impact.cor.school = c(0,1),
       proptx.impact.cor.district = c(0, 0.75))
+  } else if ( group == "sim_base_1" ) {
+    scenarios<-bind_rows(expand.fixed.one(manip.var.name="size.impact.cor.district",
+                                          manip.var.vals<-seq(-1,1,.1),base.values),
+                         expand.fixed.one(manip.var.name="size.impact.cor.school",
+                                          manip.var.vals<-c(-1,0,1),base.values),
+                         expand.fixed.one(manip.var.name="proptx.impact.cor.district",
+                                          manip.var.vals<-seq(-1,1,.1),base.values.variable.p),
+                         expand.fixed.one(manip.var.name="size.intercept.cor.district",
+                                          manip.var.vals<-seq(-1,1,.1),base.values),
+                         expand.fixed.one(manip.var.name="ICC.district",
+                                          manip.var.vals<-seq(.05,.7,.05),base.values),
+                         expand.fixed.one(manip.var.name="ICC.school",
+                                          manip.var.vals<-seq(.05,.7,.05),base.values), 
+                         expand.fixed.one(manip.var.name="sd.district",
+                                          manip.var.vals<-seq(0,.5,.02),base.values), 
+                         expand.fixed.one(manip.var.name="sd.school",
+                                          manip.var.vals<-seq(0,.5,.02),base.values),
+                         expand.fixed.one(manip.var.name="cor.strength.school",
+                                          manip.var.vals<-seq(0,1,.1),base.values.sch.cor),
+                         expand.fixed.one(manip.var.name="cor.strength.school",
+                                          manip.var.vals<-seq(0,1,.1),base.values.sch.cor.neg),
+                         base.values,base.values.variable.p,base.values.sch.cor,base.values.sch.cor.neg)
+    
   } else if ( group == "initial" ) {
     scenarios = expand.grid( 
       K = c(10), 
