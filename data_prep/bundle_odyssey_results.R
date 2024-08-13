@@ -48,7 +48,8 @@ results <- results %>%
   group_by(ID) %>%
   mutate(across(starts_with("ATE.super"), mean),   # true superpop ATEs are scenario-level averages
          sim.per.min = mean( sim.per.min ),        # timing of each scenario
-         R = length( unique( run ) )) %>%          # ??? used later though
+         R = length( unique( run ) ),
+         group=group) %>%          # ??? used later though
   ungroup() %>%
   
   # regroup data by scenario
@@ -65,6 +66,8 @@ results <- results %>%
             sim.per.min, R) %>% 
   nest() %>% 
   rename(run = data)
+
+
 
 saveRDS( results, file="results/complete_odyssey_results.rds" )
 
