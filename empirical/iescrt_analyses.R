@@ -34,6 +34,7 @@ makeDotplot <- function(df, var,
                         binw       = NULL,
                         filename   = NULL,
                         coordratio = NULL,
+                        rmlegend   = F,
                         byest      = F ) {
   
   p <- ggplot(df, aes(x = !!sym(var))) +
@@ -61,6 +62,11 @@ makeDotplot <- function(df, var,
       facet_wrap(~ Estimand, nrow=1 ) +
       theme(strip.background = element_rect(fill = "lightgray", 
                                             linewidth = 0))
+  }
+  
+  if (rmlegend == T) {
+    p <- p +
+      theme(legend.position = 'none')
   }
   
   if (!is.null(filename)) {
@@ -139,7 +145,7 @@ table( combined$Estimand )
 ate_summary_estimand <- combined %>%
   # combining finite vs super population estimands 
   mutate(Estimand = str_replace_all(Estimand, 'SP\\*', 'SP')) %>%
-  group_by(Project, Trt_arm, Outcome, Outcome_desc, Covariates, Estimand) %>%
+  group_by(Collection, Project, Trt_arm, Outcome, Outcome_desc, Covariates, Estimand) %>%
   summarize(N     = sum(!is.na(ATE_hat_std)),
             Nmiss = sum(is.na(ATE_hat_std)),
             Min   = min(ATE_hat_std, na.rm = T),
@@ -173,7 +179,7 @@ ate_summary_estimand %>%
 se_summary <- combined %>%
   # replace values of Inf with NA
   mutate(SE_hat_std = ifelse(is.infinite(SE_hat_std), NA, SE_hat_std)) %>%
-  group_by(Project, Trt_arm, Outcome, Outcome_desc, Covariates) %>%
+  group_by(Collection, Project, Trt_arm, Outcome, Outcome_desc, Covariates) %>%
   summarize(N     = sum(!is.na(SE_hat_std)),
             Nmiss = sum(is.na(SE_hat_std)),
             Min   = min(SE_hat_std, na.rm = T),
@@ -237,7 +243,7 @@ se_summary %>%
 se_summary_estimand <- combined %>%
   # # combining finit vs super population estimands 
   # mutate(Estimand = str_replace_all(Estimand, 'SP\\*', 'SP')) %>%
-  group_by(Project, Trt_arm, Outcome, Outcome_desc, Covariates, Estimand) %>%
+  group_by(Collection, Project, Trt_arm, Outcome, Outcome_desc, Covariates, Estimand) %>%
   summarize(N     = sum(!is.na(SE_hat_std)),
             Nmiss = sum(is.na(SE_hat_std)),
             Min   = min(SE_hat_std, na.rm = T),
@@ -370,20 +376,84 @@ ggplot( combined2,
 
 # (Old) SREE proposal dotplot ----
 
+# ate_summary_sree <- combined %>%
+#   filter(Estimator != 'LR_FI_CRVE_Cluster') %>%
+#   group_by(Project, Trt_arm, Outcome, Covariates) %>%
+#   summarize(N     = n(),
+#             Nmiss = sum(is.na(ATE_hat_std)),
+#             Min   = min(ATE_hat_std, na.rm = T),
+#             Max   = max(ATE_hat_std, na.rm = T)) %>%
+#   mutate(Range = Max - Min)
+
+# ate_summary_sree %>%
+#   filter(Covariates == "best") %>%
+#   makeDotplot(var      = 'Range',
+#               xlab     = paste0('Range across ', max(.$N), ' Point Estimates'), 
+#               ylab     = 'Count', 
+#               title    = 'Range of ATE Estimates across all Estimators',
+#               subtitle = 'Each point represents one study-treatment arm-outcome combination',
+#               filename = 'ate_range_covar_sree2024')
+
+# SREE 2024 presentation ----
+
+## ATE range, best covariate
 ate_summary_sree <- combined %>%
   filter(Estimator != 'LR_FI_CRVE_Cluster') %>%
-  group_by(Project, Trt_arm, Outcome, Covariates) %>%
+  filter(Collection == 'Curated') %>%
+  group_by(Collection, Project, Trt_arm, Outcome, Covariates, J, K, ncov.1) %>%
   summarize(N     = n(),
             Nmiss = sum(is.na(ATE_hat_std)),
             Min   = min(ATE_hat_std, na.rm = T),
-            Max   = max(ATE_hat_std, na.rm = T)) %>%
-  mutate(Range = Max - Min)
+            Max   = max(ATE_hat_std, na.rm = T),
+            .groups = 'drop') %>%
+  mutate(Range = Max - Min,
+         df    =  J - (2 * K) - ncov.1 - 1)
 
 ate_summary_sree %>%
   filter(Covariates == "best") %>%
   makeDotplot(var      = 'Range',
-              xlab     = paste0('Range across ', max(.$N), ' Point Estimates'), 
-              ylab     = 'Count', 
+              xlab     = paste0('Range across ', max(.$N), ' Point Estimates'),
+              ylab     = 'Count',
               title    = 'Range of ATE Estimates across all Estimators',
               subtitle = 'Each point represents one study-treatment arm-outcome combination',
-              filename = 'ate_range_covar_sree2024')
+              filename = 'ate_range_bestcovar_sree2024',
+              rmlegend = T)
+
+## ATE range by estimand, best covariate
+ate_summary_estimand_sree <- combined %>%
+  filter(Estimator != 'LR_FI_CRVE_Cluster') %>%
+  filter(Collection == 'Curated') %>%
+  group_by(Collection, Project, Trt_arm, Outcome, Covariates, Estimand) %>%
+  summarize(N     = n(),
+            Nmiss = sum(is.na(ATE_hat_std)),
+            Min   = min(ATE_hat_std, na.rm = T),
+            Max   = max(ATE_hat_std, na.rm = T),
+            .groups = 'drop') %>%
+  mutate(Range = Max - Min)
+
+ate_summary_estimand_sree %>%
+  filter(Covariates == "best") %>%
+  makeDotplot(var        = 'Range',
+              xlab       = 'Range across Point Estimates',
+              ylab       = 'Count',
+              title      = 'Range of ATE Estimates across all Estimators, Grouped by Estimand',
+              subtitle   = 'Each point represents one study-treatment arm-outcome combination',
+              filename   = 'ate_range_bestcovar_estimand_sree2024',
+              coordratio = 0.10,
+              byest      = T,  
+              rmlegend   = T)
+
+## DF vs range, best vs. all covar
+(ate_summary_sree %>%
+  filter(Covariates %in% c('best', 'all')) %>%
+  mutate(Covariates = ifelse(Covariates == 'best', 'Best covariate', 'All covariates')) %>%
+  ggplot(aes(x = df, y = Range)) +
+  geom_point() + 
+  facet_wrap(~ Covariates) +
+  labs(x = "Degrees of Freedom", y = "Range") +
+  theme_minimal() +
+  theme(strip.background = element_rect(fill = "lightgray", 
+                                        linewidth = 0))) %>%
+  ggsave(plot     = ., 
+         filename = plot_path('dfvsrange_sree2024.png'))
+
