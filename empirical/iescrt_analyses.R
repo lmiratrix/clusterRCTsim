@@ -34,8 +34,11 @@ makeDotplot <- function(df, var,
                         binw       = NULL,
                         filename   = NULL,
                         coordratio = NULL,
+                        axisfs     = NULL,
+                        xscale     = NULL,
+                        plotmargin = NULL,
                         rmlegend   = F,
-                        byest      = F ) {
+                        byest      = F) {
   
   p <- ggplot(df, aes(x = !!sym(var))) +
     geom_dotplot( aes( fill=Collection ),
@@ -59,14 +62,32 @@ makeDotplot <- function(df, var,
   
   if (byest == T) {
     p <- p +
-      facet_wrap(~ Estimand, nrow=1 ) +
+      facet_grid(~ Estimand) +
       theme(strip.background = element_rect(fill = "lightgray", 
-                                            linewidth = 0))
+                                            linewidth = 0),
+            panel.spacing = unit(2, "lines"))
   }
   
   if (rmlegend == T) {
     p <- p +
       theme(legend.position = 'none')
+  }
+  
+  if (!is.null(axisfs)) {
+    p <- p +
+      theme(axis.text  = element_text(size = axisfs * 0.8),
+            axis.title = element_text(size = axisfs),
+            strip.text = element_text(size = axisfs))
+  }
+  
+  if (!is.null(xscale)) {
+    p <- p +
+      scale_x_continuous(breaks = xscale)
+  }
+  
+  if (!is.null(plotmargin)) {
+    p <- p +
+      theme(plot.margin = margin(plotmargin))
   }
   
   if (!is.null(filename)) {
@@ -398,7 +419,7 @@ ggplot( combined2,
 
 ## ATE range, best covariate
 ate_summary_sree <- combined %>%
-  filter(Estimator != 'LR_FI_CRVE_Cluster') %>%
+  filter(!grepl('_(Block|FIRC|RIRC|HT|Raj)$', Estimator)) %>%
   filter(Collection == 'Curated') %>%
   group_by(Collection, Project, Trt_arm, Outcome, Covariates, J, K, ncov.1) %>%
   summarize(N     = n(),
@@ -414,14 +435,17 @@ ate_summary_sree %>%
   makeDotplot(var      = 'Range',
               xlab     = paste0('Range across ', max(.$N), ' Point Estimates'),
               ylab     = 'Count',
-              title    = 'Range of ATE Estimates across all Estimators',
-              subtitle = 'Each point represents one study-treatment arm-outcome combination',
+              # title    = 'Range of ATE Estimates across all Estimators',
+              # subtitle = 'Each point represents one study-treatment arm-outcome combination',
               filename = 'ate_range_bestcovar_sree2024',
-              rmlegend = T)
+              rmlegend = T,
+              axisfs   = 20,
+              coordratio = .1,
+              binw     = .01)
 
 ## ATE range by estimand, best covariate
 ate_summary_estimand_sree <- combined %>%
-  filter(Estimator != 'LR_FI_CRVE_Cluster') %>%
+  filter(!grepl('_(Block|FIRC|RIRC|HT|Raj)$', Estimator)) %>%
   filter(Collection == 'Curated') %>%
   group_by(Collection, Project, Trt_arm, Outcome, Covariates, Estimand) %>%
   summarize(N     = n(),
@@ -433,27 +457,39 @@ ate_summary_estimand_sree <- combined %>%
 
 ate_summary_estimand_sree %>%
   filter(Covariates == "best") %>%
+  mutate(Estimand = case_when(Estimand == 'SP_Cluster_Cluster' ~ 'Cluster Weighted Estimand',
+                              Estimand == 'SP_Person_Person'   ~ 'Person Weighted Estimand')) %>%
   makeDotplot(var        = 'Range',
               xlab       = 'Range across Point Estimates',
               ylab       = 'Count',
-              title      = 'Range of ATE Estimates across all Estimators, Grouped by Estimand',
-              subtitle   = 'Each point represents one study-treatment arm-outcome combination',
+              # title      = 'Range of ATE Estimates across all Estimators, Grouped by Estimand',
+              # subtitle   = 'Each point represents one study-treatment arm-outcome combination',
               filename   = 'ate_range_bestcovar_estimand_sree2024',
               coordratio = 0.10,
               byest      = T,  
-              rmlegend   = T)
+              rmlegend   = T,
+              axisfs     = 20,
+              binw       = .01,
+              xscale     = seq(0, .2, .02),
+              plotmargin = c(5, 20, 5, 20))
 
 ## DF vs range, best vs. all covar
 (ate_summary_sree %>%
-  filter(Covariates %in% c('best', 'all')) %>%
-  mutate(Covariates = ifelse(Covariates == 'best', 'Best covariate', 'All covariates')) %>%
-  ggplot(aes(x = df, y = Range)) +
-  geom_point() + 
-  facet_wrap(~ Covariates) +
-  labs(x = "Degrees of Freedom", y = "Range") +
-  theme_minimal() +
-  theme(strip.background = element_rect(fill = "lightgray", 
-                                        linewidth = 0))) %>%
+    filter(Covariates %in% c('best', 'all')) %>%
+    filter(df < 100) %>%
+    mutate(Covariates = ifelse(Covariates == 'best', 'Best covariate', 'All covariates')) %>%
+    ggplot(aes(x = df, y = Range)) +
+    geom_point() + 
+    facet_wrap(~ Covariates) +
+    labs(x = "Degrees of Freedom", y = "Range") +
+    theme_minimal() +
+    theme(strip.background = element_rect(fill = "lightgray", 
+                                          linewidth = 0),
+          axis.title = element_text(size = 20),
+          axis.text  = element_text(size = 16),
+          strip.text = element_text(size = 20),
+          panel.spacing = unit(2, "lines"))) %>%
   ggsave(plot     = ., 
-         filename = plot_path('dfvsrange_sree2024.png'))
+         filename = plot_path('dfvsrange_sree2024.png'),
+         width = 14)
 
