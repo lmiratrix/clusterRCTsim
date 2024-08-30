@@ -492,7 +492,7 @@ se_summary_sree <- combined %>%
             .groups = 'drop') %>%
   mutate(Ratio    = Max / Min,
          #top code ratio
-         Ratio_tc = ifelse(Ratio >= 5, 5, Ratio),
+         Ratio_tc = ifelse(Ratio >= 4, 4, Ratio),
          df       =  J - (2 * K) - ncov.1 - 1)
 
 # no top-coding
@@ -518,7 +518,9 @@ se_summary_sree %>%
               filename = 'se_ratio_tc_bestcovar_sree2024',
               rmlegend = T,
               axisfs   = 20,
-              tcbreaks = c(1:5))
+              binw     = 0.1,
+              coordratio = 1,
+              tcbreaks = c(1:4))
 
 ## SE max/min ratio by estimand, best covariate
 se_summary_estimand_sree <- combined %>%
@@ -531,7 +533,7 @@ se_summary_estimand_sree <- combined %>%
             Max   = max(SE_hat_std, na.rm = T),
             .groups = 'drop') %>%
   mutate(Ratio = Max / Min,
-         Ratio_tc = ifelse(Ratio >= 5, 5, Ratio))
+         Ratio_tc = ifelse(Ratio >= 4, 4, Ratio))
 
 # no top-coding
 se_summary_estimand_sree %>%
@@ -562,7 +564,9 @@ se_summary_estimand_sree %>%
               byest      = T,  
               rmlegend   = T,
               axisfs     = 20,
-              tcbreaks   = c(1:5))
+              binw       = 0.1,
+              coordratio = 1.5,
+              tcbreaks   = c(1:4))
 
 ## DF vs range, best vs. all covar
 (ate_summary_sree %>%
