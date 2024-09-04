@@ -592,12 +592,39 @@ se_summary_estimand_sree %>%
          filename = plot_path('dfvsrange_sree2024.png'),
          width = 14)
 
+## DF vs SE ratio, best vs. all covar
+(se_summary_sree %>%
+    filter(Covariates %in% c('best', 'all')) %>%
+    # filter(df < 100) %>%
+    # topcode high DF 
+    mutate(Covariates = ifelse(Covariates == 'best', 'Best covariate', 'All covariates'),
+           df_tc = ifelse(df >= 50, 50, df)) %>%
+    ggplot(aes(x = df_tc, y = Ratio_tc)) +
+    geom_point() + 
+    facet_wrap(~ Covariates) +
+    labs(x = "Degrees of Freedom", y = "Max-Min SE Ratio") +
+    theme_minimal() +
+    theme(strip.background = element_rect(fill = "lightgray", 
+                                          linewidth = 0),
+          axis.title = element_text(size = 20),
+          axis.text  = element_text(size = 16),
+          strip.text = element_text(size = 20),
+          panel.spacing = unit(2, "lines")) +
+    scale_x_continuous(breaks = seq(-10, 50, by = 10), 
+                       labels = c(seq(-10, 40, by = 10), "50+")) +
+    scale_y_continuous(breaks = seq(1, 4, by = 1), 
+                       labels = c(seq(1, 3, by = 1), "4+"))) %>%
+  ggsave(plot     = ., 
+         filename = plot_path('dfvsratio_sree2024.png'),
+         width = 14)
+
 ## ATEs and CIs for a "typical" outcome
 combined_wt <- combined %>%
   filter(Covariates == 'best') %>%
   filter(Collection == 'Curated') %>%
   filter(!grepl('_(Block|FIRC|RIRC|HT|Raj)$', Estimator)) %>%
-  mutate(Weight = factor(case_when(Estimator %in% c("DB_FI_Person_Person",
+  mutate(df_app =  J - (2 * K) - ncov.1 - 1,
+         Weight = factor(case_when(Estimator %in% c("DB_FI_Person_Person",
                                                     "Agg_FI_Person_Person",
                                                     "LR_FI_CRVE_Person") ~ 'Person-weight',
                                    Estimator %in% c("LR_FE_CRVE",
@@ -623,7 +650,7 @@ combined_wt <- combined %>%
                                                   "Agg_FI_Person_Person", "DB_FI_Person_Person", "LR_FI_CRVE_Person")), # person-weight
          Estimand = factor(case_when(Estimand == 'SP_Cluster_Cluster' ~ 'Cluster Weighted Estimand',
                                      Estimand == 'SP_Person_Person'   ~ 'Person Weighted Estimand')))
-
+library(grid)
 
 for (uid in unique(combined_wt$UniqueID)) {
   
@@ -635,6 +662,20 @@ for (uid in unique(combined_wt$UniqueID)) {
   yseq <- round(seq(floor(min(temp$CImin, na.rm = T)*10)/10, 
                     ceiling(max(temp$CImax, na.rm = T)*10)/10,
                     .05), 2)
+  
+  minbeta <- min(temp$ATE_hat_std, na.rm = T)
+  maxbeta <- max(temp$ATE_hat_std, na.rm = T)
+  
+  minse <- min(temp$SE_hat_std, na.rm = T)
+  maxse <- max(temp$SE_hat_std, na.rm = T)
+  
+  tagtext <- bquote(atop(
+    atop('Approx. DF = ' * .(max(temp$df_app)),
+         hat(beta) * ' range = ' * .(round(maxbeta - minbeta, 2))),
+    atop('Max-Min SE Ratio = ' * .(round(maxse/minse, 2)), 
+         phantom())))
+    
+  
   
   plottitle <- paste0(unique(temp$Project),
                       ifelse(is.na(unique(temp$Trt_arm)), '', paste0(', Arm: ', unique(temp$Trt_arm))))
@@ -681,7 +722,11 @@ for (uid in unique(combined_wt$UniqueID)) {
       shape = 50, 
       legend.key.width = unit(10, "cm") , size = 2) ) +
     ggtitle(plottitle,
-            subtitle = plotsubtitle) + labs(color='Estimands') 
+            subtitle = plotsubtitle) + labs(color='Estimands') +
+    # annotate('text', x = Inf, y = -0.1, label = 'TEST')
+    labs(tag = tagtext) +
+    theme(plot.tag.position = c(.8, .5),
+          plot.tag = element_text(hjust = 0, size = 16))
   
   ggsave(plot_path(paste0('ATEwCI_', uid, '.pdf')),
          plot = p,
