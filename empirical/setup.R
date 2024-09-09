@@ -38,7 +38,8 @@ combined
 if ( TRUE ) {
   # Add in josh results
   josh = read_csv( here::here( "empirical", "results", "jg_results.csv" ) )
-
+  
+  names(josh)
   head( josh )
   josh$UniqueID = josh$Project
   
@@ -93,3 +94,7 @@ combined$UniqueID <- gsub("  ", "_", combined$UniqueID)
 combined$UniqueID <- gsub(" ", "", combined$UniqueID)
 
 table( combined$UniqueID, useNA = "always" )
+
+
+
+cat( "Data loaded\n" )
