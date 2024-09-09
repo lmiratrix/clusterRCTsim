@@ -34,14 +34,19 @@ makeDotplot <- function(df, var,
                         binw       = NULL,
                         filename   = NULL,
                         coordratio = NULL,
-                        byest      = F ) {
+                        axisfs     = NULL,
+                        xscale     = NULL,
+                        plotmargin = NULL,
+                        tcbreaks   = NULL,
+                        rmlegend   = F,
+                        byest      = F) {
   
   p <- ggplot(df, aes(x = !!sym(var))) +
     geom_dotplot( aes( fill=Collection ),
                   binwidth   = binw,
-                 dotsize    = 0.8,
-                 stackratio = 1.2,
-                 method     = 'histodot') +
+                  dotsize    = 0.8,
+                  stackratio = 1.2,
+                  method     = 'histodot') +
     theme_minimal() +
     labs(x        = xlab,
          y        = ylab,
@@ -58,9 +63,38 @@ makeDotplot <- function(df, var,
   
   if (byest == T) {
     p <- p +
-      facet_wrap(~ Estimand, nrow=1 ) +
+      facet_grid(~ Estimand) +
       theme(strip.background = element_rect(fill = "lightgray", 
-                                            linewidth = 0))
+                                            linewidth = 0),
+            panel.spacing = unit(2, "lines"))
+  }
+  
+  if (rmlegend == T) {
+    p <- p +
+      theme(legend.position = 'none')
+  }
+  
+  if (!is.null(axisfs)) {
+    p <- p +
+      theme(axis.text  = element_text(size = axisfs * 0.8),
+            axis.title = element_text(size = axisfs),
+            strip.text = element_text(size = axisfs))
+  }
+  
+  if (!is.null(xscale)) {
+    p <- p +
+      scale_x_continuous(breaks = xscale)
+  }
+  
+  if (!is.null(plotmargin)) {
+    p <- p +
+      theme(plot.margin = margin(plotmargin))
+  }
+  
+  if (!is.null(tcbreaks)) {
+    p <- p +
+      scale_x_continuous(breaks = tcbreaks, 
+                         labels = c(tcbreaks[1:(length(tcbreaks) - 1)], paste0(tcbreaks[length(tcbreaks)], '+')))
   }
   
   if (!is.null(filename)) {
@@ -139,7 +173,7 @@ table( combined$Estimand )
 ate_summary_estimand <- combined %>%
   # combining finite vs super population estimands 
   mutate(Estimand = str_replace_all(Estimand, 'SP\\*', 'SP')) %>%
-  group_by(Project, Trt_arm, Outcome, Outcome_desc, Covariates, Estimand) %>%
+  group_by(Collection, Project, Trt_arm, Outcome, Outcome_desc, Covariates, Estimand) %>%
   summarize(N     = sum(!is.na(ATE_hat_std)),
             Nmiss = sum(is.na(ATE_hat_std)),
             Min   = min(ATE_hat_std, na.rm = T),
@@ -173,7 +207,7 @@ ate_summary_estimand %>%
 se_summary <- combined %>%
   # replace values of Inf with NA
   mutate(SE_hat_std = ifelse(is.infinite(SE_hat_std), NA, SE_hat_std)) %>%
-  group_by(Project, Trt_arm, Outcome, Outcome_desc, Covariates) %>%
+  group_by(Collection, Project, Trt_arm, Outcome, Outcome_desc, Covariates) %>%
   summarize(N     = sum(!is.na(SE_hat_std)),
             Nmiss = sum(is.na(SE_hat_std)),
             Min   = min(SE_hat_std, na.rm = T),
@@ -237,7 +271,7 @@ se_summary %>%
 se_summary_estimand <- combined %>%
   # # combining finit vs super population estimands 
   # mutate(Estimand = str_replace_all(Estimand, 'SP\\*', 'SP')) %>%
-  group_by(Project, Trt_arm, Outcome, Outcome_desc, Covariates, Estimand) %>%
+  group_by(Collection, Project, Trt_arm, Outcome, Outcome_desc, Covariates, Estimand) %>%
   summarize(N     = sum(!is.na(SE_hat_std)),
             Nmiss = sum(is.na(SE_hat_std)),
             Min   = min(SE_hat_std, na.rm = T),
@@ -370,20 +404,342 @@ ggplot( combined2,
 
 # (Old) SREE proposal dotplot ----
 
+# ate_summary_sree <- combined %>%
+#   filter(Estimator != 'LR_FI_CRVE_Cluster') %>%
+#   group_by(Project, Trt_arm, Outcome, Covariates) %>%
+#   summarize(N     = n(),
+#             Nmiss = sum(is.na(ATE_hat_std)),
+#             Min   = min(ATE_hat_std, na.rm = T),
+#             Max   = max(ATE_hat_std, na.rm = T)) %>%
+#   mutate(Range = Max - Min)
+
+# ate_summary_sree %>%
+#   filter(Covariates == "best") %>%
+#   makeDotplot(var      = 'Range',
+#               xlab     = paste0('Range across ', max(.$N), ' Point Estimates'), 
+#               ylab     = 'Count', 
+#               title    = 'Range of ATE Estimates across all Estimators',
+#               subtitle = 'Each point represents one study-treatment arm-outcome combination',
+#               filename = 'ate_range_covar_sree2024')
+
+# SREE 2024 presentation ----
+
+## ATE range, best covariate
 ate_summary_sree <- combined %>%
-  filter(Estimator != 'LR_FI_CRVE_Cluster') %>%
-  group_by(Project, Trt_arm, Outcome, Covariates) %>%
+  filter(!grepl('_(Block|FIRC|RIRC|HT|Raj)$', Estimator)) %>%
+  filter(Collection == 'Curated') %>%
+  group_by(Collection, Project, Trt_arm, Outcome, Covariates, J, K, ncov.1) %>%
   summarize(N     = n(),
             Nmiss = sum(is.na(ATE_hat_std)),
             Min   = min(ATE_hat_std, na.rm = T),
-            Max   = max(ATE_hat_std, na.rm = T)) %>%
-  mutate(Range = Max - Min)
+            Max   = max(ATE_hat_std, na.rm = T),
+            .groups = 'drop') %>%
+  mutate(Range = Max - Min,
+         df    =  J - (2 * K) - ncov.1 - 1)
 
 ate_summary_sree %>%
   filter(Covariates == "best") %>%
   makeDotplot(var      = 'Range',
-              xlab     = paste0('Range across ', max(.$N), ' Point Estimates'), 
-              ylab     = 'Count', 
-              title    = 'Range of ATE Estimates across all Estimators',
-              subtitle = 'Each point represents one study-treatment arm-outcome combination',
-              filename = 'ate_range_covar_sree2024')
+              xlab     = paste0('Range across ', max(.$N), ' Point Estimates'),
+              ylab     = 'Count',
+              # title    = 'Range of ATE Estimates across all Estimators',
+              # subtitle = 'Each point represents one study-treatment arm-outcome combination',
+              filename = 'ate_range_bestcovar_sree2024',
+              rmlegend = T,
+              axisfs   = 20,
+              coordratio = .1,
+              binw     = .01)
+
+## ATE range by estimand, best covariate
+ate_summary_estimand_sree <- combined %>%
+  filter(!grepl('_(Block|FIRC|RIRC|HT|Raj)$', Estimator)) %>%
+  filter(Collection == 'Curated') %>%
+  group_by(Collection, Project, Trt_arm, Outcome, Covariates, Estimand) %>%
+  summarize(N     = n(),
+            Nmiss = sum(is.na(ATE_hat_std)),
+            Min   = min(ATE_hat_std, na.rm = T),
+            Max   = max(ATE_hat_std, na.rm = T),
+            .groups = 'drop') %>%
+  mutate(Range = Max - Min)
+
+ate_summary_estimand_sree %>%
+  filter(Covariates == "best") %>%
+  mutate(Estimand = case_when(Estimand == 'SP_Cluster_Cluster' ~ 'Cluster Weighted Estimand',
+                              Estimand == 'SP_Person_Person'   ~ 'Person Weighted Estimand')) %>%
+  makeDotplot(var        = 'Range',
+              xlab       = 'Range across Point Estimates',
+              ylab       = 'Count',
+              # title      = 'Range of ATE Estimates across all Estimators, Grouped by Estimand',
+              # subtitle   = 'Each point represents one study-treatment arm-outcome combination',
+              filename   = 'ate_range_bestcovar_estimand_sree2024',
+              coordratio = 0.10,
+              byest      = T,  
+              rmlegend   = T,
+              axisfs     = 20,
+              binw       = .01,
+              xscale     = seq(0, .2, .02),
+              plotmargin = c(5, 20, 5, 20))
+
+## SE min/max ratio, best covariate
+se_summary_sree <- combined %>%
+  filter(!grepl('_(Block|FIRC|RIRC|HT|Raj)$', Estimator)) %>%
+  filter(Collection == 'Curated') %>%
+  group_by(Collection, Project, Trt_arm, Outcome, Covariates, J, K, ncov.1) %>%
+  summarize(N     = n(),
+            Nmiss = sum(is.na(SE_hat_std)),
+            Min   = min(SE_hat_std, na.rm = T),
+            Max   = max(SE_hat_std, na.rm = T),
+            .groups = 'drop') %>%
+  mutate(Ratio    = Max / Min,
+         #top code ratio
+         Ratio_tc = ifelse(Ratio >= 4, 4, Ratio),
+         df       =  J - (2 * K) - ncov.1 - 1)
+
+# no top-coding
+se_summary_sree %>%
+  filter(Covariates == "best") %>%
+  makeDotplot(var      = 'Ratio',
+              xlab     = paste0('Max-to-Min Ratio across ', max(.$N), ' Point Estimates'),
+              ylab     = 'Count',
+              # title    = 'Max/Min Ratio of SE Estimates across all Estimators',
+              # subtitle = 'Each point represents one study-treatment arm-outcome combination',
+              filename = 'se_ratio_bestcovar_sree2024',
+              rmlegend = T,
+              axisfs   = 20)
+
+# top-coded ratio
+se_summary_sree %>%
+  filter(Covariates == "best") %>%
+  makeDotplot(var      = 'Ratio_tc',
+              xlab     = paste0('Max-to-Min Ratio across ', max(.$N), ' Point Estimates'),
+              ylab     = 'Count',
+              # title    = 'Max/Min Ratio of SE Estimates across all Estimators',
+              # subtitle = 'Each point represents one study-treatment arm-outcome combination',
+              filename = 'se_ratio_tc_bestcovar_sree2024',
+              rmlegend = T,
+              axisfs   = 20,
+              binw     = 0.1,
+              coordratio = 1,
+              tcbreaks = c(1:4))
+
+## SE max/min ratio by estimand, best covariate
+se_summary_estimand_sree <- combined %>%
+  filter(!grepl('_(Block|FIRC|RIRC|HT|Raj)$', Estimator)) %>%
+  filter(Collection == 'Curated') %>%
+  group_by(Collection, Project, Trt_arm, Outcome, Covariates, Estimand) %>%
+  summarize(N     = n(),
+            Nmiss = sum(is.na(SE_hat_std)),
+            Min   = min(SE_hat_std, na.rm = T),
+            Max   = max(SE_hat_std, na.rm = T),
+            .groups = 'drop') %>%
+  mutate(Ratio = Max / Min,
+         Ratio_tc = ifelse(Ratio >= 4, 4, Ratio))
+
+# no top-coding
+se_summary_estimand_sree %>%
+  filter(Covariates == "best") %>%
+  mutate(Estimand = case_when(Estimand == 'SP_Cluster_Cluster' ~ 'Cluster Weighted Estimand',
+                              Estimand == 'SP_Person_Person'   ~ 'Person Weighted Estimand')) %>%
+  makeDotplot(var        = 'Ratio',
+              xlab       = 'Max-to-Min Ratio across Point Estimates',
+              ylab       = 'Count',
+              # title      = 'Ratio of SE Estimates across all Estimators, Grouped by Estimand',
+              # subtitle   = 'Each point represents one study-treatment arm-outcome combination',
+              filename   = 'se_ratio_bestcovar_estimand_sree2024',
+              byest      = T,  
+              rmlegend   = T,
+              axisfs     = 20)
+
+# with top-coding
+se_summary_estimand_sree %>%
+  filter(Covariates == "best") %>%
+  mutate(Estimand = case_when(Estimand == 'SP_Cluster_Cluster' ~ 'Cluster Weighted Estimand',
+                              Estimand == 'SP_Person_Person'   ~ 'Person Weighted Estimand')) %>%
+  makeDotplot(var        = 'Ratio_tc',
+              xlab       = 'Max-to-Min Ratio across Point Estimates',
+              ylab       = 'Count',
+              # title      = 'Ratio of SE Estimates across all Estimators, Grouped by Estimand',
+              # subtitle   = 'Each point represents one study-treatment arm-outcome combination',
+              filename   = 'se_ratio_tc_bestcovar_estimand_sree2024',
+              byest      = T,  
+              rmlegend   = T,
+              axisfs     = 20,
+              binw       = 0.1,
+              coordratio = 1.5,
+              tcbreaks   = c(1:4))
+
+## DF vs range, best vs. all covar
+(ate_summary_sree %>%
+    filter(Covariates %in% c('best', 'all')) %>%
+    # filter(df < 100) %>%
+    # topcode high DF 
+    mutate(Covariates = ifelse(Covariates == 'best', 'Best covariate', 'All covariates'),
+           df_tc = ifelse(df >= 50, 50, df)) %>%
+    ggplot(aes(x = df_tc, y = Range)) +
+    geom_point() + 
+    facet_wrap(~ Covariates) +
+    labs(x = "Degrees of Freedom", y = "Range") +
+    theme_minimal() +
+    theme(strip.background = element_rect(fill = "lightgray", 
+                                          linewidth = 0),
+          axis.title = element_text(size = 20),
+          axis.text  = element_text(size = 16),
+          strip.text = element_text(size = 20),
+          panel.spacing = unit(2, "lines")) +
+    scale_x_continuous(breaks = seq(-10, 50, by = 10), 
+                       labels = c(seq(-10, 40, by = 10), "50+"))) %>%
+  ggsave(plot     = ., 
+         filename = plot_path('dfvsrange_sree2024.png'),
+         width = 14)
+
+## DF vs SE ratio, best vs. all covar
+(se_summary_sree %>%
+    filter(Covariates %in% c('best', 'all')) %>%
+    # filter(df < 100) %>%
+    # topcode high DF 
+    mutate(Covariates = ifelse(Covariates == 'best', 'Best covariate', 'All covariates'),
+           df_tc = ifelse(df >= 50, 50, df)) %>%
+    ggplot(aes(x = df_tc, y = Ratio_tc)) +
+    geom_point() + 
+    facet_wrap(~ Covariates) +
+    labs(x = "Degrees of Freedom", y = "Max-Min SE Ratio") +
+    theme_minimal() +
+    theme(strip.background = element_rect(fill = "lightgray", 
+                                          linewidth = 0),
+          axis.title = element_text(size = 20),
+          axis.text  = element_text(size = 16),
+          strip.text = element_text(size = 20),
+          panel.spacing = unit(2, "lines")) +
+    scale_x_continuous(breaks = seq(-10, 50, by = 10), 
+                       labels = c(seq(-10, 40, by = 10), "50+")) +
+    scale_y_continuous(breaks = seq(1, 4, by = 1), 
+                       labels = c(seq(1, 3, by = 1), "4+"))) %>%
+  ggsave(plot     = ., 
+         filename = plot_path('dfvsratio_sree2024.png'),
+         width = 14)
+
+## ATEs and CIs for a "typical" outcome
+combined_wt <- combined %>%
+  filter(Covariates == 'best') %>%
+  filter(Collection == 'Curated') %>%
+  filter(!grepl('_(Block|FIRC|RIRC|HT|Raj)$', Estimator)) %>%
+  mutate(df_app =  J - (2 * K) - ncov.1 - 1,
+         Weight = factor(case_when(Estimator %in% c("DB_FI_Person_Person",
+                                                    "Agg_FI_Person_Person",
+                                                    "LR_FI_CRVE_Person") ~ 'Person-weight',
+                                   Estimator %in% c("LR_FE_CRVE",
+                                                    "Agg_FE_Person",
+                                                    "DB_FE_Person") ~ 'Precision-weight (person)',
+                                   # group together MLMs?
+                                   Estimator %in% c("MLM_FI_Cluster",
+                                                    "MLM_FE",
+                                                    "MLM_RE") ~ 'MLM',
+                                   Estimator %in% c("Agg_FI_Cluster_Cluster",
+                                                    "DB_FI_Cluster_Cluster") ~ 'Cluster-weight',
+                                   Estimator %in% c("DB_FE_Cluster",
+                                                    "Agg_FE_Cluster") ~ 'Precision-weight (cluster)'),
+                         levels = c('Cluster-weight', 'Precision-weight (cluster)',
+                                    'MLM',
+                                    'Precision-weight (person)', 'Person-weight'))) %>%
+  
+  # order estimators
+  mutate(Estimator = factor(Estimator, levels = c("Agg_FI_Cluster_Cluster", "DB_FI_Cluster_Cluster", # cluster-weight
+                                                  "Agg_FE_Cluster", "DB_FE_Cluster",  # precision-weight (cluster)
+                                                  "MLM_FE", "MLM_RE", "MLM_FI_Cluster", # MLM    
+                                                  "Agg_FE_Person", "DB_FE_Person", "LR_FE_CRVE", # Precision-weight (person)
+                                                  "Agg_FI_Person_Person", "DB_FI_Person_Person", "LR_FI_CRVE_Person")), # person-weight
+         Estimand = factor(case_when(Estimand == 'SP_Cluster_Cluster' ~ 'Cluster Weighted Estimand',
+                                     Estimand == 'SP_Person_Person'   ~ 'Person Weighted Estimand')))
+library(grid)
+
+for (uid in unique(combined_wt$UniqueID)) {
+  
+  temp <- combined_wt %>%
+    filter(UniqueID == uid) %>%
+    mutate(CImin = ATE_hat_std - 1.645*SE_hat_std,
+           CImax = ATE_hat_std + 1.645*SE_hat_std)
+  
+  yseq <- round(seq(floor(min(temp$CImin, na.rm = T)*10)/10, 
+                    ceiling(max(temp$CImax, na.rm = T)*10)/10,
+                    .05), 2)
+  
+  minbeta <- min(temp$ATE_hat_std, na.rm = T)
+  maxbeta <- max(temp$ATE_hat_std, na.rm = T)
+  
+  minse <- min(temp$SE_hat_std, na.rm = T)
+  maxse <- max(temp$SE_hat_std, na.rm = T)
+  
+  tagtext <- bquote(atop(
+    atop('Approx. DF = ' * .(max(temp$df_app)),
+         hat(beta) * ' range = ' * .(round(maxbeta - minbeta, 2))),
+    atop('Max-Min SE Ratio = ' * .(round(maxse/minse, 2)), 
+         phantom())))
+    
+  
+  
+  plottitle <- paste0(unique(temp$Project),
+                      ifelse(is.na(unique(temp$Trt_arm)), '', paste0(', Arm: ', unique(temp$Trt_arm))))
+  plotsubtitle <- unique(temp$Outcome_desc)
+  
+  p <- temp %>%
+    ggplot(aes(x=Estimator, y=ATE_hat_std )) + 
+    geom_hline(yintercept = yseq, col = "gray", lty="dotted") +
+    geom_errorbar(aes(ymin=(ATE_hat_std - 1.645*SE_hat_std), ymax=(ATE_hat_std + 1.645*SE_hat_std), col = Estimand), width=.2, lwd=1.1) +
+    geom_point(size=2) +
+    geom_hline(yintercept = min(temp$ATE_hat_std, na.rm = T), lty = 'dashed') +
+    geom_hline(yintercept = max(temp$ATE_hat_std, na.rm = T), lty = 'dashed') +
+    facet_grid(. ~ Weight , scales = "free") +
+    scale_y_continuous(breaks= yseq) +
+    scale_x_discrete(breaks = levels(combined_wt$Estimator),
+                     labels = parse(text = paste0('bold(hat(beta)[', levels(combined_wt$Estimator), '])')))  +
+    theme_bw() +
+    theme(legend.position = "right",
+          legend.title = element_text(size=20, face = "bold"),
+          legend.text = element_text(size=16, face="bold"),
+          plot.title = element_text(face="bold", size = 20),
+          # legend.key.width = unit(1, "cm"),
+          strip.text.x = element_text(angle = 0, size=10),
+          axis.text.x = element_text(face= "bold",
+                                     angle=90,
+                                     size = 16,
+                                     vjust = 0,
+                                     hjust=0, 
+                                     margin = margin(t = 0, r = 0, b = 0, l = 0)),
+          axis.title.x = element_text(margin = margin(t = 35, r = 0, b = 0, l = 0), size = 20, face="bold"),
+          axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0), size = 20, face="bold"),
+          axis.text.y = element_text(face="bold",
+                                     margin = margin(t=0,r=0,b=0,l=0), 
+                                     size =16, 
+                                     #  family = "serif",
+                                     vjust=0)) +
+    ylab(expression(paste(hat(beta)," (Effect Size Units)"))) + xlab("Estimator") +
+    #  coord_flip() +
+    guides(col=guide_legend(
+      label.position = "right", nrow =4,
+      #  keywidth=1,
+      # keyheight=.25,
+      #  default.unit="inch",
+      shape = 50, 
+      legend.key.width = unit(10, "cm") , size = 2) ) +
+    ggtitle(plottitle,
+            subtitle = plotsubtitle) + labs(color='Estimands') +
+    # annotate('text', x = Inf, y = -0.1, label = 'TEST')
+    labs(tag = tagtext) +
+    theme(plot.tag.position = c(.8, .5),
+          plot.tag = element_text(hjust = 0, size = 16))
+  
+  ggsave(plot_path(paste0('ATEwCI_', uid, '.pdf')),
+         plot = p,
+         width = 14,
+         height = 8)
+
+}
+
+# combine into a single pdf
+pdf_files <- list.files(path = '/data/share/pse/IES CRT/clusterRCTsim/empirical/tables',
+                        pattern = '^ATEwCI',
+                        full.names = T)
+
+library(qpdf)
+pdf_combine(input = pdf_files,
+            output = plot_path('ATEwCI_COMBINED.pdf'))

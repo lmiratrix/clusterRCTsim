@@ -6,9 +6,13 @@
 # - Three excel sheets
 # - master240528_combined.RDS (or whatever date)
 
+# was getting error running devtools::install_github(), so used this approach instead
+# download.file("https://github.com/lmiratrix/clusterRCT/archive/refs/heads/main.zip", destfile = "clusterRCT.zip")
+# unzip("clusterRCT.zip")
+# install.packages("clusterRCT-main", repos = NULL, type = "source")
 
 # load libraries ----
-# devtools::install_github("https://github.com/lmiratrix/clusterRCT")
+# devtools::install_github("lmiratrix/clusterRCT")
 library(tidyverse)
 library(haven)
 library(clusterRCT)
@@ -291,7 +295,7 @@ compare_tnstar <- pmap(grid_tnstar, cm,
 
 ## Beacon Mentor ----
 
-outcomes_beaconmentor <- c('S8CUMUGP', 'S8CUMEAR', 'R3PERSISTENCE')
+outcomes_beaconmentor <- c('S8TGPA', 'S8TOTCR', 'SRPRST2')
 covars_beaconmentor <- c('RADEV', 'S8TEACHID', 'S8FULTMEC', 'ZFemale', 'RATIME', 'ZAGELT24', 'PTTOP75C', 'PTBTM25C')
 
 grid_beaconmentor <- expand_grid(outcome = outcomes_beaconmentor,
@@ -518,5 +522,5 @@ write_xlsx(compare,  '/data/share/pse/IES CRT/sd7/master240528_compare.xlsx')
 write_xlsx(describe, '/data/share/pse/IES CRT/sd7/master240528_describe.xlsx') 
 write_xlsx(combined, '/data/share/pse/IES CRT/sd7/master240528_combined.xlsx') 
 saveRDS(combined,    '/data/share/pse/IES CRT/sd7/master240528_combined.RDS')
-
+saveRDS(combined,    '/data/share/pse/IES CRT/clusterRCTsim/empirical/results/master240528_combined.RDS')
 
