@@ -1,6 +1,9 @@
+
+# Old script from Multisite project, slightly tweaked
+
 # packages
 #install.packages("devtools","kfigr","ggplot2","ggthemes","grid","gridExtra","lattice",
- #               "dplyr","caret","knitr","kableExtra","tidyverse","pBrackets","extrafont","ggrepel")
+#               "dplyr","caret","knitr","kableExtra","tidyverse","pBrackets","extrafont","ggrepel")
 library(devtools)
 library(kfigr)
 library(ggplot2)
@@ -17,24 +20,42 @@ library(extrafont)
 library(ggrepel)
 library(staplr)
 
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+# NOTE: No need--use the here::here package
+# setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 
 ######################## Read in restricted and nonrestricted adjusted results ###################################
 if ( FALSE ) {
-    nonres = read.csv("T:/SIESM/Cross-Study/Estimands_Estimators/Output/CovResultsNonrestricted191219.csv")
-    res = read.csv("T:/SIESM/Cross-Study/Estimands_Estimators/Output/CovResultsrestricted191219.csv")
-    covres1 = rbind(nonres,res)
-    
-    ### Remove RIRC  and Luke's extra estimators ###
-    table(covres1$method, useNA = "if")
-    covres2 = filter(covres1, !(method %in% c("RIRC-adj", "hybrid_m","hybrid_p","plug_in_big")))
-    table(covres2$method, useNA = "if")
-    write.csv(covres2, "T:/SIESM/Cross-Study/Estimands_Estimators/Output/CovResultsAll191220.csv")
+  nonres = read.csv("T:/SIESM/Cross-Study/Estimands_Estimators/Output/CovResultsNonrestricted191219.csv")
+  res = read.csv("T:/SIESM/Cross-Study/Estimands_Estimators/Output/CovResultsrestricted191219.csv")
+  covres1 = rbind(nonres,res)
+  
+  ### Remove RIRC  and Luke's extra estimators ###
+  table(covres1$method, useNA = "if")
+  covres2 = filter(covres1, !(method %in% c("RIRC-adj", "hybrid_m","hybrid_p","plug_in_big")))
+  table(covres2$method, useNA = "if")
+  write.csv(covres2, "T:/SIESM/Cross-Study/Estimands_Estimators/Output/CovResultsAll191220.csv")
 }
 
 
-covres2 = read_csv("CovResultsAll191220.csv" )
+if ( TRUE ) {
+  
+  covres2 = read_csv( here::here( "empirical/results/CovResultsAll191220.csv" ) )
+  head( covres2 )
+} else {
+  # Load everything, including Josh stuff
+  source( here::here( "empirical/setup.R" ) )   
+  names( combined )
+  combined <- combined %>% 
+    rename( method = Estimator,
+            tau = ATE_hat,
+            SE = SE_hat,
+            outcome = Outcome,
+            study = Project)
+  covres2 <- combined
+  rm( josh_unblocked, combined )
+}
+
 
 nrow( covres2 )
 covres2 = filter( covres2, study != "TennStar" )
@@ -42,128 +63,193 @@ nrow( covres2 )
 
 covres2$X1 = NULL
 
+names(covres2)
+head( covres2 )
+
+if (FALSE) {
+  # QUESTION: Why do we have finite2 and finite3?
+  View(covres2)
+  str(covres2)
+  table( covres2$finite2, covres2$finite3)
+  table( covres2$finite2, covres2$finite3)
+  
+  sum( covres2$method != covres2$model)
+}
+
+# Change format of plots
+theme_set( theme_minimal() )
+
+
 ######################## Create new/ modify variables ###########################
 
 
 
 
-# Reorder estimators #
-covres2$model = factor(covres2$method, 
-                      levels = c("DB-FP-Persons-adj" ,
-                                 "FE-IPTW-adj",
-                                 "FE-Int-Persons-adj",
-                                 "DB-SP-Persons-adj",
-                                 
-                                 'FE-adj',
-                                 'FE-Het-adj',
-                                 'FE-CR-adj',
-                                 'FE-Club-adj',
-                                 
-                                 'RICC-adj',
-                                 'FIRC-adj',
-                                 # 'RIRC',
-                                 
-                                 'DB-FP-Sites-adj',
-                                 'FE-IPTW-Sites-adj',
-                                 'FE-Int-Sites-adj',
-                                 'DB-SP-Sites-adj'))
-
-
-
-# Create Weight Category Variable ####
-covres2$weight[covres2$method %in% c("DB-FP-Persons-adj" ,
+# Make weight and estimator factors
+add_weight_and_estimator_factors <- function( covres2 ) {
+  
+  
+  # Reorder estimators #
+  covres2$model = NA
+  
+  covres2$model = factor(covres2$method, 
+                         levels = c("DB-FP-Persons-adj" ,
+                                    "FE-IPTW-adj",
+                                    "FE-Int-Persons-adj",
+                                    "DB-SP-Persons-adj",
+                                    
+                                    'FE-adj',
+                                    'FE-Het-adj',
+                                    'FE-CR-adj',
+                                    'FE-Club-adj',
+                                    
+                                    'RICC-adj',
+                                    'FIRC-adj',
+                                    # 'RIRC',
+                                    
+                                    'DB-FP-Sites-adj',
+                                    'FE-IPTW-Sites-adj',
+                                    'FE-Int-Sites-adj',
+                                    'DB-SP-Sites-adj'))
+  
+  
+  
+  # Create Weight Category Variable ####
+  covres2$weight = NA
+  covres2$weight[covres2$method %in% c("DB-FP-Persons-adj" ,
                                        "FE-IPTW-adj",
                                        "FE-Int-Persons-adj",
                                        "DB-SP-Persons-adj" )] <- "N-weight"
-
-
-covres2$weight[covres2$method %in% c('FE-adj',
+  
+  
+  covres2$weight[covres2$method %in% c('FE-adj',
                                        'FE-Het-adj',
                                        'FE-CR-adj',
                                        'FE-Club-adj')] <- "Precision-weight"
-
-
-covres2$weight[covres2$method %in% c('RICC-adj',
+  
+  
+  covres2$weight[covres2$method %in% c('RICC-adj',
                                        'FIRC-adj' #,
-                                      # 'RIRC-adj' 
-                                     )] <- "MLM"
-
-
-covres2$weight[covres2$method %in% c('DB-FP-Sites-adj',
+                                       # 'RIRC-adj' 
+  )] <- "MLM"
+  
+  
+  covres2$weight[covres2$method %in% c('DB-FP-Sites-adj',
                                        'FE-IPTW-Sites-adj',
                                        'FE-Int-Sites-adj',
                                        'DB-SP-Sites-adj' )] <- "Equal-weight"
+  
+  
+  covres2$weight = factor(covres2$weight,
+                          levels = c("N-weight","Precision-weight","MLM","Equal-weight"))
+  
+  
+  if ( sum( is.na( covres2$weight ) ) > 0 ) {
+    stop("Some methods are missing weight information")
+  }
+  if ( sum( is.na( covres2$model ) ) > 0 ) {
+    stop("Some methods are missing model information")
+  }
+  
+  
+  
+  
+  # Create Estimands Category Variable ####
+  covres2$esimand = NA
+  covres2$estimand[covres2$method %in% c("DB-FP-Persons-adj" ,
+                                         "FE-IPTW-adj",
+                                         "FE-Int-Persons-adj",
+                                         "FE-adj",
+                                         "FE-Het-adj",
+                                         "RICC-adj" )] <- "Person-Finite"
+  
+  
+  covres2$estimand[covres2$method %in% c('DB-SP-Persons-adj',
+                                         'FE-CR-adj',
+                                         'FE-Club-adj' )] <- "Person-Super"
+  
+  
+  covres2$estimand[covres2$method %in% c('DB-FP-Sites-adj',
+                                         'FE-IPTW-Sites-adj',
+                                         'FE-Int-Sites-adj' )] <- "Site-Finite"
+  
+  
+  covres2$estimand[covres2$method %in% c('FIRC-adj',
+                                         'DB-SP-Sites-adj' )] <- "Site-Super"
+  
+  
+  covres2$estimand = factor(covres2$estimand,
+                            levels = c("Person-Finite","Person-Super","Site-Finite","Site-Super"))
+  
+  
+  if ( sum( is.na( covres2$estimand ) ) > 0 ) {
+    stop("Some methods are missing estimand information")
+  }
+  
+  
+  
+  # Create Estimator Category Variable ####
+  covres2$finite2 = NA
+  covres2$finite3 = NA
+  covres2$finite2[covres2$estimand %in% c("Person-Finite", "Site-Finite" )] <- 1
+  covres2$finite2[! (covres2$estimand %in% c("Person-Finite", "Site-Finite" ))] <- 0
+  covres2$finite2 = factor(covres2$finite2, levels = c(0,1), labels = c('Superpop', 'Finite'))
+  table(covres2$finite2, useNA = "always")
+  
+  
+  covres2$finite3[covres2$estimand %in% c("Person-Finite" , "Site-Finite")] <- 1
+  covres2$finite3[! (covres2$estimand %in% c("Person-Finite" , "Site-Finite"))] <- 0
+  covres2$finite3 = factor(covres2$finite3, levels = c(1,0), labels = c('Finite', 'Superpop'))
+  table(covres2$finite3, useNA = "always")
+  
+  covres2$person2 = NA
+  covres2$person3 = NA
+  covres2$person2[covres2$estimand %in% c("Person-Finite", "Person-Super" )] <- 1
+  covres2$person2[! (covres2$estimand %in% c("Person-Finite" , "Person-Super" ))] <- 0
+  covres2$person2 = factor(covres2$person2, levels = c(0,1), labels = c('Site', 'Person'))
+  table(covres2$person2, useNA = "always")
+  
+  
+  covres2$person3[covres2$estimand %in% c("Person-Finite", "Person-Super" )] <- 1
+  covres2$person3[! (covres2$estimand %in% c("Person-Finite", "Person-Super" ))] <- 0
+  covres2$person3 = factor(covres2$person3, levels = c(1,0), labels = c('Person', 'Site'))
+  table(covres2$person3, useNA = "always")
+  
+  if ( sum( is.na( covres2$person2 ) ) > 0 ) {
+    stop("Some methods are missing person information")
+  }
+  if ( sum( is.na( covres2$person3 ) ) > 0 ) {
+    stop("Some methods are missing person information")
+  }
+  if ( sum( is.na( covres2$finite2 ) ) > 0 ) {
+    stop("Some methods are missing finite information")
+  }
+  if ( sum( is.na( covres2$finite3 ) ) > 0 ) {
+    stop("Some methods are missing finite information")
+  }
+  
+  covres2
+}
+covres2 <- add_weight_and_estimator_factors( covres2 )
 
 
-covres2$weight = factor(covres2$weight,
-                       levels = c("N-weight","Precision-weight","MLM","Equal-weight"))
+if ( FALSE ) {
+  # some checks
+  
+  table(covres2$weight, useNA = "always")
+  table(covres2$method, useNA = "always")
+  table(covres2$method, covres2$weight, useNA = "always")
+  table(covres2$study, useNA = "always")
+  table(covres2$outcome, useNA = "always")
+  
+  
+  table(covres2$estimand, useNA = "always")
+  table(covres2$method, useNA = "always")
+  table(covres2$method, covres2$estimand, useNA = "always")
+  table(covres2$study, useNA = "always")
+  table(covres2$outcome, useNA = "always")
+}
 
-
-table(covres2$weight, useNA = "always")
-table(covres2$method, useNA = "always")
-table(covres2$method, covres2$weight, useNA = "always")
-table(covres2$study, useNA = "always")
-table(covres2$outcome, useNA = "always")
-
-
-# Create Estimands Category Variable ####
-covres2$estimand[covres2$method %in% c("DB-FP-Persons-adj" ,
-                                       "FE-IPTW-adj",
-                                       "FE-Int-Persons-adj",
-                                       "FE-adj",
-                                       "FE-Het-adj",
-                                       "RICC-adj" )] <- "Person-Finite"
-
-                                     
-covres2$estimand[covres2$method %in% c('DB-SP-Persons-adj',
-                                       'FE-CR-adj',
-                                       'FE-Club-adj' )] <- "Person-Super"
-                                      
-                                     
-covres2$estimand[covres2$method %in% c('DB-FP-Sites-adj',
-                                       'FE-IPTW-Sites-adj',
-                                       'FE-Int-Sites-adj' )] <- "Site-Finite"
-
-
-covres2$estimand[covres2$method %in% c('FIRC-adj',
-                                     'DB-SP-Sites-adj' )] <- "Site-Super"
-
-
-covres2$estimand = factor(covres2$estimand,
-                        levels = c("Person-Finite","Person-Super","Site-Finite","Site-Super"))
-
-
-table(covres2$estimand, useNA = "always")
-table(covres2$method, useNA = "always")
-table(covres2$method, covres2$estimand, useNA = "always")
-table(covres2$study, useNA = "always")
-table(covres2$outcome, useNA = "always")
-
-
-# For facetting#
-
-covres2$finite2[covres2$estimand %in% c("Person-Finite", "Site-Finite" )] <- 1
-covres2$finite2[! (covres2$estimand %in% c("Person-Finite", "Site-Finite" ))] <- 0
-covres2$finite2 = factor(covres2$finite2, levels = c(0,1), labels = c('Superpop', 'Finite'))
-table(covres2$finite2, useNA = "always")
-
-
-covres2$finite3[covres2$estimand %in% c("Person-Finite" , "Site-Finite")] <- 1
-covres2$finite3[! (covres2$estimand %in% c("Person-Finite" , "Site-Finite"))] <- 0
-covres2$finite3 = factor(covres2$finite3, levels = c(1,0), labels = c('Finite', 'Superpop'))
-table(covres2$finite3, useNA = "always")
-
-
-covres2$person2[covres2$estimand %in% c("Person-Finite", "Person-Super" )] <- 1
-covres2$person2[! (covres2$estimand %in% c("Person-Finite" , "Person-Super" ))] <- 0
-covres2$person2 = factor(covres2$person2, levels = c(0,1), labels = c('Site', 'Person'))
-table(covres2$person2, useNA = "always")
-
-
-covres2$person3[covres2$estimand %in% c("Person-Finite", "Person-Super" )] <- 1
-covres2$person3[! (covres2$estimand %in% c("Person-Finite", "Person-Super" ))] <- 0
-covres2$person3 = factor(covres2$person3, levels = c(1,0), labels = c('Person', 'Site'))
-table(covres2$person3, useNA = "always")
 
 table(covres2$estimand,covres2$finite2,  useNA = "always")
 
@@ -211,114 +297,114 @@ outcome_labels = c(
 
 covres2$B = covres2$tau
 
-#### Make individaul graphs #####
+#### Make individual graphs #####
 if ( FALSE ) {
+  
+  #### Create a new folder with today's date for storing graphs ####
+  orig.dir <- getwd()  ## I'm going to demo in a tempdir
+  orig.dir
+  #setwd("T:/SIESM/Cross-Study/Estimands_Estimators/Output")
+  list.dirs()
+  newdir <- paste("Graphs_Original", Sys.Date(), sep = "")
+  dir.create(newdir)
+  setwd(newdir)
+  list.dirs()
+  
+  #### loop for graphing each outcome ####
+  count = 0
+  for( i in outcome_labels){
+    label = i
+    count = count + 1
+    varx = names(outcome_labels)[count]
+    print(count)
+    print(varx)
+    print(label)
     
-    #### Create a new folder with today's date for storing graphs ####
-    orig.dir <- getwd()  ## I'm going to demo in a tempdir
-    orig.dir
-    #setwd("T:/SIESM/Cross-Study/Estimands_Estimators/Output")
-    list.dirs()
-    newdir <- paste("Graphs_Original", Sys.Date(), sep = "")
-    dir.create(newdir)
-    setwd(newdir)
-    list.dirs()
+    temp.data = filter(covres2, outcome == varx)
     
-#### loop for graphing each outcome ####
-count = 0
-for( i in outcome_labels){
-  label = i
-  count = count + 1
-  varx = names(outcome_labels)[count]
-  print(count)
-  print(varx)
-  print(label)
+    
+    Plot <- ggplot(temp.data, aes(x=model, y=B )) + 
+      geom_hline(yintercept = seq(-.20,.45,.05), col = "gray", lty="dotted") +
+      geom_errorbar(aes(ymin=(B - 1.645*SE), ymax=(B + 1.645*SE), col = estimand), width=.2, lwd=1.1) +
+      geom_point(size=2) +
+      facet_grid(. ~ weight , scales = "free") +
+      scale_y_continuous(breaks= c(-.20,-.15,-.10,-.05,0,.05,.10,.15,.20,.25,.30,.35,.40,.45),limits = c(-.20,.45)) +
+      scale_x_discrete(breaks = c("DB-FP-Persons-adj" ,
+                                  "FE-IPTW-adj",
+                                  "FE-Int-Persons-adj",
+                                  "DB-SP-Persons-adj",
+                                  
+                                  'FE-adj',
+                                  'FE-Het-adj',
+                                  'FE-CR-adj',
+                                  'FE-Club-adj',
+                                  
+                                  'RICC-adj',
+                                  'FIRC-adj',
+                                  # 'RIRC',
+                                  
+                                  'DB-FP-Sites-adj',
+                                  'FE-IPTW-Sites-adj',
+                                  'FE-Int-Sites-adj',
+                                  'DB-SP-Sites-adj'), 
+                       
+                       labels = expression(bold(hat(beta)[DB-FP-Persons-adj]),
+                                           bold(hat(beta)[FE-IPTW-adj]),
+                                           bold(hat(beta)[FE-Int-Persons-adj]),
+                                           bold(hat(beta)[DB-SP-Persons-adj]),
+                                           
+                                           bold(hat(beta)[FE-adj]),
+                                           bold(hat(beta)[FE-Het-adj]),
+                                           bold(hat(beta)[FE-CR-adj]),
+                                           bold(hat(beta)[FE-Club-adj]),
+                                           
+                                           bold(hat(beta)[RICC-adj]),
+                                           bold(hat(beta)[FIRC-adj]),
+                                           #          bold(hat(beta)[ML-RIRC]),
+                                           
+                                           bold(hat(beta)[DB-FP-Sites-adj]),
+                                           bold(hat(beta)[FE-IPTW-Sites-adj]),
+                                           bold(hat(beta)[FE-Int-Sites-adj]),
+                                           bold(hat(beta)[DB-SP-Sites-adj])))  +
+      theme_bw() +
+      theme(legend.position = "right",
+            legend.title = element_text(size=16, face = "bold"),
+            legend.text = element_text(size=13, face="bold"),
+            plot.title = element_text(face="bold", size = 18),
+            # legend.key.width = unit(1, "cm"),
+            strip.text.x = element_text(angle = 0, size=14),
+            axis.text.x = element_text(face= "bold",
+                                       angle=90,
+                                       size = 16,
+                                       vjust = 0,
+                                       hjust=0, 
+                                       margin = margin(t = 0, r = 0, b = 0, l = 0)),
+            axis.title.x = element_text(margin = margin(t = 35, r = 0, b = 0, l = 0), size = 16, face="bold"),
+            axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0),size=16, face="bold"),
+            axis.text.y = element_text(face="bold",
+                                       margin = margin(t=0,r=0,b=0,l=0), 
+                                       size =14, 
+                                       #  family = "serif",
+                                       vjust=0)) +
+      ylab(expression(paste(hat(beta)," (Effect Size Units)"))) + xlab("Estimator") +
+      #  coord_flip() +
+      guides(col=guide_legend(
+        label.position = "right", nrow =4,
+        #  keywidth=1,
+        # keyheight=.25,
+        #  default.unit="inch",
+        shape = 50, 
+        legend.key.width = unit(10, "cm") , size = 2) ) +
+      ggtitle(label) + labs(color='Estimands')
+    
+    
+    fname = paste0("plot_for_",varx,".pdf")
+    ggsave(fname,plot = Plot, width = 10, height = 6)
+    
+  }
   
-  temp.data = filter(covres2, outcome == varx)
+  # staple_pdf(input_directory = newdir )
   
-  
-  Plot <- ggplot(temp.data, aes(x=model, y=B )) + 
-    geom_hline(yintercept = seq(-.20,.45,.05), col = "gray", lty="dotted") +
-    geom_errorbar(aes(ymin=(B - 1.645*SE), ymax=(B + 1.645*SE), col = estimand), width=.2, lwd=1.1) +
-    geom_point(size=2) +
-    facet_grid(. ~ weight , scales = "free") +
-    scale_y_continuous(breaks= c(-.20,-.15,-.10,-.05,0,.05,.10,.15,.20,.25,.30,.35,.40,.45),limits = c(-.20,.45)) +
-    scale_x_discrete(breaks = c("DB-FP-Persons-adj" ,
-                                "FE-IPTW-adj",
-                                "FE-Int-Persons-adj",
-                                "DB-SP-Persons-adj",
-                                
-                                'FE-adj',
-                                'FE-Het-adj',
-                                'FE-CR-adj',
-                                'FE-Club-adj',
-                                
-                                'RICC-adj',
-                                'FIRC-adj',
-                                # 'RIRC',
-                                
-                                'DB-FP-Sites-adj',
-                                'FE-IPTW-Sites-adj',
-                                'FE-Int-Sites-adj',
-                                'DB-SP-Sites-adj'), 
-                     
-                     labels = expression(bold(hat(beta)[DB-FP-Persons-adj]),
-                                         bold(hat(beta)[FE-IPTW-adj]),
-                                         bold(hat(beta)[FE-Int-Persons-adj]),
-                                         bold(hat(beta)[DB-SP-Persons-adj]),
-                                         
-                                         bold(hat(beta)[FE-adj]),
-                                         bold(hat(beta)[FE-Het-adj]),
-                                         bold(hat(beta)[FE-CR-adj]),
-                                         bold(hat(beta)[FE-Club-adj]),
-                                         
-                                         bold(hat(beta)[RICC-adj]),
-                                         bold(hat(beta)[FIRC-adj]),
-                               #          bold(hat(beta)[ML-RIRC]),
-                                         
-                                         bold(hat(beta)[DB-FP-Sites-adj]),
-                                         bold(hat(beta)[FE-IPTW-Sites-adj]),
-                                         bold(hat(beta)[FE-Int-Sites-adj]),
-                                         bold(hat(beta)[DB-SP-Sites-adj])))  +
-    theme_bw() +
-    theme(legend.position = "right",
-          legend.title = element_text(size=16, face = "bold"),
-          legend.text = element_text(size=13, face="bold"),
-          plot.title = element_text(face="bold", size = 18),
-          # legend.key.width = unit(1, "cm"),
-          strip.text.x = element_text(angle = 0, size=14),
-          axis.text.x = element_text(face= "bold",
-                                     angle=90,
-                                     size = 16,
-                                     vjust = 0,
-                                     hjust=0, 
-                                     margin = margin(t = 0, r = 0, b = 0, l = 0)),
-          axis.title.x = element_text(margin = margin(t = 35, r = 0, b = 0, l = 0), size = 16, face="bold"),
-          axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0),size=16, face="bold"),
-          axis.text.y = element_text(face="bold",
-                                     margin = margin(t=0,r=0,b=0,l=0), 
-                                     size =14, 
-                                     #  family = "serif",
-                                     vjust=0)) +
-    ylab(expression(paste(hat(beta)," (Effect Size Units)"))) + xlab("Estimator") +
-    #  coord_flip() +
-    guides(col=guide_legend(
-      label.position = "right", nrow =4,
-      #  keywidth=1,
-      # keyheight=.25,
-      #  default.unit="inch",
-      shape = 50, 
-      legend.key.width = unit(10, "cm") , size = 2) ) +
-    ggtitle(label) + labs(color='Estimands')
-  
-  
-  fname = paste0("plot_for_",varx,".pdf")
-  ggsave(fname,plot = Plot, width = 10, height = 6)
-  
-}
-
-# staple_pdf(input_directory = newdir )
-
 }
 
 
@@ -330,31 +416,31 @@ for( i in outcome_labels){
 #### Covariate Adjusted Figure 3 in main paper ####
 nrow( covres2 )
 question1B = covres2 %>% 
-    group_by(study, outcome, person3 ) %>%  #, N, S) %>% 
-    summarise(range.B = max(B) - min(B),
-              # range.SE = max(SE) - min(SE),
-              ratio.SE = max(SE)/min(SE)) 
+  group_by(study, outcome, person3 ) %>%  #, N, S) %>% 
+  summarise(range.B = max(B) - min(B),
+            # range.SE = max(SE) - min(SE),
+            ratio.SE = max(SE)/min(SE)) 
 
 question1B
 nrow( question1B )
 
 
 p1b = ggplot(question1B, aes(x=range.B)) +
-    geom_dotplot(fill="black", binwidth = .005, dotsize = .5, stackratio = .625)  +
-    facet_grid( . ~ person3 ) + theme_gray() +
-    scale_x_continuous(limits = c(0,.10), breaks = seq(0,.10,.025)) +
-    scale_y_continuous(limits = c(0,2)) +
-    theme(axis.text.y = element_blank(), 
-          axis.ticks.y = element_blank(),
-          axis.text.x = element_text(size = 14, face = "plain"),
-          axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0),size = 14),
-          axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0),size = 14),
-          plot.title = element_text(size=16, face = "bold"),
-          text = element_text(size=14, face = "bold"),
-          panel.spacing.x = unit(1.5, "cm"),
-          strip.text = element_text(size = 14, face = "bold")) +
-    #    labs(title = "Range of Estimates within a Given Estimand\n") + ylab("Count") +
-    labs( x="Range of estimates", y = "Number of outcomes") 
+  geom_dotplot(fill="black", binwidth = .005, dotsize = .5, stackratio = .625)  +
+  facet_grid( . ~ person3 ) + theme_gray() +
+  scale_x_continuous(limits = c(0,.10), breaks = seq(0,.10,.025)) +
+  scale_y_continuous(limits = c(0,2)) +
+  theme(axis.text.y = element_blank(), 
+        axis.ticks.y = element_blank(),
+        axis.text.x = element_text(size = 14, face = "plain"),
+        axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0),size = 14),
+        axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0),size = 14),
+        plot.title = element_text(size=16, face = "bold"),
+        text = element_text(size=14, face = "bold"),
+        panel.spacing.x = unit(1.5, "cm"),
+        strip.text = element_text(size = 14, face = "bold")) +
+  #    labs(title = "Range of Estimates within a Given Estimand\n") + ylab("Count") +
+  labs( x="Range of estimates", y = "Number of outcomes") 
 p1b
 ggsave( "range_within_estimand_B_cov.pdf", height = 5.5, width = 14.8 )
 
@@ -364,30 +450,33 @@ ggsave( "range_within_estimand_B_cov.pdf", height = 5.5, width = 14.8 )
 #### Max to Min SE ratio with estimand plot (Figure 6) ####
 
 question1 = covres2 %>% 
-    group_by(study, outcome, estimand, finite3, person3 ) %>%  #, N, S) %>% 
-    summarise(range.B = max(B) - min(B),
-              # range.SE = max(SE) - min(SE),
-              ratio.SE = max(SE)/min(SE)) 
+  group_by(study, outcome, estimand, finite3, person3 ) %>%  #, N, S) %>% 
+  summarise(range.B = max(B) - min(B),
+            # range.SE = max(SE) - min(SE),
+            ratio.SE = max(SE)/min(SE)) 
 
 question1
 nrow( question1 )
 
 p2 = ggplot(question1,aes(x=ratio.SE)) +
-    geom_dotplot(fill="black", dotsize = .75, stackratio = .75, binwidth=0.05) +
-    facet_grid(person3 ~ finite3) + theme_gray() +
-    theme(axis.text.y = element_blank(), 
-          axis.ticks.y = element_blank(),
-          axis.text.x = element_text(size = 14, face = "plain"),
-          axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0),size = 16),
-          axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0),size = 16),
-          plot.title = element_text(size=18, face = "bold"),
-          text = element_text(size=14, face = "bold"),
-          panel.spacing.x = unit(1.5, "cm"),
-          strip.text = element_text(size = 16, face = "bold")) +
-    scale_x_continuous( breaks = c(1.0, 1.5, 2.0 ) ) + #labs(title = "Ratio of SE within a Given Estimand\n")  + 
-    ylab("Number Outcomes") + xlab("Ratio of SE Estimates")
+  geom_dotplot(fill="black", dotsize = .75, stackratio = .75, binwidth=0.05) +
+  facet_grid(person3 ~ finite3) + theme_gray() +
+  theme(axis.text.y = element_blank(), 
+        axis.ticks.y = element_blank(),
+        axis.text.x = element_text(size = 14, face = "plain"),
+        axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0),size = 16),
+        axis.title.x = element_text(margin = margin(t = 20, r = 0, b = 0, l = 0),size = 16),
+        plot.title = element_text(size=18, face = "bold"),
+        text = element_text(size=14, face = "bold"),
+        panel.spacing.x = unit(1.5, "cm"),
+        strip.text = element_text(size = 16, face = "bold")) +
+  scale_x_continuous( breaks = c(1.0, 1.5, 2.0 ) ) + #labs(title = "Ratio of SE within a Given Estimand\n")  + 
+  ylab("Number Outcomes") + xlab("Ratio of SE Estimates")
 p2
 ggsave( "ratio_SE_within_estimand_cov.pdf", width=6, height=4  )
+
+
+
 
 
 #### Other plots (not used) #####
@@ -437,15 +526,15 @@ p4
 
 # Save plots #
 if ( FALSE ) {
-    
-file = newdir <- paste("T:/SIESM/Cross-Study/Estimands_Estimators/Output/Main Histograms Covariates", Sys.Date(),".pdf", sep = "")
-pdf(file, height = 10, width=10)
-p1
-p2
-p3
-p4
-dev.off()
-
+  
+  file = newdir <- paste("T:/SIESM/Cross-Study/Estimands_Estimators/Output/Main Histograms Covariates", Sys.Date(),".pdf", sep = "")
+  pdf(file, height = 10, width=10)
+  p1
+  p2
+  p3
+  p4
+  dev.off()
+  
 }
 
 setwd(orig.dir)

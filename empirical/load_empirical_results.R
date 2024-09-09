@@ -35,13 +35,35 @@ combined <-  read_rds( here::here( "empirical/results/master240528_combined.RDS"
 
 combined
 
+
+
+
 if ( TRUE ) {
   # Add in josh results
   josh = read_csv( here::here( "empirical", "results", "jg_results.csv" ) )
   
+  #josh <- josh %>%
+  #  mutate(Name_Year = str_c(str_extract(lead_author, "^[^,]+"), "-", year))
+  
+  
   names(josh)
   head( josh )
   josh$UniqueID = josh$Project
+  
+  josh$Project = paste0( str_extract(josh$lead_author, "^[^,]+"), "/set_", josh$study_id )
+  
+  
+  josh %>%
+    dplyr::filter( blocked == 1 ) %>%
+    dplyr::select( Project, Outcome, sample, dataset_id, study_id ) %>%
+    unique() %>%
+    print( n = 25 )
+  
+  
+  tb = sort( table( josh$study_id ) )
+  tb2 = sort( table( josh$Project ) )
+  stopifnot( all( tb == tb2 ) )
+  
   
   table( josh$UniqueID )
   skimr::skim( josh )
@@ -52,9 +74,11 @@ if ( TRUE ) {
   josh <- josh %>%
     rename( Estimator = method,
             ATE_hat_std = ATE_hat,
-            SE_hat_std = SE_hat ) %>%
-    mutate( UniqueID = paste0( UniqueID, "/", id ) ) %>%
-    dplyr::select( -id )
+            SE_hat_std = SE_hat )
+  
+  #%>%
+  # mutate( UniqueID = paste0( UniqueID, "/", id ) ) %>%
+  #  dplyr::select( -id )
   
   length( unique( josh$UniqueID ) )
   
@@ -76,6 +100,21 @@ if ( TRUE ) {
 
 }
 
+
+
+
+# Copy over estimand in the file (they are missing in Josh results)
+cw <- combined %>%
+  dplyr::select( Estimator, Estimand ) %>%
+  dplyr::filter( !is.na( Estimand ) ) %>%
+  unique()
+
+combined <- combined %>%
+  dplyr::select( -Estimand ) %>%
+  left_join( cw, by = "Estimator" )
+
+rm( cw )
+
 #head( combined$UniqueID)
 #table( combined$Trt_arm)
 
@@ -95,6 +134,22 @@ combined$UniqueID <- gsub(" ", "", combined$UniqueID)
 
 table( combined$UniqueID, useNA = "always" )
 
+
+if ( FALSE ) {
+  cc <- combined %>%
+    dplyr::select( UniqueID, Estimator, SE_hat, n, J, K, df, Estimand, Covariates ) %>%
+    arrange( UniqueID, Estimator ) %>%
+    filter( Estimator == "DB_FI_Cluster_Cluster" ) %>%
+    print( n = 20 )
+
+  cc %>%
+    dplyr::select( -SE_hat ) %>%
+    group_by( UniqueID ) %>% 
+    pivot_wider( names_from = Covariates, values_from = c( df ) ) %>%
+    mutate( del = none - best ) %>%
+    dplyr::filter( del != 1 ) %>%
+    print( n = 30 )
+}
 
 
 cat( "Data loaded\n" )
