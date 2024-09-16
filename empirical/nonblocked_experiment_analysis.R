@@ -71,6 +71,7 @@ makeDotplot <- function(df, var,
                   binwidth   = binw,
                  dotsize    = 0.8,
                  stackratio = 1.2,
+                 stackgroups = TRUE,
                  method     = 'histodot') +
     theme_minimal() +
     labs(x        = xlab,

@@ -2,7 +2,7 @@
 
 source( here::here( "empirical/load_empirical_results.R" ) )
 
-# Drop the block estimands
+# Drop the block estimands and the HT/Raj estimators
 table( combined$Estimand, useNA = 'always' )
 combined <- combined %>%
   dplyr::filter( !(Estimand %in% c( 'SP_Person_Block', 'SP_Cluster_Block', "SP*_Cluster_Block" ) ) ) %>%
@@ -27,18 +27,20 @@ ate_summary <- combined %>%
   mutate(Range = Max - Min)
 ate_summary
 
+
+# How many outcomes do we have?
 all_outcomes <- ate_summary %>%
   dplyr::select( UniqueID, Collection, Project ) %>%
   unique()
 table( all_outcomes$Collection )
 
+# How many studies do we have?
 all_studies <- ate_summary %>%
   dplyr::select( Collection, Project ) %>%
   unique() %>%
   print( n = 100)
 all_studies
 table( all_studies$Collection )
-
 
 write.xlsx(ate_summary, plot_path( 'ate_summary.xlsx') )
 
@@ -65,6 +67,7 @@ makeDotplot <- function(df, var,
                   binwidth   = binw,
                   dotsize    = 0.8,
                   stackratio = 1.2,
+                  stackgroups = TRUE,
                   method     = 'histodot') +
     theme_minimal() +
     labs(x        = xlab,
@@ -117,7 +120,7 @@ makeDotplot <- function(df, var,
   }
   
   if (!is.null(filename)) {
-    ggsave(paste0(PLOT_PATH, filename, '.png'), plot = p)
+    ggsave( paste0(PLOT_PATH, filename, '.png'), plot = p)
   }
   
   return(p)
@@ -259,7 +262,8 @@ ggplot( aa, aes( x = Range.y, y = Range.x, col = Estimand ) ) +
   theme_minimal() +
   scale_x_log10() +
   scale_y_log10() +
-  labs( x = "Range of Point Estimates of β", y = "Mean Range within Estimand" )
+  labs( x = "Range of Point Estimates of β", y = "Mean Range within Estimand" ) +
+  theme(legend.position = "none")
 
 
 aa %>%
@@ -338,7 +342,7 @@ se_summary %>%
 
 ### Without covariates ----
 se_summary %>%
-  filter(Covariates == 0) %>%
+  filter(Covariates == "none") %>%
   makeDotplot(var      = 'Ratio',
               xlab     = 'Ratio of SE Estimates', 
               ylab     = 'Number of Outcomes', 
@@ -348,7 +352,7 @@ se_summary %>%
 
 # making version without outlier
 se_summary %>%
-  filter(Covariates == 0) %>%
+  filter(Covariates == "none") %>%
   filter(Ratio < 100) %>%
   makeDotplot(var      = 'Ratio',
               xlab     = 'Ratio of SE Estimates', 
@@ -361,6 +365,7 @@ se_summary %>%
 
 ## 2b. SE estimates by estimand ----
 
+# Drop anything with small degrees of freedom
 se_summary_estimand <- combined %>%
   dplyr::filter( df >= 5 ) %>%
   # # combining finit vs super population estimands 
@@ -398,16 +403,16 @@ se_summary_estimand %>%
               byest    = T ) 
 
 
-# How much variation in SE if we disallow the interacted estimators? ----
+# How much variation in range and SE if we disallow the interacted estimators? ----
 
 table( combined$Estimator )
 
-cc <- combined %>%
+cc_noFI <- combined %>%
   dplyr::filter( !grepl( '_FI_', Estimator ) )
-table( cc$Estimator, cc$Estimand)
+table( cc_noFI$Estimator, cc_noFI$Estimand)
 
 
-cc <- combined %>%
+cc_noFI <- combined %>%
   dplyr::filter( !grepl( '_FI_', Estimator ) ) %>%
   group_by( UniqueID, Collection, Covariates, Estimand ) %>%
   summarise( n = n(),
@@ -417,9 +422,9 @@ cc <- combined %>%
              Max   = max(SE_hat_std, na.rm = T),
              Ratio = Max / Min,
              Range = max(ATE_hat_std,na.rm=TRUE) - min(ATE_hat_std,na.rm=TRUE) )
-filter( cc, n == Nmiss )
+filter( cc_noFI, n == Nmiss )
 
-cc %>%
+cc_noFI %>%
   filter(Covariates == "best") %>%
   # mutate(Estimand = str_remove_all(Estimand, 'SP(\\*|)_')) %>%
   makeDotplot(var      = 'Ratio',
@@ -429,11 +434,11 @@ cc %>%
               filename = 'ratio_no_interacted_included',
               byest    = T )
 
-cc %>%
+cc_noFI %>%
   filter(Covariates == "best") %>%
   makeDotplot(var      = 'Range',
               xlab     = 'Range of Largest to Smallest Estimates of β',
-              title    = "Range of estimates for estimators without interactions",
+              title    = "Range of point estimates for estimators without interactions",
               subtitle = "best covariate, no interacted estimators",
               ylab     = 'Number of Outcomes', 
               filename = 'range_no_interacted_included',
@@ -441,10 +446,23 @@ cc %>%
 
 
 # Commentary:
-# Even without the interacted estimators, the standard errors can vary
+# (1) Even without the interacted estimators, the standard errors can vary
 # by 20% or more quite easily.  But this is much less of a big deal.
 #
-# The range of point estimates still varies a lot for both estimands
+# (2) The range of point estimates still varies a lot for both estimands
+
+cc_noFI
+ate_summary_estimand
+a_comp <- left_join( ate_summary_estimand, 
+                     dplyr::select( cc_noFI, UniqueID, Covariates, Estimand, Ratio, Range ), 
+                     by=c( "UniqueID", "Covariates", "Estimand" ) ) %>%
+  mutate( range.red = Range.y / Range.x,
+          SE.red = Ratio.y / Ratio.x )
+a_comp
+
+
+
+
 
 
 # Other checks ----
@@ -513,7 +531,7 @@ plt2 <- ggplot( c2arm, aes(medresid_ate)) +
         axis.ticks.y = element_blank(),
         strip.text   = element_text(size = 6, margin = margin(.1, .1, .1, .1, 'mm')))
 plt2
-ggsave(paste0('/data/share/pse/IES CRT/tables/ATE_median_byuniqueID_covar_240220.png'),
+ggsave(plot_path( "ATE_median_byuniqueID_covar_240220.png" ),
        width  = 11,
        height = 8) 
 

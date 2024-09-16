@@ -93,7 +93,7 @@ if ( TRUE ) {
   josh_unblocked$Collection ="JG"
   length( unique( josh_unblocked$UniqueID ) )
   
-  combined = bind_rows( `Curated` = combined, `JG` = josh_blocked, .id="Collection" )
+  combined = bind_rows( `Curated` = combined, `Public` = josh_blocked, .id="Collection" )
   names(combined)
   rm( josh_blocked )
   rm( josh )
