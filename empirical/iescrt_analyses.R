@@ -781,6 +781,7 @@ se_summary_estimand_sree %>%
 
 ## DF vs SE ratio, best covar ----
 se_summary_sree %>%
+  filter(Covariates == 'best') %>%
   # filter(df < 100) %>%
   # topcode high DF 
   mutate(df_tc = ifelse(df >= 50, 50, df)) %>%
