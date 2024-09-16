@@ -12,6 +12,7 @@ make_regression_formula(
   blockID = "blockID",
   control_formula = NULL,
   interacted = FALSE,
+  control_interacted = FALSE,
   FE = FALSE,
   cluster_RE = FALSE,
   data = NULL
@@ -33,6 +34,9 @@ of "~ X1 + X2".}
 
 \item{interacted}{TRUE means include treatment by block
 interactions.  Will override FE flag and set FE to true.}
+
+\item{control_interacted}{TRUE means include treatment by control
+interactions in regression}
 
 \item{FE}{TRUE means include block dummy variables.}
 

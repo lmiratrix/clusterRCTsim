@@ -8,6 +8,7 @@ aggregation_estimators(
   formula,
   data = NULL,
   control_formula = NULL,
+  control_interacted = FALSE,
   aggregated = FALSE
 )
 }

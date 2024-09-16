@@ -49,6 +49,14 @@ method_characteristics <- function() {
         "DB_FI_Cluster_Block", "cluster/block",         "super",       1,0,
         "DB_FI_Cluster_Cluster", "cluster",         "super",       0,0,
         "DB_FE_Cluster", "cluster",         "super",       0,0,
+
+        "DBi_FI_Person_Block", "person/block",         "super",       0,0,
+        "DBi_FI_Person_Person", "person",          "super",       0,0,
+        "DBi_FE_Person", "person",         "super",       1,0,
+        "DBi_FI_Cluster_Block", "cluster/block",         "super",       1,0,
+        "DBi_FI_Cluster_Cluster", "cluster",         "super",       0,0,
+        "DBi_FE_Cluster", "cluster",         "super",       0,0,
+
         "DB_HT", "person",         "super",       0,1,
         "DB_Raj", "person",         "super",       0,1,
 
@@ -65,6 +73,8 @@ method_characteristics <- function() {
         "Agg_Person", "person",      "super",       0,0,
         "DB_Person", "person",      "super",       0,0,
         "DB_Cluster", "cluster",     "super",       0,0,
+        "DBi_Person", "person",      "super",       0,0,
+        "DBi_Cluster", "cluster",     "super",       0,0,
     )
 
 
@@ -128,6 +138,10 @@ compare_methods <- function(formula,
     handle_singleton_blocks = match.arg(handle_singleton_blocks)
 
     if ( !is.null( formula ) ) {
+
+        if ( !inherits( formula, "formula" ) ) {
+            stop( "formula must be a formula object" )
+        }
 
         lhs_vars <- formula.tools::lhs.vars(formula)
         if (length(lhs_vars) > 1) {
@@ -230,10 +244,20 @@ compare_methods <- function(formula,
                                             weight = "Cluster",
                                             aggregated = TRUE)
 
+        db_res_ii <- design_based_estimators_individual(formula = NULL, data = data,
+                                            control_formula = control_formula,
+                                            weight = "Person")
+        db_res_ci <- design_based_estimators_individual(formula = NULL, data = data,
+                                            control_formula = control_formula,
+                                            weight = "Cluster")
+
         db_middleton <- middleton_aronow_estimator(formula = NULL, data = aggdat,
                                                    control_formula = control_formula_agg,
                                                    aggregated = TRUE)
-        summary_table = dplyr::bind_rows( summary_table, db_res_i, db_res_c, db_middleton )
+        summary_table = dplyr::bind_rows( summary_table,
+                                          db_res_i, db_res_c,
+                                          db_res_ii, db_res_ci,
+                                          db_middleton )
     }
 
     if ( !include_dumb ) {

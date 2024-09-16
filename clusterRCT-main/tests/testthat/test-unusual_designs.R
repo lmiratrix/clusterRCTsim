@@ -110,6 +110,8 @@ test_that( "singleton tx or co designs get handled right", {
 
 test_that( "doubleton tx or co designs get handled right", {
 
+    set.seed( 50550 )
+
     blk = blkvar::generate_blocked_data( n_k = c( 5,  10, 10, 20, 30, 40,
                                                   20, 10,  5, 10, 10,
                                                   10, 20, 30, 10, 40, 10 ) )
@@ -130,6 +132,72 @@ test_that( "doubleton tx or co designs get handled right", {
     comp
     expect_true( all( !is.na( comp$ATE_hat ) ) )
     expect_true( all( !is.na( comp$SE_hat ) ) )
+
+
+    # Now cut down to smaller experiment and add some covariates!
+    # table( blk$B, blk$D, blk$Z )
+    b2 <- blk %>%
+        filter( B %in% paste0( "B", c( 1,4, 11,7, 12,13,
+                                       2,3,5,10,8,14,15,17) ) )
+    # describe_clusterRCT( Yobs ~ Z | B | D, data=b2 )
+    comp = compare_methods( Yobs ~ Z | B | D, data=b2 )
+    nrow(b2)
+    b2$X4 = sample( LETTERS[1:7], nrow(b2), replace=TRUE )
+    b2$X1 = rnorm(nrow(b2))
+    b2$X2 = rnorm(nrow(b2))
+    b2$X3 = rnorm(nrow(b2))
+
+    # -1 degrees of freedom
+    #expect_warning( expect_warning( expect_warning( expect_warning(
+    expect_warning( expect_warning(
+    comp <- compare_methods( Yobs ~ Z | B | D, data=b2, control_formula = ~ X1 + X2 + X3 + X4,
+                             include_MLM = FALSE, include_LM = FALSE  )
+    ))
+    #))))))
+    cc <- comp %>%
+        dplyr::filter( weight == "person" )
+    cc
+    expect_true( is.na( cc$ATE_hat[[2]] ) )
+    expect_true( is.na( cc$ATE_hat[[3]] ) )
+
+
+    # 0 degrees of freedom
+    expect_warning( expect_warning(
+        comp <- compare_methods( Yobs ~ Z | B | D, data=b2, control_formula = ~ X1 + X3 + X4,
+                                 include_MLM = FALSE, include_LM = FALSE  )
+    ))
+    cc <- comp %>%
+        dplyr::filter( weight == "person" )
+    cc
+    expect_true( !is.na( cc$ATE_hat[[2]] ) )
+    expect_true( !is.na( cc$ATE_hat[[3]] ) )
+    expect_true( is.na( cc$SE_hat[[3]] ) )
+    expect_true( is.na( cc$SE_hat[[2]] ) )
+
+    # 1 degrees of freedom
+    if ( FALSE ) {
+        debug( clusterRCT:::schochet_variance_formula_block )
+        saveRDS( b2, file = "~/Desktop/testing_data.rds" )
+    }
+    comp = compare_methods( Yobs ~ Z | B | D, data=b2, control_formula = ~ X1 + X4,
+                            include_MLM = FALSE, include_LM = FALSE  )
+    cc <- comp %>%
+        dplyr::filter( weight == "person" )
+    cc
+    expect_equal( cc$ATE_hat[[2]], cc$ATE_hat[[3]] )
+    expect_equal( cc$df[[2]], cc$df[[3]] )
+    expect_true( all( !is.na(cc) ) )
+
+
+    # 2 degrees of freedom
+    comp = compare_methods( Yobs ~ Z | B | D, data=b2, control_formula = ~ X4,
+                            include_MLM = FALSE, include_LM = FALSE  )
+    cc <- comp %>%
+        dplyr::filter( weight == "person" )
+    cc
+    expect_equal( cc$df[[2]], cc$df[[3]] )
+    expect_true( all( !is.na(cc) ) )
+
 
 
     # All blocks have  2 tx and 2 co units in it.
@@ -156,14 +224,54 @@ test_that( "doubleton tx or co designs get handled right", {
     expect_true( all( !is.na( comp$ATE_hat ) ) )
     expect_true( all( !is.na( comp$SE_hat ) ) )
 
+
+
+
 })
 
 
 
+test_that( "degrees of freedom at margin", {
+    # All blocks have 3 tx and 3 co
+
+    n_k = c( 5,  10, 30, 40, 10, 10,
+             20, 10,  5, 10, 10, 20,
+             10, 20, 40, 10, 30, 20 )
+    blk = blkvar::generate_blocked_data( n_k = n_k )
+    head( blk )
+    blks = tibble( B = paste0( "B", 1:length(n_k) ),
+                   D = rep( c( 1, 2, 3 ), c(6,6,6) ),
+                   Z = randomizr::block_ra(blocks=D, prob=0.5 ) )
+    blk = left_join( blk, blks, by="B" ) %>%
+        mutate( Yobs = ifelse( Z, Y1, Y0 ) )
+
+    dsc = describe_clusterRCT( Yobs ~ Z | B | D, data=blk )
+    dsc
+    expect_true( !any( stringr::str_detect( attr( dsc, "notes" ), "matched pairs" ) ) )
+    expect_true( !any( stringr::str_detect( attr( dsc, "notes" ), "singleton" ) ) )
+    expect_equal( dsc$num_singletons, 0 )
+    expect_equal( dsc$num_doubletons, 0 )
+
+    blk$X1 = sample( LETTERS[1:13], nrow(blk), replace=TRUE )
+    expect_warning( expect_warning(
+        comp <- compare_methods( Yobs ~ Z | B | D, data=blk,
+                                 control_formula = ~ X1,
+                                 include_MLM = FALSE,
+                                 include_method_characteristics = FALSE )
+    ) )
+    comp
+    expect_true( all( !is.na( comp$df ) ) )
+    cc <- filter( comp, df == 0 )
+    cc
+    expect_true( all( is.na( cc$SE_hat ) ) )
+    expect_true( all( !is.na( comp$ATE_hat ) ) )
+
+
+})
 
 
 
-test_that( "equal sized designs", {
+test_that( "matched pairs and matched doubles designs", {
 
 
     blk = blkvar::generate_blocked_data( n_k = rep( 10, 18 ) )
@@ -175,6 +283,7 @@ test_that( "equal sized designs", {
         mutate( Yobs = ifelse( Z, Y1, Y0 ) )
 
     dsc = describe_clusterRCT( Yobs ~ Z | B | D, data=blk )
+    dsc
     expect_equal( dsc$ncv, 0 )
     expect_equal( dsc$Jcv, 0 )
     expect_equal( dsc$n_block_cv, 0 )
@@ -189,8 +298,17 @@ test_that( "equal sized designs", {
     comp
     expect_true( all( !is.na( comp$ATE_hat ) ) )
 
-
-
+    head( blk )
+    blk$X = rnorm( nrow(blk) )
+    expect_warning( expect_warning(
+        #expect_warning(
+        #expect_warning( expect_warning( expect_warning(
+        c2 <- compare_methods( Yobs ~ Z | B | D, data=blk,
+                               include_method_characteristics = FALSE,
+                               control_formula = ~ X )
+    ))
+    #) ) ) )))
+    c2
 
 
     blk = blkvar::generate_blocked_data( n_k = rep( 10, 16 ) )
@@ -202,6 +320,7 @@ test_that( "equal sized designs", {
         mutate( Yobs = ifelse( Z, Y1, Y0 ) )
 
     dsc = describe_clusterRCT( Yobs ~ Z | B | D, data=blk )
+    dsc
     expect_equal( dsc$ncv, 0 )
     expect_equal( dsc$Jcv, 0 )
     expect_equal( dsc$n_block_cv, 0 )
@@ -212,19 +331,26 @@ test_that( "equal sized designs", {
     expect_equal( dsc$num_doubletons, 8 )
 
     comp <- compare_methods( Yobs ~ Z | B | D, data=blk,
-                                                             include_method_characteristics = FALSE )
+                             include_method_characteristics = FALSE )
     comp
     expect_true( all( !is.na( comp$ATE_hat ) ) )
 
     df = comp$df
     names(df) <- comp$method
-    nC = 16
-    nB = 4
+    nC = length( unique( blk$B) )
+    nB = length( unique( blk$D ) )
     df = df[ !stringr::str_detect( names(df), "MLM" ) ]
+    df
 
     A = nC - nB - 1
     B = nC - 2*nB
-    expect_equal( as.numeric(df), c( A, B, B, A, A, B, B, B, B, B,B, A, B, B, A, B, B ) )
+    the_dfs <- c( A, B, B, A, A, B, B, B, B, B, B, A, B, B, A,
+                  B, B, A, B, B, A,
+                  B, B )
+    round( as.numeric(df) - the_dfs, digits = 2 )
+
+    expect_equal( as.numeric(df), the_dfs,
+                  tolerance = 0.000000001 )
 })
 
 

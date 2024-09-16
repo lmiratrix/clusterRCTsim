@@ -119,3 +119,38 @@ test_that("number_controls works", {
 } )
 
 
+
+
+test_that("covariate interated with treatment", {
+
+    dd = data.frame( Y = 1:10, tx = rep(2,10),
+                     c = sample(c("A","B"), 10, replace=TRUE),
+                     SITE = sample( LETTERS[1:4], 10, replace=TRUE ),
+                     x = 1:10,
+                     x2 = sample( c("A","B","C"), 10, replace=TRUE ) )
+    dd
+
+
+    rr = make_regression_formula( Yobs = "Y", clusterID = "c",
+                                  blockID = "SITE", interacted = TRUE,
+                                  control_formula = ~ x + x2,
+                                  control_interacted = TRUE )
+    expect_equal( as.character(rr), "Y ~ 0 + Z:SITE + SITE + Z * (x + x2)" )
+
+    rr = make_regression_formula( Yobs = "Y", clusterID = "c",
+                                  blockID = "SITE", FE = TRUE,
+                                  control_formula = ~ x + x2,
+                                  control_interacted = TRUE )
+    rr
+    expect_equal( as.character(rr), "Y ~ 0 + Z + SITE + Z * (x + x2)" )
+
+    rr = make_regression_formula( Yobs = "Y", clusterID = "c",
+                                  blockID = "SITE", FE = FALSE,
+                                  control_formula = ~ x + x2,
+                                  control_interacted = TRUE )
+    expect_equal( as.character(rr), "Y ~ 1 + Z + Z * (x + x2)" )
+
+
+} )
+
+

@@ -32,6 +32,9 @@ E. Pashley, Luke W. Miratrix, and Tim Kautz.
 }
 \details{
 It runs a weighted linear regression, as discussed in that paper.
+The paper discusses two possabilities: running on the aggregate, or
+running on the individual.
+
 In this implementation, we run the regression on the
 cluster-aggregated data.
 }

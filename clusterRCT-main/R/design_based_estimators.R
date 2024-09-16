@@ -23,9 +23,23 @@ get_overall_ATE <- function( mod, weights ) {
 
 
 
+# If we ran an individual level regression, need to aggregate
+# residuals to calculate Standard Errors.
+agg_residuals <- function( data ) {
+
+    data_agg <- data %>%
+        group_by( blockID, clusterID, Z ) %>%
+        summarise( n = n(),
+                   .weight = sum( .weight ),
+                   resid = mean( resid ) )
+    data_agg
+}
+
+
 # Notes on Schochet paper notation
 #
 # m_b^1 = Total number of clusters assigned to tx group in block b
+
 
 
 
@@ -40,13 +54,17 @@ get_overall_ATE <- function( mod, weights ) {
 #
 # @param adt Aggregated (cluster-level) data.
 # @param v Degrees of freedom.  Use v=# covariates.
-schochet_variance_formula_block <- function( adt, v ) {
+schochet_variance_formula_block <- function( adt, v, aggregated=TRUE ) {
 
     require( tidyr )
     require( dplyr )
 
     stopifnot( !is.null( adt$resid ) )
     stopifnot( !is.null( adt$Z ) )
+
+    if ( !aggregated ) {
+        adt = agg_residuals( adt )
+    }
 
     # This calculates the sum part of the s2 calculations.
     calc_s2_partial <- function( .weight, resid ) {
@@ -79,7 +97,7 @@ schochet_variance_formula_block <- function( adt, v ) {
     # calc_s2_partial can give negative numbers on order of 10^-32
     adtw$s2[ adtw$s2 < 0 ] = 0
 
-    adtw$s2[ is.infinite(adtw$s2) ] = NA
+    adtw$s2[ (adtw$sdf <= 0) | is.infinite(adtw$s2) ] = NA
 
     pt2 <- adtw %>%
         tidyr::pivot_wider( names_from = "Z",
@@ -104,10 +122,14 @@ schochet_variance_formula_block <- function( adt, v ) {
 
 # From Schochet et al equation (15) for the restricted model with no
 # interaction term for tx and block.
-schochet_FE_variance_formula <- function( adt, v ) {
+schochet_FE_variance_formula <- function( adt, v, aggregated=TRUE ) {
 
     stopifnot( !is.null( adt$resid ) )
     stopifnot( !is.null( adt$Z ) )
+
+    if ( !aggregated ) {
+        adt = agg_residuals( adt )
+    }
 
     m = nrow(adt)
     h = length( unique(adt$blockID) )
@@ -136,6 +158,9 @@ schochet_FE_variance_formula <- function( adt, v ) {
 #' E. Pashley, Luke W. Miratrix, and Tim Kautz.
 #'
 #' It runs a weighted linear regression, as discussed in that paper.
+#' The paper discusses two possabilities: running on the aggregate, or
+#' running on the individual.
+#'
 #' In this implementation, we run the regression on the
 #' cluster-aggregated data.
 #'
@@ -195,6 +220,7 @@ design_based_estimators <- function( formula,
         form = make_regression_formula( Yobs = "Ybar", interacted = TRUE,
                                         control_formula = control_formula )
         mod = lm( form, data=data_agg, weights = .weight )
+        no_estimate = sum( is.na( coef(mod) ) ) > 0
 
         data_agg$resid = residuals(mod)
         block_tab = schochet_variance_formula_block( data_agg, v = v )
@@ -210,8 +236,13 @@ design_based_estimators <- function( formula,
                                                   aggregated = TRUE,
                                                   include_block_estimates = include_block_estimates )
         # df = m - 2h - v* = #clusters - 2 #blocks - #covariates
-        ests$df = J - 2*K - v
-        ests$df[ ests$df < 1 ] = NA
+        df = J - 2*K - v
+        ests$df = df
+        if ( no_estimate ) {
+            ests$ATE_hat = NA
+            ests$SE_hat = NA
+            ests$p_value = NA
+        }
 
         # Random debugging code -- here for future checking.
         if ( FALSE ) {
@@ -272,7 +303,8 @@ design_based_estimators <- function( formula,
         # clean up NaNs
         ests$ATE_hat[ is.nan(ests$ATE_hat) ] = NA
         ests$SE_hat[ is.nan(ests$SE_hat) ] = NA
-
+        ests$SE_hat[ ests$df < 1 ] = NA
+        ests$p_value[ is.na(ests$SE_hat) ] = NA
         ests
 
     } else {
@@ -299,6 +331,140 @@ design_based_estimators <- function( formula,
 }
 
 
+
+
+
+#' Estimate ATE via design-based approach
+#'
+#' This function follows `design_based_estimators`, but runs the
+#' regression on the individual level data.
+#'
+#' @inheritParams design_based_estimators
+#'
+#' @return tibble of estimates using different varieties of the
+#'   methods described in the paper.
+#'
+#' @export
+design_based_estimators_individual <- function( formula,
+                                                data = NULL,
+                                                control_formula = NULL,
+                                                weight = c( "Person", "Cluster" ),
+                                                include_block_estimates = FALSE ) {
+
+    require( estimatr )
+
+    # Determine which version of the estimator we are doing.
+    weight <- match.arg(weight)
+
+    has_block = "blockID" %in% names( data )
+
+    # Make our weights variable
+    suff = ""
+    if (weight == "Person") {
+        data$.weight <- 1
+        suff = "Person"
+    } else {
+        data <- data %>%
+            group_by( clusterID ) %>%
+            mutate( .weight = 1 / n() ) %>%
+            ungroup()
+        suff = "Cluster"
+    }
+
+    v = number_controls(control_formula)
+    J = length( unique( data$clusterID ) )
+
+    # block level stuff: only if we have a blockID do we fit an
+    # interacted model or allow for fixed effects for each block.
+    ATE_int = NA
+    if ( has_block ) {
+        K = length( unique( data$blockID ) )
+
+        # Fully interacted model
+        form = make_regression_formula( interacted = TRUE,
+                                        control_formula = control_formula )
+        mod = lm( form, data=data, weights = .weight )
+        no_estimate = sum( is.na( coef(mod) ) ) > 0
+
+        data$resid = residuals(mod)
+        block_tab = schochet_variance_formula_block( data, v = v, aggregated=FALSE )
+
+        # Translate Schochet notation to our notation.
+        block_tab <- rename( block_tab,
+                             J = m )
+
+        ests = generate_all_interacted_estimates( mod, data = data,
+                                                  use_full_vcov = FALSE,
+                                                  SE_table = block_tab,
+                                                  method = glue::glue("DBi_FI_{suff}"),
+                                                  aggregated = FALSE,
+                                                  include_block_estimates = include_block_estimates )
+        df = J - 2*K - v
+        ests$df = df
+        if ( no_estimate || df < 0 ) {
+            ests$ATE_hat = NA
+            ests$SE_hat = NA
+            ests$p_value = NA
+        }
+
+        # fixed effects model
+        form = make_regression_formula( FE = TRUE,
+                                        control_formula = control_formula )
+        mod_FE = lm( form, data=data, weights = .weight )
+        ATE_FE = coef(mod_FE)[ "Z" ]
+        data$resid = residuals(mod_FE)
+        SE_FE = schochet_FE_variance_formula( data, v = v, aggregated=FALSE )
+
+        ests$weight = paste( suff, ests$weight, sep="_" )
+
+        FE <- tibble(
+            method = c( glue::glue( "DBi_FE_{suff}" ) ),
+            weight = suff,
+            ATE_hat = c( ATE_FE ),
+            SE_hat = c( SE_FE$SE_hat ),
+            df = c( SE_FE$df ),
+            p_value = two_sided_p( ATE_hat, SE_hat, df )
+        )
+
+        # Pack up results
+        ests <- bind_rows( ests, FE )
+
+        if ( include_block_estimates ) {
+            blocks <- attr( ests, "blocks" )
+            blocks = left_join( blocks, block_tab, by="blockID" )
+            attr( ests, "blocks" ) <- blocks
+        }
+
+        # clean up NaNs
+        ests$ATE_hat[ is.nan(ests$ATE_hat) ] = NA
+        ests$SE_hat[ is.nan(ests$SE_hat) ] = NA
+        ests$SE_hat[ ests$df < 1 ] = NA
+        ests$p_value[ is.na(ests$SE_hat) ] = NA
+
+        ests
+
+    } else {
+        # No Blocks, so we use simple Cluster randomized estimators.
+        form = make_regression_formula( FE = FALSE,
+                                        control_formula = control_formula )
+        mod = lm( form, data=data, weights = .weight )
+        ATE_FE = coef(mod)[ "Z" ]
+
+        data$blockID = "Ind"
+        data$resid = residuals( mod )
+        SE = schochet_variance_formula_block( data, v = v, aggregated = FALSE )
+
+        df = J - 2 - v
+
+        tibble(
+            method = glue::glue( "DBi_{suff}" ),
+            ATE_hat = c( ATE_FE ),
+            SE_hat = c( SE$SE_hat ),
+            df = df,
+            p_value = two_sided_p(ATE_hat, SE_hat, df )
+        )
+    }
+}
 
 
 

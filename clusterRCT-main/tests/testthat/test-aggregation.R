@@ -42,10 +42,25 @@ test_that( "aggregation estimators work", {
     J
 
     e2 <- aggregation_estimators( Yobs ~ T.x | S.id | D.id,
-                                              #control_formula = ~ X.jk + C.ijk,
-                                              data = fakeCRT )
+                                  #control_formula = ~ X.jk + C.ijk,
+                                  data = fakeCRT )
     expect_true( is.data.frame(e2) )
 
+    e2cov <- aggregation_estimators( Yobs ~ T.x | S.id | D.id,
+                                     control_formula = ~ X.jk + C.ijk,
+                                     data = fakeCRT )
+    expect_true( is.data.frame(e2cov) )
+    expect_true( all( e2$ATE_hat != e2cov$ATE_hat ) )
+
+
+    # with covariate interactions (no district)
+    e3 <- aggregation_estimators( Yobs ~ T.x | S.id,
+                                  control_formula = ~ X.jk + C.ijk,
+                                  control_interacted = TRUE,
+                                  data = fakeCRT )
+    expect_true( is.data.frame(e3) )
 })
+
+
 
 

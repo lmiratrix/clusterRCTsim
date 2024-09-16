@@ -95,6 +95,69 @@ number_controls <- function( control_formula ) {
 
 
 
+center_controls <- function( data, control_formula, weights = NULL ) {
+    require( formula.tools )
+
+    if ( is.null( control_formula ) ) {
+        return( data )
+    }
+
+    if (length(formula.tools::lhs.vars(control_formula)) != 0 |
+        length(formula.tools::rhs.vars(control_formula)) < 1) {
+        stop("The control_formula argument must be of the form ~ X1 + X2 + ... + XN. (nothing on left hand side of ~)")
+    }
+
+    c_names <- formula.tools::rhs.vars(control_formula)
+
+    if ( !all( c_names %in% colnames(data) ) ) {
+        missing_vars = setdiff( c_names, colnames(data) )
+        missing_vars = paste0( missing_vars, collapse = ", " )
+        stop( glue::glue( "The following control variables in formula are not present in your data: {missing_vars}") )
+    }
+    if ( is.null( weights ) ) {
+        data <- data %>%
+            mutate( across( all_of( c_names ), \(x) scale( x, scale=FALSE ) ) )
+    } else {
+        data <- data %>%
+            mutate( across( all_of( c_names ), function( x ) {
+                x - weighted.mean( x, w=weights, na.rm = TRUE )
+            } ) )
+    }
+    return( data )
+}
+
+
+
+if ( FALSE ) {
+    N = 17
+    data = data.frame( X1 = 10 + rnorm( N, sd=20 ), X2 = 100+ rnorm( N ), X3 = -40 + rnorm( N ) )
+    data = arrange( data, X1 )
+    #data$X1[1:10] = NA
+    data$X2[1:10] = NA
+    data$X3[1:10] = NA
+    data$Y = rnorm( N )
+    data$Z = rbinom( N, 1, 0.5 )
+
+    control_formula = ~ X1 + X2 + X3
+
+    d1 = center_controls( data, control_formula, weights = rep(1, N) )
+    d2 = center_controls( data, control_formula)
+    d1
+    d2
+    expect_equal( d1, d2 )
+    arsenal::comparedf(d1,d2)
+
+
+    d3 = center_controls( data, control_formula, weights = 1:17 )
+    d3
+    mean( d3$X1 )
+    weighted.mean( d3$X1, 1:17 )
+
+    data = center_controls( data, control_formula )
+    data
+    skimr::skim(data)
+    summary( data )
+}
 
 #### Aggregate data to clusters ####
 
@@ -170,6 +233,8 @@ aggregate_data <- function( data, control_formula = NULL ) {
 #'   if this is not null).
 #' @param control_formula What variables to control for, in the form
 #'   of "~ X1 + X2".
+#' @param control_interacted TRUE means include treatment by control
+#'   interactions in regression
 #' @param data Dataframe holding all variables to be used in formula.
 #' @param interacted  TRUE means include treatment by block
 #'   interactions.  Will override FE flag and set FE to true.
@@ -184,6 +249,7 @@ make_regression_formula = function( Yobs = "Yobs", Z = "Z",
                                     blockID = "blockID",
                                     control_formula = NULL,
                                     interacted = FALSE,
+                                    control_interacted = FALSE,
                                     FE = FALSE,
                                     cluster_RE = FALSE,
                                     data = NULL ) {
@@ -204,7 +270,7 @@ make_regression_formula = function( Yobs = "Yobs", Z = "Z",
         stem = "0"
     }
 
-    txS = "Z"
+    txS = Z
     if ( interacted ) {
         txS = paste0( Z, ":", blockID )
     }
@@ -222,14 +288,20 @@ make_regression_formula = function( Yobs = "Yobs", Z = "Z",
         if (!is.null(data)) {
             control.vars <- formula.tools::get.vars(control_formula, data = data)
             if (any(!(control.vars %in% colnames(data)))) {
-                stop("Some variables in control_formula are not present in your data.")
+                # get missing variables
+                missing_vars = setdiff( control.vars, colnames(data) )
+                missing_vars = paste0( missing_vars, collapse = ", " )
+                stop(glue::glue("Some variables ({missing_vars}) in control_formula are not present in your data."))
             }
         }
 
         c_names <- formula.tools::rhs.vars(control_formula)
         c_names <- paste( c_names, collapse =" + " )
-
-        new.form <- sprintf( "%s ~ %s + %s + %s", Yobs, stem, txS, c_names)
+        if ( control_interacted ) {
+            new.form <- sprintf( "%s ~ %s + %s + %s*(%s)", Yobs, stem, txS, Z, c_names )
+        } else {
+            new.form <- sprintf( "%s ~ %s + %s + %s", Yobs, stem, txS, c_names)
+        }
     } else {
         new.form <- sprintf( "%s ~ %s + %s", Yobs, stem, txS )
     }
@@ -464,8 +536,8 @@ identify_singleton_blocks <- function( formula, data ) {
     n_tx = tb[ 2, zros == 0 ]
     ptx = n_tx / n
     tb <- tibble( blockID = nms,
-            pTx = as.numeric( ptx ),
-            n = as.numeric( n ) )
+                  pTx = as.numeric( ptx ),
+                  n = as.numeric( n ) )
     tb
 }
 

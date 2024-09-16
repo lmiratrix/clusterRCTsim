@@ -236,14 +236,16 @@ if ( FALSE ) {
     #rps = map_df( 1:R, ~ one_run( blocks = TRUE, het_block = TRUE ),
     #              .id = "runID", .progress=TRUE )
 
+    INC_COV = TRUE
+
     rps1 = map_df( 1:R, ~ one_run( blocks = TRUE, het_block = FALSE, simple = "B",
-                                   include_covariates = FALSE ),
+                                   include_covariates = INC_COV ),
                    .id = "runID", .progress=TRUE )
     rps2 = map_df( 1:R, ~ one_run( blocks = TRUE, het_block = TRUE, simple = FALSE,
-                                   include_covariates = FALSE ),
+                                   include_covariates = INC_COV ),
                    .id = "runID", .progress=TRUE )
     rps3 = map_df( 1:R, ~ one_run( blocks = TRUE, het_block = TRUE, simple = "A",
-                                   include_covariates = FALSE ),
+                                   include_covariates = INC_COV ),
                    .id = "runID", .progress=TRUE )
 
     rps = bind_rows( A=rps1, B=rps2, C=rps3, .id = "batch" )
@@ -251,6 +253,8 @@ if ( FALSE ) {
     head( rps )
 
     saveRDS( rps, here::here( "simulations/pointwise_similarity_results.rds" ) )
+
+    rps = readRDS( here::here( "simulations/pointwise_similarity_results.rds" ) )
 
     source( here::here( "simulations/simulation_helper_functions.R" ) )
     groups = group_estimators( rps, tolerance = 0.0001 )
