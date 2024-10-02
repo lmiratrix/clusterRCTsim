@@ -35,6 +35,10 @@ if ( FALSE ) {
                                    include_method_characteristics = F)
   
   # example with one covariate
+  if ( FALSE ) {
+    # For looking at DB issues
+    debug( clusterRCT:::schochet_variance_formula_block )
+  }
   cm_bm_onecovar <- compare_methods(S8TOTCR ~ racode_b | S8CLUSTE | RABLOCK,
                                     data = beaconmentor,
                                     control_formula = ~ ZFemale,
