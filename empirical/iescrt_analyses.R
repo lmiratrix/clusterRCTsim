@@ -59,6 +59,8 @@ makeDotplot <- function(df, var,
                         xscale     = NULL,
                         plotmargin = NULL,
                         tcbreaks   = NULL,
+                        tcratio    = F,
+                        dim        = NULL,
                         rmlegend   = F,
                         byest      = F) {
   
@@ -76,7 +78,8 @@ makeDotplot <- function(df, var,
          subtitle = subtitle) +
     theme(axis.text.y        = element_blank(),
           panel.grid.major.y = element_blank(),
-          panel.grid.minor.y = element_blank())
+          panel.grid.minor.y = element_blank(),
+          panel.border = element_rect(colour = "black", fill=NA))
   
   if (!is.null(coordratio)) {
     p <- p +
@@ -86,14 +89,38 @@ makeDotplot <- function(df, var,
   if (byest == T) {
     p <- p +
       facet_grid(~ Estimand) +
-      theme(strip.background = element_rect(fill = "lightgray", 
-                                            linewidth = 0),
+      theme(strip.background = element_rect(fill = "lightgray"),
             panel.spacing = unit(2, "lines"))
   }
   
   if (rmlegend == T) {
     p <- p +
       theme(legend.position = 'none')
+  }
+  
+  
+  if (!is.null(xscale)) {
+    p <- p +
+      scale_x_continuous(breaks = xscale) +
+      xlim(c(min(xscale), max(xscale)))
+  }
+  
+  if (!is.null(plotmargin)) {
+    p <- p +
+      theme(plot.margin = margin(plotmargin))
+  }
+  
+  if (!is.null(tcbreaks)) {
+    if (tcratio) {
+      p <- p +
+        scale_x_continuous(breaks = tcbreaks, 
+                           labels = c(paste0(tcbreaks[1:(length(tcbreaks) - 1)], 'X'), paste0(tcbreaks[length(tcbreaks)], 'X+')))
+      
+    } else {
+    p <- p +
+      scale_x_continuous(breaks = tcbreaks, 
+                         labels = c(tcbreaks[1:(length(tcbreaks) - 1)], paste0(tcbreaks[length(tcbreaks)], '+')))
+    }
   }
   
   if (!is.null(axisfs)) {
@@ -103,24 +130,14 @@ makeDotplot <- function(df, var,
             strip.text = element_text(size = axisfs))
   }
   
-  if (!is.null(xscale)) {
-    p <- p +
-      scale_x_continuous(breaks = xscale)
-  }
-  
-  if (!is.null(plotmargin)) {
-    p <- p +
-      theme(plot.margin = margin(plotmargin))
-  }
-  
-  if (!is.null(tcbreaks)) {
-    p <- p +
-      scale_x_continuous(breaks = tcbreaks, 
-                         labels = c(tcbreaks[1:(length(tcbreaks) - 1)], paste0(tcbreaks[length(tcbreaks)], '+')))
-  }
-  
   if (!is.null(filename)) {
-    ggsave( paste0(PLOT_PATH, filename, '.png'), plot = p)
+    if (!is.null(dim)) {
+      ggsave( paste0(PLOT_PATH, filename, '.png'), plot = p,
+              width = dim[1],
+              height = dim[2])
+    } else {
+      ggsave( paste0(PLOT_PATH, filename, '.png'), plot = p)
+    }
   }
   
   return(p)
@@ -590,7 +607,7 @@ ggplot( combined2,
 
 ## ATE range, best covariate
 ate_summary_sree <- combined %>%
-  filter(!grepl('_(Block|FIRC|RIRC|HT|Raj)$', Estimator)) %>%
+  filter(!grepl('_(Block|FIRC|RIRC|HT|Raj)$|^DBi', Estimator)) %>%
   filter(Collection == 'Curated') %>%
   group_by(Collection, Project, Trt_arm, Outcome, Covariates, J, K, ncov.1) %>%
   summarize(N     = n(),
@@ -612,11 +629,12 @@ ate_summary_sree %>%
               rmlegend = T,
               axisfs   = 20,
               coordratio = .1,
-              binw     = .01)
+              binw     = .01,
+              dim      = c(9, 6))
 
 ## ATE range by estimand, best covariate
 ate_summary_estimand_sree <- combined %>%
-  filter(!grepl('_(Block|FIRC|RIRC|HT|Raj)$', Estimator)) %>%
+  filter(!grepl('_(Block|FIRC|RIRC|HT|Raj)$|^DBi', Estimator)) %>%
   filter(Collection == 'Curated') %>%
   group_by(Collection, Project, Trt_arm, Outcome, Covariates, Estimand) %>%
   summarize(N     = n(),
@@ -641,12 +659,13 @@ ate_summary_estimand_sree %>%
               rmlegend   = T,
               axisfs     = 20,
               binw       = .01,
-              xscale     = seq(0, .2, .02),
+              xscale     = seq(0, .15, .025),
+              dim        = c(9, 5),
               plotmargin = c(5, 20, 5, 20))
 
 ## SE min/max ratio, best covariate
 se_summary_sree <- combined %>%
-  filter(!grepl('_(Block|FIRC|RIRC|HT|Raj)$', Estimator)) %>%
+  filter(!grepl('_(Block|FIRC|RIRC|HT|Raj)$|^DBi', Estimator)) %>%
   filter(Collection == 'Curated') %>%
   group_by(Collection, Project, Trt_arm, Outcome, Covariates, J, K, ncov.1) %>%
   summarize(N     = n(),
@@ -663,7 +682,7 @@ se_summary_sree <- combined %>%
 se_summary_sree %>%
   filter(Covariates == "best") %>%
   makeDotplot(var      = 'Ratio',
-              xlab     = paste0('Max-to-Min Ratio across ', max(.$N), ' Point Estimates'),
+              xlab     = 'Ratio of Largest to Smallest SE across Point Estimates',
               ylab     = 'Count',
               # title    = 'Max/Min Ratio of SE Estimates across all Estimators',
               # subtitle = 'Each point represents one study-treatment arm-outcome combination',
@@ -675,7 +694,7 @@ se_summary_sree %>%
 se_summary_sree %>%
   filter(Covariates == "best") %>%
   makeDotplot(var      = 'Ratio_tc',
-              xlab     = paste0('Max-to-Min Ratio across ', max(.$N), ' Point Estimates'),
+              xlab     = 'Ratio of Largest to Smallest SE across Point Estimates',
               ylab     = 'Count',
               # title    = 'Max/Min Ratio of SE Estimates across all Estimators',
               # subtitle = 'Each point represents one study-treatment arm-outcome combination',
@@ -684,11 +703,13 @@ se_summary_sree %>%
               axisfs   = 20,
               binw     = 0.1,
               coordratio = 1,
-              tcbreaks = c(1:4))
+              tcratio  = T,
+              tcbreaks = c(1:4),
+              dim      = c(9, 5))
 
 ## SE max/min ratio by estimand, best covariate
 se_summary_estimand_sree <- combined %>%
-  filter(!grepl('_(Block|FIRC|RIRC|HT|Raj)$', Estimator)) %>%
+  filter(!grepl('_(Block|FIRC|RIRC|HT|Raj)$|^DBi', Estimator)) %>%
   filter(Collection == 'Curated') %>%
   group_by(Collection, Project, Trt_arm, Outcome, Covariates, Estimand) %>%
   summarize(N     = n(),
@@ -705,7 +726,7 @@ se_summary_estimand_sree %>%
   mutate(Estimand = case_when(Estimand == 'SP_Cluster_Cluster' ~ 'Cluster Weighted Estimand',
                               Estimand == 'SP_Person_Person'   ~ 'Person Weighted Estimand')) %>%
   makeDotplot(var        = 'Ratio',
-              xlab       = 'Max-to-Min Ratio across Point Estimates',
+              xlab       = 'Ratio of Largest to Smallest SE across Point Estimates',
               ylab       = 'Count',
               # title      = 'Ratio of SE Estimates across all Estimators, Grouped by Estimand',
               # subtitle   = 'Each point represents one study-treatment arm-outcome combination',
@@ -720,7 +741,7 @@ se_summary_estimand_sree %>%
   mutate(Estimand = case_when(Estimand == 'SP_Cluster_Cluster' ~ 'Cluster Weighted Estimand',
                               Estimand == 'SP_Person_Person'   ~ 'Person Weighted Estimand')) %>%
   makeDotplot(var        = 'Ratio_tc',
-              xlab       = 'Max-to-Min Ratio across Point Estimates',
+              xlab       = 'Ratio of Largest to Smallest SE across Point Estimates',
               ylab       = 'Count',
               # title      = 'Ratio of SE Estimates across all Estimators, Grouped by Estimand',
               # subtitle   = 'Each point represents one study-treatment arm-outcome combination',
@@ -730,7 +751,9 @@ se_summary_estimand_sree %>%
               axisfs     = 20,
               binw       = 0.1,
               coordratio = 1.5,
-              tcbreaks   = c(1:4))
+              tcratio    = T, 
+              tcbreaks   = c(1:4),
+              dim        = c(9, 5))
 
 ## DF vs range, best vs. all covar
 (ate_summary_sree %>%
@@ -756,18 +779,19 @@ se_summary_estimand_sree %>%
          filename = plot_path('dfvsrange_sree2024.png'),
          width = 14)
 
-## DF vs SE ratio, best vs. all covar ----
+## DF vs SE ratio, best covar ----
 se_summary_sree %>%
-  filter(Covariates %in% c('best', 'all')) %>%
+  filter(Covariates == 'best') %>%
   # filter(df < 100) %>%
   # topcode high DF 
-  mutate(Covariates = ifelse(Covariates == 'best', 'Best covariate', 'All covariates'),
-         df_tc = ifelse(df >= 50, 50, df)) %>%
+  mutate(df_tc = ifelse(df >= 50, 50, df)) %>%
   ggplot(aes(x = df_tc, y = Ratio_tc)) +
   geom_smooth( se=FALSE ) +
-  geom_point( size = 4 ) + 
-  facet_wrap(~ Covariates) +
-  labs(x = "Degrees of Freedom", y = "Max-Min SE Ratio") +
+  # geom_point( size = 4 ) + 
+  geom_jitter(height = 0,
+              width = .5,
+              size = 5) +
+  labs(x = "Degrees of Freedom", y = 'Ratio of Largest to Smallest SE across Point Estimates') +
   theme_minimal() +
   theme(strip.background = element_rect(fill = "lightgray", 
                                         linewidth = 0),
@@ -778,10 +802,11 @@ se_summary_sree %>%
   scale_x_continuous(breaks = seq(-10, 50, by = 10), 
                      labels = c(seq(-10, 40, by = 10), "50+")) +
   scale_y_continuous(breaks = seq(1, 4, by = 1), 
-                     labels = c(seq(1, 3, by = 1), "4+")) 
+                     labels = c(paste0(seq(1, 3, by = 1), 'X'), "4X+")) 
 
 ggsave(  filename = plot_path('dfvsratio_sree2024.png'),
-         width = 14)
+         width  = 14,
+         height = 7)
 
 
 ## ATEs and CIs for a "typical" outcome ----
@@ -789,7 +814,7 @@ ggsave(  filename = plot_path('dfvsratio_sree2024.png'),
 combined_wt <- combined %>%
   filter(Covariates == 'best') %>%
   filter(Collection == 'Curated') %>%
-  filter(!grepl('_(Block|FIRC|RIRC|HT|Raj)$', Estimator)) %>%
+  filter(!grepl('_(Block|FIRC|RIRC|HT|Raj)$|^DBi', Estimator)) %>%
   mutate(df_app =  J - (2 * K) - ncov.1 - 1,
          Weight = factor(case_when(Estimator %in% c("DB_FI_Person_Person",
                                                     "Agg_FI_Person_Person",
