@@ -7,6 +7,8 @@
 #
 # Describe data should note these as unusual designs in the printout.
 
+library( clusterRCT )
+library( tidyverse )
 
 test_that( "matched pairs designs get handled right", {
 
@@ -173,6 +175,8 @@ test_that( "doubleton tx or co designs get handled right", {
     expect_true( !is.na( cc$ATE_hat[[3]] ) )
     expect_true( is.na( cc$SE_hat[[3]] ) )
     expect_true( is.na( cc$SE_hat[[2]] ) )
+
+
 
     # 1 degrees of freedom
     if ( FALSE ) {
