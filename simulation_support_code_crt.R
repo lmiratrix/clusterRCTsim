@@ -570,7 +570,8 @@ make.scenario.list = function( group = "main" ) {
       size.impact.cor.district = c(0,0.75),
       size.impact.cor.school = c(0,1),
       proptx.impact.cor.district = c(0, 0.75))
-  } else if ( group == "sim_base_1" ) {
+  } 
+  else if ( group == "sim_base_1" ) {
     scenarios<-bind_rows(expand.fixed.one(manip.var.name="size.impact.cor.district",
                                           manip.var.vals<-seq(-1,1,.1),base.values),
                          expand.fixed.one(manip.var.name="size.impact.cor.school",
@@ -593,7 +594,69 @@ make.scenario.list = function( group = "main" ) {
                                           manip.var.vals<-seq(0,1,.1),base.values.sch.cor.neg),
                          base.values,base.values.variable.p,base.values.sch.cor,base.values.sch.cor.neg)
     
-  } else if ( group == "initial" ) {
+  } 
+  else if ( group == "estimators_estimand" ) {
+    scenarios<-bind_rows(
+      expand.fixed.one(manip.var.name="ICC.district",
+                       manip.var.vals<-seq(.05,.7,.05),base.values.estimand),
+      expand.fixed.one(manip.var.name="ICC.school",
+                       manip.var.vals<-seq(.05,.7,.05),base.values.estimand), 
+      expand.fixed.one(manip.var.name="sd.district",
+                       manip.var.vals<-seq(0,.5,.02),base.values.estimand), 
+      expand.fixed.one(manip.var.name="sd.school",
+                       manip.var.vals<-seq(0,.5,.02),base.values.estimand),
+      expand.fixed.one(manip.var.name="size.intercept.cor.district",
+                       manip.var.vals<-seq(-1,1,.1),base.values.estimand),
+      expand.fixed.one(manip.var.name="proptx.impact.cor.district",
+                       manip.var.vals<-seq(-1,1,.1),base.values.estimand.variable.p),
+      base.values.estimand,base.values.estimand.variable.p)
+  }
+  else if ( group == "estimators_estimand_2" ) {
+    scenarios<-bind_rows(
+      expand.fixed.one(manip.var.name="ICC.school",
+                       manip.var.vals<-seq(.03,.5,.01),base.values.estimand.2), 
+      expand.fixed.one(manip.var.name="ICC.district",
+                       manip.var.vals<-seq(0,.5,.01),base.values.estimand.2),
+      expand.fixed.one(manip.var.name="sd.district",
+                       manip.var.vals<-seq(0,.5,.02),base.values.estimand.2), 
+      expand.fixed.one(manip.var.name="sd.school",
+                       manip.var.vals<-seq(0,.5,.02),base.values.estimand.2),
+      expand.fixed.one(manip.var.name="size.intercept.cor.district",
+                       manip.var.vals<-seq(-1,1,.1),base.values.estimand.2),
+      expand.fixed.one(manip.var.name="proptx.impact.cor.district",
+                       manip.var.vals<-seq(-1,1,.1),base.values.estimand.variable.p.2),
+      base.values.estimand.2,base.values.estimand.variable.p.2)
+  }
+  else if ( group == "performance_1" ) {
+    scenarios<-bind_rows(
+      expand.fixed.one(manip.var.name="ICC.district",
+                       manip.var.vals<-seq(0,.4,.02),base.values.performance),
+      expand.fixed.one(manip.var.name="ICC.school",
+                       manip.var.vals<-seq(.03,.4,.02),base.values.performance), 
+      expand.fixed.one(manip.var.name="sd.district",
+                       manip.var.vals<-seq(0,.5,.02),base.values.performance), 
+      expand.fixed.one(manip.var.name="sd.school",
+                       manip.var.vals<-seq(0,.5,.02),base.values.performance),
+      expand.fixed.one(manip.var.name="size.intercept.cor.district",
+                       manip.var.vals<-seq(-1,1,.1),base.values.performance),
+      expand.fixed.one(manip.var.name="K",
+                       manip.var.vals<-seq(5,80,5),base.values.performance),
+      expand.fixed.one(manip.var.name="J.bar",
+                       manip.var.vals<-seq(7,30,2),base.values.performance),
+      expand.fixed.one(manip.var.name="n.bar",
+                       manip.var.vals<-seq(10,100,5),base.values.performance),
+      expand.fixed.one(manip.var.name="p.bar",
+                       manip.var.vals<-seq(.2,.8,.1),base.values.performance),
+      expand.fixed.one(manip.var.name="proptx.impact.cor.district",
+                       manip.var.vals<-seq(-1,1,.1),base.values.performance.variable.p),
+      expand.fixed.one(manip.var.name="cor.strength.school",
+                       manip.var.vals<-seq(0,1,.1),base.values.performance.sch.cor),
+      expand.fixed.one(manip.var.name="cor.strength.school",
+                       manip.var.vals<-seq(0,1,.1),base.values.performance.sch.cor.neg),
+      expand.fixed.one(manip.var.name="size.impact.cor.district",
+                       manip.var.vals<-seq(-1,1,.1),base.values.performance),
+      base.values.performance.variable.p,base.values.performance.sch.cor,base.values.performance.sch.cor.neg)}
+  else if ( group == "initial" ) {
     scenarios = expand.grid( 
       K = c(10), 
       J.bar = c(20,50),

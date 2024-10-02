@@ -17,8 +17,10 @@ source( "data_generation_code.R" )
 #
 # See the make_scenario_list function to figure out which table of
 # simulations to pull from.
-group = "sim_base_1"
-
+#group = "sim_base_1" 
+#group = "estimators_estimand"
+#group="estimators_estimand_2"
+group="performance_1"
 
 library( tibble )
 library( purrr )
@@ -107,6 +109,8 @@ scenarios = make.scenario.list( group=group )
 
 scenarios
 
+scenarios.sim<-scenarios %>% select(-sim.id)
+
 if ( TESTING ) {
   cat( "Cutting scenario list down for testing\n" )
   scenarios = filter( scenarios, J.bar < 60 )
@@ -119,7 +123,8 @@ if ( TESTING ) {
 #NUM_TRIALS_PER_SCENARIO = round( APPROX_NUM_TRIALS_PER_RUN / nrow( scenarios ) )
 scat( "Running %d trials per scenario\n", NUM_TRIALS_PER_SCENARIO )
 
-scenarios$run = pmap( scenarios, run.scenario, R = NUM_TRIALS_PER_SCENARIO)
+
+scenarios$run = pmap( scenarios.sim , run.scenario, R = NUM_TRIALS_PER_SCENARIO)
 
 scat("**\n**\tTotal time elapsed:\n")
 tot.time = proc.time() - ptm
@@ -161,7 +166,7 @@ scenarios = dplyr::select( scenarios,
                            ATE.super.student, 
                            ATE.super.dist.student,
                            ATE.super.dist.school,
-                           everything() )
+                           everything() ) %>% mutate(group=group)
 scenarios
 
 filename = make.file.name(index)

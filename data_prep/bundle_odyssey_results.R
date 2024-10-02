@@ -5,6 +5,7 @@
 #
 # Also runs checks on how long things took to run.
 
+rm(list=ls())
 library( tidyverse )
 
 
@@ -56,14 +57,14 @@ results <- results %>%
   group_by( ID, 
             # keep all scenario-level data-generating parameters
             K, J.bar, p.bar, sd.district, ICC.district, variable.J, variable.p, 
-            n.bar, sd.school, ICC.school, variable.n,
+            n.bar, sd.school, ICC.school, variable.n,cor.strength.school,
             size.impact.cor.district, size.impact.cor.school, proptx.impact.cor.district,
             size.intercept.cor.district,sim.id,
             # superpop ATEs are scenario-level attributes, keep them
             ATE.super.district, ATE.super.school, ATE.super.student,
             ATE.super.dist.school, ATE.super.dist.student,
             # scenario timing is scenario-level attribute, keep it
-            sim.per.min, R) %>% 
+            sim.per.min, R,group) %>% 
   nest() %>% 
   rename(run = data)
 

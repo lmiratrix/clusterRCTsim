@@ -8,12 +8,21 @@
 #
 # These will be saved in 'processed_simulation_results.RData'
 
+
+rm(list=ls())
 library( tidyverse )
 
 scenarios = readRDS( "results/complete_odyssey_results.rds" )
 
 simdata <- scenarios %>% 
   unnest(run)
+
+#rm(list=ls())
+#library( tidyverse )
+#load("results_sav/processed_simulation_results_estimators_estimand_2024-08-16.RData")
+#load("results_sav/processed_simulation_results_sim_base_1_2024-08-16.RData")
+#load("results_sav/processed_simulation_results_estimators_estimand_2_2024-08-14.RData")
+
 
 # Drop simulations from the scenarios frame
 scenarios$run = NULL
@@ -51,13 +60,21 @@ simdata = mutate( simdata,
                   cov.s.dstu = cover.vector( ATE.hat, SE.hat, ATE.super.dist.student ),
                   cov.s.dsch = cover.vector( ATE.hat, SE.hat, ATE.super.dist.school ))
 
+#add in ranges across methods 
+range.dat <-simdata %>% group_by(ID,subrun ) %>% 
+                  mutate(range=diff(range(ATE.hat))) %>%
+                  ungroup() %>%
+                 group_by(ID,subrun,weight,population) %>%  
+                summarise(range_bygroup=diff(range(ATE.hat)),range=first(range))
+
+range.dat = merge( scenarios, range.dat, by="ID" )
 
 ##### Aggegate by scenario and calculate summary stats for these scenarios.  #####
 
 sruns = simdata %>% 
   group_by( ID, method ) %>%   # per scenario and method... (aggregate over batch, run, subrun)
   summarise( mean.SE.hat = mean( SE.hat ),
-             
+             mean.ATE.hat=mean(ATE.hat),
              # bias of estimators for each estimand
              bias.f.stu = mean( ATE.hat - ATE.finite.student ),
              bias.f.sch = mean( ATE.hat - ATE.finite.school ),
@@ -98,7 +115,9 @@ sruns = simdata %>%
              cover.s.stu = mean( cov.s.stu ),
              cover.s.sch = mean( cov.s.sch ),
              cover.s.dstu = mean( cov.s.dstu ),
-             cover.s.dsch = mean( cov.s.dsch )
+             cover.s.dsch = mean( cov.s.dsch ),
+             
+             
              
              # var.err2.s.stu = var( ATE.hat - ATE.super.student ),
              # var.err2.s.sch = var( ATE.hat - ATE.super.school ),
@@ -124,6 +143,7 @@ if ( nrow( badIDs ) > 0 ) {
   stop()
 }
 
+
 # missing IDs from prior filtering
 if ( nrow( failed ) > 0 ) {
   cat( "Failed runs--looking at where they showed up" )
@@ -138,6 +158,8 @@ ss = sruns %>% ungroup() %>% dplyr::select( ID, method, mean.SE.hat ) %>%
   spread( method, mean.SE.hat )
 head( ss )
 not.comp = ss[ !complete.cases(ss), ]
+
+temp = merge( scenarios, not.comp, by="ID" )
 if ( nrow( not.comp ) > 0 ) {
   warning( "Not complete cases found\n" )
   print( not.comp )
@@ -197,6 +219,35 @@ sruns = mutate( sruns,
 
 
 ##### Save #####
+group=unique(sruns$group)
+#group=unique(simdata$group)
 
-save( scenarios, simdata, sruns, file="results/processed_simulation_results.RData" )
+#save the results 
+  file_name=paste("results_sav/processed_simulation_results_",group,"_",Sys.Date(),".RData",sep="")
+  #file_name=paste("processed_simulation_results_",group,"_",Sys.Date(),".RData",sep="")
+  #rename sruns so that it can be combined with other sruns data 
+  sruns.name<-paste("sruns",group,sep=".")
+  assign(sruns.name,sruns)
+  #rename the range data 
+  range.dat.name<-paste("range.dat",group,sep=".")
+  assign(range.dat.name,range.dat)
+  
+  save(scenarios, simdata, list=c(sruns.name,range.dat.name), file=file_name )
+  
+      
+
+
+
+
+###Combining Results Across Simulations
+rm(list=ls())
+library(tidyverse)
+load("processed_simulation_results_estimators_estimand_2024-09-30.RData")
+load("processed_simulation_results_sim_base_1_2024-09-30.RData")
+load("processed_simulation_results_estimators_estimand_2_2024-09-30.RData")
+load("processed_simulation_results_performance_1_2024-09-30.RData")
+sruns<-bind_rows(sruns.sim_base_1,sruns.estimators_estimand,sruns.estimators_estimand_2,sruns.performance_1)
+range.dat<-bind_rows(range.dat.sim_base_1,range.dat.estimators_estimand,range.dat.estimators_estimand_2,range.dat.performance_1)
+save(sruns,range.dat, file= "combined_simulation_results.RData")
+
 

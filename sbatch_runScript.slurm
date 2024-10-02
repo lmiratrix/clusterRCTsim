@@ -4,11 +4,11 @@
 
 #SBATCH -n 1  #Number of cores
 
-#SBATCH -t 60  #Runtime in minutes
+#SBATCH -t 180  #Runtime in minutes
 
-#SBATCH -p test #Partition to submit to
+#SBATCH -p serial_requeue #Partition to submit to
 
-#SBATCH --mem=1000 #Memory per node in MB (see also --mem-per-cpu)
+#SBATCH --mem=5000 #Memory per node in MB (see also --mem-per-cpu)
 
 #R file to run, and txt files to produce for output and errors
 R CMD BATCH estimator_performance_simulation.R logs/R_output_${INDEX_VAR}.txt --no-save
