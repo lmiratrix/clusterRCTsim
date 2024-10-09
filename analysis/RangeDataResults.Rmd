@@ -1,0 +1,134 @@
+---
+title: "Range Data Results"
+author: "Sophie Litschwartz"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r setup, include=FALSE, echo=FALSE,warning=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+require(tidyverse)
+require(rlang)
+
+load( "/Users/sophielitschwartz/Dropbox/clusterRCTsim/results/combined_simulation_results.RData" )
+
+
+#fix select
+select<-dplyr::select
+
+vary_colsJ <- c("J.bar", "variable.J", "variable.n", "variable.p", 
+                "size.impact.cor.district", "size.impact.cor.school",
+                "proptx.impact.cor.district")
+
+vary_cols <- c("K","J.bar","p.bar","sd.district","ICC.district", 
+               "variable.J","variable.n", "variable.p","n.bar","sd.school","ICC.school", 
+               "size.impact.cor.district", "size.impact.cor.school",
+               "proptx.impact.cor.district","size.intercept.cor.district","cor.strength.school")
+
+#key_methods <- c("LR_FI_CRVE_Cluster", "DB_FE_Person", "MLM_FE")
+
+
+
+library( ggthemes )
+
+my_t = theme_tufte() + theme( legend.position="bottom", 
+                              legend.direction="horizontal", legend.key.width=unit(1,"cm"),
+                              panel.border = element_blank(), axis.title=element_text(size=12))
+theme_set( my_t )
+
+
+#histogram of ranges for a representative case where estimands are the same
+#figure out what the values are 
+
+#histogram of ranges for a representative case where estimands are not the same
+#figure out what the values are 
+
+
+#graph of how the means vary by some stuff
+
+#graph of how the ranges vary by some stuff 
+
+
+
+
+```
+
+```{r, echo=FALSE, include=T,fig.width=7, fig.height= 6}
+ hist1<-range.dat %>% filter(sim.id=="base.values") %>% select(-weight, -population, -range_bygroup) %>% distinct()
+test<-hist1 %>% select(all_of(c(vary_cols,vary_colsJ))) %>% distinct()
+hist2<-range.dat %>% filter(sim.id=="sd.school" & sd.school==0) %>% select(-weight, -population, -range_bygroup) %>% distinct()
+test2<-hist2 %>% select(all_of(c(vary_cols,vary_colsJ))) %>% distinct()
+
+ hist3<-range.dat %>% filter(sim.id=="n.bar" & group=="performance_1" & n.bar==25) %>% select(-weight, -population, -range_bygroup) %>% distinct()
+test3<-hist3 %>% select(all_of(c(vary_cols,vary_colsJ))) %>% distinct()
+
+``````````
+
+
+
+## What is the distribution of the range of estimates across simulations when all the estimands are the same
+
+#This is a histogram of the magnitude of the ranges across the different estimators across the different simulations
+#In this group of simulations all the estimands are equal because there is no correlation between treatment effects and size of the sites or number of sites per block 
+#The parameter values in this group of simulations is:
+`r print(test)`
+#The estimators included are [list out the estimators]: 
+
+
+```{r, echo=FALSE, include=T,fig.width=7, fig.height= 6}
+
+range.collapse<-range.dat %>% select(-weight, -population, -range_bygroup) %>% distinct() %>%
+                          group_by()
+
+
+ggplot(data=hist1,aes(x=range))+
+  geom_histogram(binwidth =.01)+
+  labs(x="Range Across Estimators Within a Single Simulation Replication")
+
+ggplot(data=as.data.frame(hist2),aes(x=range))+
+  geom_histogram(binwidth =.01)+
+  labs(x="Range Across Estimators Within a Single Simulation Replication")
+
+
+ggplot(data=as.data.frame(hist3),aes(x=range))+
+  geom_histogram(binwidth =.01)+
+  labs(x="Range Across Estimators Within a Single Simulation Replication")
+
+#drop DB Raj and DB HT and weights of cluster/block or person/block 
+
+
+``````````
+
+#Mean range grounded in the performance sim
+```{r, echo=FALSE, include=T,fig.width=7, fig.height= 6}
+#create an all scenarios data set 
+all.scenarios<- range.dat %>% select(all_of(c(vary_cols,vary_colsJ),ID,group,sim.id)) %>% distinct()
+#collapse the range data across simulations 
+
+
+ggplot(data=hist1,aes(x=range))+
+  geom_histogram(binwidth =.01)+
+  labs(x="Range Across Estimators Within a Single Simulation Replication")
+
+ggplot(data=as.data.frame(hist2),aes(x=range))+
+  geom_histogram(binwidth =.01)+
+  labs(x="Range Across Estimators Within a Single Simulation Replication")
+
+
+ggplot(data=as.data.frame(hist3),aes(x=range))+
+  geom_histogram(binwidth =.01)+
+  labs(x="Range Across Estimators Within a Single Simulation Replication")
+
+#drop DB Raj and DB HT and weights of cluster/block or person/block 
+
+
+``````````
+
+#95% value grounded in the performance sim 
+

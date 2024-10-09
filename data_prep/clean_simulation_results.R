@@ -19,10 +19,9 @@ simdata <- scenarios %>%
 
 #rm(list=ls())
 #library( tidyverse )
-#load("results_sav/processed_simulation_results_estimators_estimand_2024-08-16.RData")
-#load("results_sav/processed_simulation_results_sim_base_1_2024-08-16.RData")
-#load("results_sav/processed_simulation_results_estimators_estimand_2_2024-08-14.RData")
-
+#load("results_sav/processed_simulation_results_estimators_estimand_2024-09-30.RData")
+#load("results_sav/processed_simulation_results_sim_base_1_2024-09-30.RData")
+load("results_sav/processed_simulation_results_estimators_estimand_2_2024-09-30.RData")
 
 # Drop simulations from the scenarios frame
 scenarios$run = NULL
@@ -61,7 +60,9 @@ simdata = mutate( simdata,
                   cov.s.dsch = cover.vector( ATE.hat, SE.hat, ATE.super.dist.school ))
 
 #add in ranges across methods 
-range.dat <-simdata %>% group_by(ID,subrun ) %>% 
+range.dat <-simdata %>% 
+                  filter(!(weight %in% c("cluster/block","person/block")) & !(method %in% c("DB_HT","DB_Raj"))) %>% 
+                  group_by(ID,subrun ) %>% 
                   mutate(range=diff(range(ATE.hat))) %>%
                   ungroup() %>%
                  group_by(ID,subrun,weight,population) %>%  
@@ -234,18 +235,15 @@ group=unique(sruns$group)
   
   save(scenarios, simdata, list=c(sruns.name,range.dat.name), file=file_name )
   
-      
-
-
-
+    
 
 ###Combining Results Across Simulations
 rm(list=ls())
 library(tidyverse)
-load("processed_simulation_results_estimators_estimand_2024-09-30.RData")
-load("processed_simulation_results_sim_base_1_2024-09-30.RData")
-load("processed_simulation_results_estimators_estimand_2_2024-09-30.RData")
-load("processed_simulation_results_performance_1_2024-09-30.RData")
+load("processed_simulation_results_estimators_estimand_2024-10-02.RData")
+load("processed_simulation_results_sim_base_1_2024-10-02.RData")
+load("processed_simulation_results_estimators_estimand_2_2024-10-02.RData")
+load("processed_simulation_results_performance_1_2024-10-02.RData")
 sruns<-bind_rows(sruns.sim_base_1,sruns.estimators_estimand,sruns.estimators_estimand_2,sruns.performance_1)
 range.dat<-bind_rows(range.dat.sim_base_1,range.dat.estimators_estimand,range.dat.estimators_estimand_2,range.dat.performance_1)
 save(sruns,range.dat, file= "combined_simulation_results.RData")

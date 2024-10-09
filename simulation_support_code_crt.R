@@ -655,7 +655,7 @@ make.scenario.list = function( group = "main" ) {
                        manip.var.vals<-seq(0,1,.1),base.values.performance.sch.cor.neg),
       expand.fixed.one(manip.var.name="size.impact.cor.district",
                        manip.var.vals<-seq(-1,1,.1),base.values.performance),
-      base.values.performance.variable.p,base.values.performance.sch.cor,base.values.performance.sch.cor.neg)}
+      base.values.performance, base.values.performance.variable.p,base.values.performance.sch.cor,base.values.performance.sch.cor.neg)}
   else if ( group == "initial" ) {
     scenarios = expand.grid( 
       K = c(10), 
