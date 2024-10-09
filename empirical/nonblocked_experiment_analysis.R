@@ -2,12 +2,12 @@
 
 # This looks at the non-blocked experiments only
 
-# NOTE: THIS IS NOT COMPLETE AND IS CURRENTLY JUST THE BLOCKED SCRIPT
-# COPIED OVER.  BE WARNED!
+# NOTE: THIS IS MOSTLY NOT COMPLETE AND IS CURRENTLY A TWEAKED VERSION
+# OF THE BLOCKED SCRIPT COPIED OVER.  BE WARNED!
 
 
 
-source( here::here( "empirical/setup.R" ) )
+source( here::here( "empirical/load_empirical_results.R" ) )
 
 
 # Research question 1 ----
@@ -16,21 +16,42 @@ source( here::here( "empirical/setup.R" ) )
 #    b. For different types of estimands (e.g., site average vs individual, or finite population vs not),
 #       to what extent do effect estimates vary across estimators that target that type of estimand? 
 
+
 ## 1a. Range of effect estimates across all estimands ----
 
+josh_unblocked <- josh_unblocked %>% group_by( Collection, Project, Trt_arm, Outcome, Covariates ) %>%
+  mutate( df_floor = J - 2*K - ncov.2 ) %>%
+  ungroup()
+
+summary( josh_unblocked$df_floor )
+
+
 ate_summary <- josh_unblocked %>%
-  group_by(Collection,Project, Trt_arm, Outcome, Outcome_desc, Covariates) %>%
+  group_by(Collection, Project, Trt_arm, Outcome, Outcome_desc, Covariates, J, K, ncov.2) %>%
   summarize(N     = sum(!is.na(ATE_hat_std)),
             Nmiss = sum(is.na(ATE_hat_std)),
             Min   = min(ATE_hat_std, na.rm = T),
             Max   = max(ATE_hat_std, na.rm = T),
             .groups = "drop") %>%
-  mutate(Range = Max - Min)
+  mutate(Range = Max - Min,
+         df = J - 2*K - ncov.2 - 1)
 ate_summary
 
 write.xlsx(ate_summary, plot_path( 'ate_summary_nonblocked.xlsx') )
 
 summary( ate_summary$Range )
+summary( ate_summary$df )
+
+# Extreme ranges?
+filter( ate_summary, Range >= 1 )
+
+if ( FALSE ) {
+  # What is up with study 47?
+  filter( josh_unblocked, Project == "jg_crt_47" ) %>% 
+    dplyr::select(Estimator, Covariates:df, df_floor ) %>%
+    print( n = 100 )
+ 
+}
 ate_summary <- filter( ate_summary, Range < 1 )
 
 #' Make plot of differences and save to file
@@ -50,6 +71,7 @@ makeDotplot <- function(df, var,
                   binwidth   = binw,
                  dotsize    = 0.8,
                  stackratio = 1.2,
+                 stackgroups = TRUE,
                  method     = 'histodot') +
     theme_minimal() +
     labs(x        = xlab,
