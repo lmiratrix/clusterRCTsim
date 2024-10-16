@@ -1,4 +1,9 @@
 
+## MAIN SIMULATION LAUNCHING SCRIPT
+## How Sophie runs this file:
+## Copy and paste this code into the terminal directly, if desired.
+
+
 ## Load software modules
 module load R/4.2.2-fasrc01
 ## Use user-downloaded libraries

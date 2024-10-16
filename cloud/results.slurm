@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# NOTE: This is old and not used.
 #SBATCH -A miratrix_lab # lab account
 #SBATCH -n 1  #Number of cores
 #SBATCH -t 60  #Runtime in minutes
