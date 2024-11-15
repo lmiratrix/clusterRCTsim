@@ -1,0 +1,530 @@
+---
+title: "Superpopulation SE report"
+author: "Miratrix"
+date: "2024-11-02"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+
+library(tidyverse)
+library(xtable)
+knitr::opts_chunk$set(echo = FALSE,
+                      fig.width = 5,
+                      fig.height = 5,
+                      out.width = "75%",
+                      fig.align = "center")
+options(list(dplyr.summarise.inform = FALSE))
+theme_set( theme_classic() )
+
+source( here::here( "data_generation_code.R" ) )
+source( here::here( "aggregate_simulation_results.R" ) )
+
+```
+
+I ran a simulation where I generated a fixed set of districts, and then repeatedly sampled clusters within those districts and conducted a cluster randomized experiment.
+I then looked at how much the point estimates varied across the simulation runs for all of our methods.
+
+I nested the simulations in that I first generated a dataset (using the fixed set of district characteristics), and then repeatedly randomized clusters and estimated impacts.
+This gives us finite-sample standard errors for the estimators, keeping the full set of districts, clusters, and individuals fixed.
+We can also look at the standard deviation of the point estimates across all the simulations to get the superpopulation standard errors.
+This is a model where the clusters are sampled within districts, and individuals are sampled within clusters, but the districts are fixed.
+
+## The set of districts
+
+To run a simulation scenario I generate a single set of districts.
+I use the "empirical" setting to make sure our multivariate normal distributions for the amount of cross-district impact variation and so forth equals our set values. I am therefore not worried about the simulation results being hugely dependent on _which_ districts we have generated, as I expect all sets generated, given a specific set of parameters, would lead to the same final results.
+
+The following is a set of descriptive features of the fixed set of districts in our simulation:
+
+```{r describe_1}
+grid <- readRDS( "results/superpop_SE_simulation_grid.rds" )
+describe_district_grid( grid )
+```
+
+The district ATE is the simple average of the district-level cluster-average ATEs.
+The bottom line are ATEs for a large dataset generated for this set of districts.
+We have good separation between cluster-average and individual-average ATE.
+We also see fairly high correlations of all sorts of features of the data, and all cluster sizes, etc., are varying.
+
+The numbers in parentheses are the standard deviations of a given value.
+For example, J.bar, the average number of clusters per district, is around 9 and we have some districts with more and some with fewer (sd of around 3).
+Note the district ATE and district impact variation are 0.20 and 0.10--exactly as we specified in the DGP call; this is the empirical setting doing its work.
+
+
+
+## Simulation results
+
+
+For each estimator, we calculate the average estimated standard error, the average estimate, the bias, the RMSE, and the coverage. 
+We calculate the bias, RMSE and coverage with respect to the appropriate estimand (Cluster or Person weighted).
+
+The following table and figure shows our results.
+The table shows a variety of statistics, including the average of the degrees of freedom that we calculate for each estimator.
+In this simulation we are well away from the problematic behavior we have been seeing with the interacted estimators.
+The figure shows average estimate, the bias (relative to cluster or person average ATE as appropriate), the true standard error, and the RMSE.  The whiskers are monte carlo standard errors, showing our uncertainty given the 500 iterations run.
+
+
+
+```{r, include=FALSE}
+sim <- readRDS( "results/superpop_SE_simulation.rds" ) %>%
+  dplyr::filter( !disfavored )
+
+ATE.school = mean( sim$ATE.finite.school )
+ATE.student = mean( sim$ATE.finite.student )
+
+ATE.school
+ATE.student
+```
+
+
+```{r initial_results, results="asis"}
+
+
+rs <- calculate_performance_statistics( sim, align = TRUE ) %>%
+  arrange( weight, cover )
+names(rs) <- str_replace( names(rs), "mean.", "mn." )
+#knitr::kable( rs, 
+#              digits = c( 0,0,2,2,2,2,2,0, 2, 2),
+#              col.names = c( "Method", "Weight", 
+#                             "$\\overline\\widehat{SE}$", "$\\overline\\widehat{ATE}$", 
+#                             "Bias", "RMSE", "Coverage", "\\% undef", "df", "$SE_f$", "$SE_s$" ),
+#              escape = FALSE )
+
+print_table <- function( rs, ... ) {
+  
+  rs2 <- rs %>%
+    dplyr::select( -MCSE.bias, -MCSE.RMSE, -MCSE.SE )
+  
+  colnames(rs2) <- c("Method", "Weight", 
+                     "$\\overline{\\widehat{SE}}$", "$\\overline{\\widehat{ATE}}$", 
+                     "Bias", "RMSE", "Coverage", "\\% undef", "df", "$SE_f$", "$SE_s$")
+  
+  # Generate xtable and specify digits
+  xtab <- xtable(rs2, digits = c(0, 0, 0, 2, 2, 2, 2, 2, 2, 0, 2, 2), ... )
+  
+  # Print the table with LaTeX math expressions
+  print(xtab, include.rownames = FALSE, sanitize.colnames.function = identity,
+        comment = FALSE)
+}
+
+print_table( rs, caption = "Simulation 1 results" )
+
+```
+
+
+```{r performance_1, fig.width=7, fig.height = 4, out.width="100%"}
+
+make_performance_plot <- function( rs, title ) {
+  rsL <- rs %>%
+    pivot_longer( c( "mn.ATE.hat", "SE.s", "bias", "RMSE" ) )
+  
+  rr <- rs %>%
+    mutate( MCSE.mn.ATE.hat = MCSE.bias ) %>%
+    dplyr::select( method, weight, mn.ATE.hat, SE.s, bias, RMSE, MCSE.mn.ATE.hat, MCSE.SE, MCSE.bias, MCSE.RMSE ) %>%
+    rename( value.ATE_hat = mn.ATE.hat,
+            value.SE = SE.s,
+            value.bias = bias,
+            value.RMSE = RMSE,
+            MCSE.ATE_hat = MCSE.mn.ATE.hat )
+  
+  rr
+  rsL <- rr %>%
+    pivot_longer(
+      cols = starts_with("value") | starts_with("MCSE"),
+      names_to = c(".value", "metric"),
+      names_pattern = "(value|MCSE)\\.(ATE_hat|SE|bias|RMSE)" )
+  rsL
+  
+  rsL$metric = factor( rsL$metric, levels = c( "ATE_hat", "SE", "bias", "RMSE" ) )
+  ggplot( rsL, aes( x=method, y=value, colour = weight ) ) +
+    facet_wrap( ~ metric, nrow = 1 ) +
+    geom_point( shape=124, size=3 ) +
+    geom_errorbar( aes( ymin=value-2*MCSE, ymax=value+2*MCSE), width=0 ) +
+    geom_hline( yintercept=0, lty="dashed" ) +
+    coord_flip() +
+    theme_minimal() +
+    labs( title = title, x = "", y = "")  +
+    theme( legend.position = "bottom" )
+}
+make_performance_plot( rs, title = "Performance (correlated context)" )
+
+```
+
+We are seeing general consistency across all the methods for the standard errors.
+For this DGP, the individual-average seems harder to estimate than the cluster average, likely due to the massive variation in cluster size coupled with the cluster variation, making the weighted average of clusters more unstable than the simple average.
+
+From the table, we also see coverage can be low for some of the individual average estimators.  Given that the degrees of freedom is fairly high, this is a disturbing result.
+
+The low coverage may partly be driven by the small bias term of around -0.03 for the person-weighted estimators.
+The monte carlo standard errors show that this bias is real, and not just a fluke of the simulation (see the confidence intervals for the amount of bias in the figure).
+We also see real bias for the MLM estimators, which is their shrinking towards the person average effect.
+
+<!--We can do further analysis on the bias.
+```{r, eval=FALSE}
+sim <- sim %>%
+mutate( ATE = ifelse( weight == "Person", ATE.student, ATE.school ),
+bias = ATE.hat - ATE )
+M = lmer( bias ~ weight + (1|method) + (1|run) + (1|subrun), data=sim )
+arm::display(M)
+coef( M )$method
+```
+-->
+
+
+## Calibration of Estimated Standard Errors
+We can look at how the average estimated standard error compares to both the true superpopulation standard error as well as the average of the true finite population standard error across the different datasets (first and second column).
+We can also look at how much larger superpopulation standard errors are from finite population (third column).
+
+```{r}
+# Estimated standard errors for individual linear regression (and
+# variants) are terrible in this scenario???
+rs %>%
+  group_by( method, weight ) %>%
+  summarise( SErat.s = mn.SE.hat / SE.s,
+             SErat.f = mn.SE.hat / SE.f,
+             SE_fs = SE.s / SE.f,
+             bias = bias,
+             cover = cover
+  ) %>%
+  arrange( SErat.s ) %>%
+  knitr::kable( digits=2 )
+```
+
+First, despite lots of heterogeneity at the cluster and district level, the finite and superpopulation true standard errors are all about the same.
+In simple blocked randomized (multisite) experiments, the relative inflation of the finite population standard error estimator (vz. true finite sample variance) is proportional to the treatment variation within the blocks.
+Cluster randomized experiments appear to have a different story, and it appears as if major differences in finite vs superpopulation standard error are unlikely to occur; see the other memo on this for more details.
+
+Second, we are seeing how several individual-weight linear regression methods are systematically giving standard errors _much_ too small in our context.
+The interacted estimators appear to be particularly vulnerable to this.
+We also see that coverage is fairly reasonable if the SE is fairly reasonable (e.g., LRi-FE-crve or LRapw_FE-het), despite the bias term.
+In other words, the bias does not seem to be driving the low coverage rates.
+
+
+\newpage
+
+# A second simulation (no correlation)
+
+Repeating the above displays, we can look at the same simulation run on a dataset with the same variation in block and cluster sizes, but no strong correlation of size with impact or anything else.
+
+The data were generated with complete independence, but we still see some non-zero correlations due to the random chance of generating the 20 districts (for reference, the correlation of 20 observations of two independent random normal variables has a 50% chance of being larger than 0.15 in magnitude, so correlations of this size are not unusual).
+
+
+## Descriptive statistics:
+
+```{r describe_2, warnings=FALSE}
+grid2 <- readRDS( "results/superpop_SE_simulation_grid2.rds" )
+describe_district_grid( grid2 )
+```
+
+
+
+## Simulation results
+
+
+```{r, include=FALSE, results="asis"}
+sim2 <- readRDS( "results/superpop_SE_simulation2.rds" ) %>%
+  dplyr::filter( !disfavored )
+
+ATE.school = mean( sim2$ATE.finite.school )
+ATE.school
+ATE.student = mean( sim2$ATE.finite.student )
+ATE.student
+```
+
+```{r perfstat_2, results="asis"}
+rs <- calculate_performance_statistics( sim2, align = TRUE ) %>%
+  arrange( weight, cover )
+names(rs) <- str_replace( names(rs), "mean.", "mn." )
+
+print_table( rs, 
+             caption = "Simulation 2 (no correlation) results")
+```
+
+
+```{r performance_2, fig.width=7, fig.height = 4, out.width="100%"}
+make_performance_plot( rs, title = "Performance (uncorrelated context)" )
+```
+
+With the no correlation case, we are not seeing bias for any of the estimators.
+
+
+## Calibrated Standard Errors
+
+```{r}
+# Estimated standard errors for individual linear regression (and
+# variants) are terrible in this scenario???
+rs %>%
+  group_by( method, weight ) %>%
+  summarise( SErat.s = mn.SE.hat / SE.s,
+             SErat.f = mn.SE.hat / SE.f,
+             SE_fs = SE.s / SE.f,
+             cover = cover ) %>%
+  arrange( SErat.s ) %>%
+  knitr::kable( digits=2 )
+```
+
+Without correlation, standard errors can be a bit too small, but they are better than before.
+This is a puzzling result.
+
+
+
+\newpage
+# Simulation 3: a smaller size experiment
+
+We then look at a smaller experiment, of around 30 clusters across 4 districts, to see how things change.
+We make sure no district has fewer than 4 clusters, which ensures all estimators have defined estimated standard errors.
+
+## Descriptive statistics:
+
+```{r describe_3, warnings=FALSE}
+grid3 <- readRDS( "results/superpop_SE_simulation_grid3.rds" )
+describe_district_grid( grid3 )
+```
+
+
+
+## Simulation results
+
+
+```{r, include=FALSE}
+sim3 <- readRDS( "results/superpop_SE_simulation3.rds" ) %>%
+  dplyr::filter( !disfavored )
+
+ATE.school = mean( sim3$ATE.finite.school )
+ATE.school
+ATE.student = mean( sim3$ATE.finite.student )
+ATE.student
+
+rs <- calculate_performance_statistics( sim3, align = TRUE ) %>%
+  arrange( weight, cover ) 
+names(rs) <- str_replace( names(rs), "mean.", "mn." )
+
+```
+
+<!--
+In this scenario, we run into estimation issues due to small sample sizes.  In particular, our rates of completion are as follows:
+```{r}
+sim3 %>% group_by( method ) %>%
+  summarise( noATE = mean( is.na( ATE.hat ) ),
+             noSE = mean( is.na( SE.hat ) ) )
+```
+-->
+
+```{r perfstat_3, results="asis"}
+print_table( rs,
+             caption = "Simulation 3 (small number blocks) results" )
+```
+
+
+```{r performance_3, fig.width=7, fig.height=4, out.width="100%"}
+make_performance_plot( rs, "no3: small sample case" )
+```
+
+<!--
+NOTE: I took this out since MLM-RE seems to be fine now.  It was biased before but then when I changed the low variation to have less variation rather than some outlier small clusters, this changed.  So is MLM-RE vulnerable to tiny cluster sizes?
+
+The MLM-RE estimator appears to be behaving very strangely.
+
+### Side-bar: MLM-RE doing what?
+
+We can look at the distribution of the MLM-RE estimates to see what is going on.
+
+```{r, out.height = "2.5in"}
+smlm <- sim3 %>% filter( method == "MLM-RE" )
+ggplot( smlm, aes( ATE.hat ) ) +
+  geom_histogram() +
+  geom_vline( xintercept=c( ATE.school, ATE.student ), col=c( "red", "blue" ) )
+```
+
+They are off, and there is no easy explanation.
+-->
+
+
+## Calibrated Standard Errors
+
+```{r}
+# Estimated standard errors for individual linear regression (and
+# variants) are terrible in this scenario???
+rs %>%
+  group_by( method, weight ) %>%
+  summarise( SErat.s = mn.SE.hat / SE.s,
+             SErat.f = mn.SE.hat / SE.f,
+             SE_fs = SE.s / SE.f,
+             cover = cover ) %>%
+  arrange( SErat.s ) %>%
+  knitr::kable( digits=2 )
+```
+
+The coverage of all the estimators is low, because the standard errors are generally too small.
+
+The degrees of freedom seem to not correctly correspond to the different estimators.  E.g., LRi-FE-CRVE has smaller df than the interacted estimators.
+I did some investigating and the low df for the LRi-FE-CRVE is indeed coming from the `lm_robust()` method, and is probably something to do with how degrees of freedom are calculated when the cluster sizes vary a lot.
+The ad hoc df calculations for the design-based estimators and interacted estimators, by contrast, just use total clusters minues number of estimated coefficients, and thus are stable to different cluster sizes.
+I am not sure if one df calculation vs. another is preferred.
+
+
+## Action Items
+* POSSIBLE TODO: Ask Peter Schochet to weigh in on the df calculations for the db estimators after pointing out the df that comes out of the robust linear model package.  
+* POSSIBLE TODO: Try and track down how df are calculated by lm_robust with CRVE--and I expect the method of CRVE dictates df.
+* POSSIBLE TODO: Ask James P. about df for robust standard errors.  He seems to know this stuff.
+
+
+
+
+\newpage
+
+# Simulation 4 & 5: Exploring finite vs. superpopulation standard errors
+
+Simulations 4 and 5 are designed to push the envelope on separating the finite and superpopulation standard errors, given the fixed districts.
+These two scenarios have the exact same district characteristics as simulation 3, except for changing the amount of within-district treatment variation to 0 or to a large amount.
+
+Here are the stats:
+
+```{r}
+grid4 <- readRDS( "results/superpop_SE_simulation_grid4.rds" )
+describe_district_grid( grid4 )
+grid5 <- readRDS( "results/superpop_SE_simulation_grid5.rds" )
+describe_district_grid( grid5 )
+```
+
+
+```{r, include=FALSE}
+sim4 <- readRDS( "results/superpop_SE_simulation4.rds" ) %>%
+  dplyr::filter( !disfavored )
+sim5 <- readRDS( "results/superpop_SE_simulation5.rds" ) %>%
+  dplyr::filter( !disfavored )
+
+all_sim = bind_rows( medium=sim3, none=sim4, lots=sim5, .id = "variation" )
+
+rs <- all_sim %>%
+  group_by( variation ) %>%
+  do( calculate_performance_statistics( . ) ) %>%
+  mutate( method = fct_reorder( method, SE.s ),
+          variation = factor( variation, levels=c("none", "medium", "lots") ) )
+
+rsL <- rs %>%
+  pivot_longer( cols = c(SE.f, SE.s), names_to="SE_type", values_to="SE" )
+
+
+```
+
+And now for our three cases, we can see that superpopulation SEs do get relatively larger than finite population as treatment variation increases, but the percent increase is not as large as one might expect.
+```{r finite_v_super_explore}
+
+ggplot( rsL, aes( x = method, y = SE, col = SE_type ) ) +
+  facet_wrap( ~ variation, nrow = 1 ) +
+  geom_point() +
+  coord_flip() +
+  theme_minimal() +
+  labs( title = "True Standard Errors",
+        subtitle = "by amount of within-block impact variation",
+        x = "", y = "" )  +
+  expand_limits( y = 0 ) +
+  geom_hline( yintercept = 0 ) +
+  theme( legend.position = "bottom" )
+
+#  geom_point( aes( shape="sup")) +
+#  geom_point( aes( y = SE.f, shape="finite" ) ) +
+#  coord_flip()
+#ggplot( rs, aes( x = method, y = SE.s, col = variation ) ) +
+#  geom_point( aes( shape="sup")) +
+#  geom_point( aes( y = SE.f, shape="finite" ) ) +
+#  coord_flip()
+```
+
+
+Here are the ratios of super to finite true standard error vs. the true superpopulation standard error.
+
+```{r second_plot, fig.height = 3.5}
+
+rr <- rs %>%
+  mutate( ratio = SE.s / SE.f )
+
+shape_mapping <- c("Person" = 21, "Cluster" = 24)
+
+ggplot( rr, aes( SE.s, ratio ) ) +
+  geom_point( aes( fill=variation,
+                   color = ifelse(weight == "Person", "black", "white"),
+                   shape = weight),
+              stroke = 0.5, size = 3 ) +
+  scale_y_continuous(labels = scales::label_percent(accuracy = 1)) +
+  scale_color_identity() +  # Directly applies "black" without a legend
+  scale_fill_viridis_d( alpha = 0.5, guide = guide_legend(override.aes = list(shape = 21)) ) +
+  scale_shape_manual(values = shape_mapping)   # Use only fillable shapes
+
+
+```
+
+What is confusing is these experiments are modest in size, with around 30 clusters across 5 districts.  So given our multi-site work, I would have thought to see greater differences in finite vs. superpopulation SE.
+The separate memo on finite vs. superpopulation standard errors does provide some reassurance that these results are indeed correct, however.
+
+
+\newpage
+
+# Simulation 6: A sanity check simulation
+
+In this simulation the cluster sizes do not vary much and basically we are in our (near) constant size everything.
+The question is whether the SEs are well behaved in this fairly nice case.
+We only have 30 clusters in this nice case, to try and keep within mostly realistic bounds of size.
+
+
+
+## Descriptive statistics:
+
+```{r describe_6, warnings=FALSE}
+grid6 <- readRDS( "results/superpop_SE_simulation_grid6.rds" )
+describe_district_grid( grid6 )
+```
+
+
+
+## Simulation results
+
+
+```{r, include=FALSE, results="asis"}
+sim6 <- readRDS( "results/superpop_SE_simulation6.rds" ) %>%
+  dplyr::filter( !disfavored )
+
+ATE.school = mean( sim6$ATE.finite.school )
+ATE.school
+ATE.student = mean( sim6$ATE.finite.student )
+ATE.student
+```
+
+```{r perfstat_6, results="asis"}
+rs <- calculate_performance_statistics( sim6, align = TRUE ) %>%
+  arrange( weight, cover )
+names(rs) <- str_replace( names(rs), "mean.", "mn." )
+
+print_table( rs, 
+             caption = "Simulation 2 (no correlation) results")
+```
+
+
+```{r performance_6, fig.width=7, out.width="100%"}
+make_performance_plot( rs, title = "Performance (uncorrelated context)" )
+```
+
+
+
+## Calibrated Standard Errors
+
+```{r}
+# Estimated standard errors for individual linear regression (and
+# variants) are terrible in this scenario???
+rs %>%
+  group_by( method, weight ) %>%
+  summarise( SErat.s = mn.SE.hat / SE.s,
+             SErat.f = mn.SE.hat / SE.f,
+             SE_fs = SE.s / SE.f,
+             cover = cover ) %>%
+  arrange( SErat.s ) %>%
+  knitr::kable( digits=2 )
+```
+
+
+Everything is estimating the same thing, estimated standard errors are mostly calibrated (but a bit small, on average), and coverage is good.
+

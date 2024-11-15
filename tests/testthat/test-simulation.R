@@ -9,11 +9,11 @@ source( here::here( "simulation_support_code_crt.R" ) )
 source( here::here( "data_generation_code.R" ) )
 
 
-
 ##### Test the DGP code #####
 
 test_that( "single.CRT() works", {
   
+  set.seed( 44440 )
   rr = single.CRT( K = 10, 
                    J.bar = 10,
                    p.bar = 0.5,

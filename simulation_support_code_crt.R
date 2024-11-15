@@ -13,218 +13,16 @@ library( multiwayvcov )
 
 library( clusterRCT )
 
-
-#### Utility functions #####
-
-if ( FALSE ) {
-  # for testing crashing in the simulator.  This wrapper will make things crash sometimes.
-  my_compare_methods = function( ... ) {
-    if ( sample(5,1) == 1 ) {
-      asdfadfga
-    } else {
-      compare_methods( ... )
-    }
-  }
-}
-
-
-# Print things to console using sprintf.
-scat = function( str, ... ) {
-  cat( sprintf( str, ... ) )
-}
-
-
-
-# Given dataframe df, estimate impacts.
-# 
-# df has to be in canonical form of Yobs ~ Z | sid | did.
-#
-# @return Dataframe with estimates of ATE and SE, one row per method, 
-# from compare_methods() function
-get.estimates = function( df, ... ) {
-  safe_comp = safely( clusterRCT::compare_methods )
-  ests = safe_comp( Yobs ~ Z | sid | did, data=df, ... )
-  if ( is.null( ests[[2]] ) ) {
-    ests = ests[[1]]
-    ests = rename( ests, 
-                   ATE.hat = ATE_hat,
-                   SE.hat = SE_hat )
-    
-  } else {
-    cat( "\nCaught error:\n" )
-    print( ests[[2]] )
-    ests = data.frame( ATE.hat = c(NA),
-                       SE.hat = c(NA) )    
-  }
-  ests
-}
-
-
-# Reassign treatment to all clusters within blocks.
-rerandomize.data = function( dat ) {
-  
-  grid <- attr( dat, "district_key" )
-  
-  if ( "did" %in% names(dat) ) {
-    dat <- dat %>% group_by( did ) %>% 
-      mutate( p = mean( Z[ !duplicated( sid ) ] ),
-              Z = randomizr::block_and_cluster_ra(
-                blocks=did,
-                clusters=sid, 
-                prob_unit=p),
-              Yobs = ifelse(Z, Y1, Y0)) %>% 
-      dplyr::select(-p)
-  } else {
-    dat <- dat %>% 
-      mutate( p = mean( Z[ !duplicated( sid ) ] ),
-              Z = randomizr::cluster_ra(
-                clusters=sid, 
-                prob_unit=p),
-              Yobs = ifelse(Z, Y1, Y0)) %>%
-      dplyr::select(-p)
-  }
-  
-  attr( dat, "district_key" ) <- grid
-  
-  return( dat )
-}
-
-
-#### Code to explore scenarios and sample datasets ####
-
-# Utility function to describe a given data set to explore the data
-# generation process
-#
-# TODO
-describe.data = function( df ) {
-  
-  # we want:
-  #  - true ATEs
-  #  - true correlations from district_key
-  #  - etc...
-  
-  # Why this needed?
-  df = rerandomize.data( df )
-  
-  
-  # district params
-  d_key = attr(df, "district_key")
-  if ( !is.null( d_key ) ) {
-    sstat_distr <-d_key %>% 
-      summarize(cor.J.tau_dist = cor(J, district.tau),
-                cor.p.tau_dist = cor(p, district.tau),
-                sd.tau_dist = sd(district.tau),
-                sd.J_dist = sd(J),
-                sd.p_dist = sd(p))
-    print(sstat_distr)
-    
-  } else {
-    df$did = "single"
-  }
-  
-  # compute true ATE values
-  ATEs <- df %>% 
-    group_by(did, sid) %>% 
-    summarize(Njk = n(),
-              Bjk = mean(Y1-Y0),
-              .groups="drop_last") %>% 
-    summarize(Nk = sum(Njk),
-              Jk = n(),
-              ATE.distr = sum(Njk*Bjk) / Nk,
-              ATE.clust = sum(Bjk),
-              ATE.indiv = sum(Njk*Bjk),
-              .groups="drop_last") %>% 
-    summarize(ATE.distr = mean(ATE.distr),
-              ATE.clust = sum(ATE.clust) / sum(Jk),
-              ATE.indiv = sum(ATE.indiv) / sum(Nk))
-  
-  
-  # compute design-based point ATE estimates
-  #  - district-weighted, cluster-weighted, and individual-weighted
-  ATEhats <- df %>% 
-    group_by(did, sid) %>% 
-    summarize(n.clust = n(),
-              Z.clust = mean(Z),
-              Yhat.clust = mean(Yobs),
-              .groups="drop_last") %>% 
-    summarize(J.k = length(unique(sid)),
-              n.k = sum(n.clust),
-              Bhat.k.clust = sum(Z.clust*Yhat.clust) / sum(Z.clust) -
-                sum((1-Z.clust)*Yhat.clust) / sum(1-Z.clust),
-              Bhat.k.indiv = sum(n.clust*Z.clust*Yhat.clust) / sum(Z.clust*n.clust) -
-                sum(n.clust*(1-Z.clust)*Yhat.clust) / sum((1-Z.clust)*n.clust)) %>% 
-    summarize(ATE.distr = mean(Bhat.k.clust),
-              ATE.clust = sum(J.k*Bhat.k.clust) / sum(J.k),
-              ATE.indiv = sum(n.k*Bhat.k.indiv) / sum(n.k))
-  
-  res <- bind_rows(ATEs, ATEhats) %>% 
-    mutate(ATE = c("True ATEs", "Estimated ATEs"), .before=everything())
-  
-  print(res)
-}
-
-# use describe_clusterRCT()
-
-
-##### Testing code #####
-
-# Testing code of blkvar's generate_multilevel_data_no_cov
-# and describe_data method
-if ( FALSE ) {
-  library( tidyverse )
-  
-  df = blkvar::generate_multilevel_data_no_cov( n.bar=200, J=50,
-                                                tau.11.star = 0.1^2,
-                                                ICC = 0.20,
-                                                p = 0.70,
-                                                variable.n = TRUE,
-                                                variable.p = TRUE,
-                                                size.impact.correlate = TRUE,
-                                                proptx.impact.correlate = TRUE,
-                                                finite.model = FALSE )
-  
-  # empirical sd of true treatment effects across clusters
-  tau.S = attr( df, "tau.S")
-  tau.S    
-  
-  sites = df %>% group_by( sid ) %>% 
-    summarise( n = n(),
-               p.Z = mean( Z ),
-               ATE.hat = mean( Yobs[Z==1] ) - mean( Yobs[Z==0] ),
-               .groups = "drop")
-  
-  head( sites )
-  
-  qplot( sites$n, binwidth=10 )
-  summary( sites$n )
-  qplot( sites$p.Z, binwidth=0.025 )
-  summary( sites$p.Z )
-  qplot( sites$n, sites$ATE.hat )
-  cor( sites$n, sites$ATE.hat )
-  
-  qplot( sites$p.Z, sites$ATE.hat )
-  cor( sites$p.Z, sites$ATE.hat )
-  
-  
-  head( df )  
-  df = rerandomize.data(df)
-  head( df )
-  
-  describe.data(df)
-  describe_data(df)  
-  
-  
-  get.estimates(df)
-}
-
+source( here::here( "util.R" ) )
 
 
 #### Simulation code ####
 
+
 # Run a single round of simulation.
 #
 # Generate a cluster-randomized trial, and then repeatedly rerandomize the fixed 
-# dataset n.runs times, each time estimating the  ATE using all our methods.  
+# dataset n.runs times, each time estimating the ATE using all our methods.  
 # It also calculates the true finite-sample ATE (person and site weighted).
 #
 # @return Dataframe with the estimates along with the true baseline values.
@@ -295,6 +93,7 @@ single.CRT = function( # district-level params
     summarize(n_jk = n(), 
               beta_jk = mean(Y1-Y0), .groups="drop")
   
+  # Calculate the estimands
   ATE.student <- with( df, mean( Y1 - Y0 ) )
   # ATE.student = beta_jks %>% 
   #   summarize(n_k = sum(n_jk),
@@ -346,7 +145,14 @@ single.CRT = function( # district-level params
 
 
 
-# Test the simulation code
+
+
+
+
+
+
+
+# Test the single.CRT simulation code
 if ( FALSE ) {
   
   # NOTE: DB estimators will return infinite SEs if there are
@@ -365,37 +171,48 @@ if ( FALSE ) {
     include_method_characteristics=F)
   
   head(res)
+  table( res$subrun )
 }
 
 
-# Run a simulation with R trials and return all the simulation runs as a large dataframe.
+# Method to run full nested simulation ----
+
+#' Run a simulation with R trials and return all the simulation runs
+#' as a large dataframe.
+#'
+#' @param sd.school Treatment variation at the cluster level.
+#' 
+#' @param n.runs Number of "finite sample" replicates for each
+#'   generated dataset.
+#' @param R Number of datasets.
 run.scenario = function( 
-    K, J.bar, p.bar,
-    ATE.district, sd.district,
-    ICC.district,
-    variable.J,
-    variable.p,
-    
-    # correlation params at cluster level
-    size.ratio.district = 0.6,
-    size.impact.cor.district,
-    size.intercept.cor.district = 0,
-    proptx.impact.cor.district,
-    
-    # school-level params
-    n.bar, sd.school, ICC.school = 0.2,
-    variable.n,
-    
-    # correlation params at individual level
-    size.ratio.school = 0.6,
-    size.impact.cor.school,
-    cor.strength.school = 0.75,
-    
-    # method params
-    n.runs = 3,
-    R = 10,
-    
-    ID=NULL, .progress="none", ... ) {
+  # district-level params
+  K, J.bar, p.bar,
+  ATE.district, sd.district,
+  ICC.district,
+  variable.J,
+  variable.p,
+  
+  # correlation params at cluster level
+  size.ratio.district = 0.6,
+  size.impact.cor.district,
+  size.intercept.cor.district = 0,
+  proptx.impact.cor.district,
+  
+  # school-level params
+  n.bar, sd.school, ICC.school = 0.2,
+  variable.n,
+  
+  # correlation params at individual level
+  size.ratio.school = 0.6,
+  size.impact.cor.school,
+  cor.strength.school = 0.75,
+  
+  # method params
+  n.runs = 3,
+  R = 10,
+  
+  ID=NULL, .progress="none", ... ) {
   
   ptm = proc.time()
   
@@ -471,6 +288,8 @@ run.scenario = function(
 }
 
 
+
+
 # Testing run.scenario()
 if ( FALSE ) {
   rr = run.scenario( K = 10, 
@@ -503,13 +322,22 @@ if ( FALSE ) {
 
 
 #### Make scenario configurations #####
+
 #base.values
-#function to replicate base valuse across the rows and only change one variable
-expand.fixed.one<-function(manip.var.name,manip.var.vals, base.values){
-  base.comp<-base.values %>% select(!sim.id)
-  scenarios<- base.comp %>% slice(rep(1:n(),each=length(manip.var.vals))) %>%
-    select(-all_of(manip.var.name)) %>% mutate(!!manip.var.name:=manip.var.vals) %>% 
-    filter(!pmap_lgl(.,~all(c(...)==base.comp))) %>% mutate (sim.id=manip.var.name)}
+#function to replicate base values across the rows and only change one variable
+expand.fixed.one<-function(manip.var.name, manip.var.vals, base.values) {
+  
+  base.comp<-base.values %>% 
+    dplyr::select(!sim.id)
+  
+  scenarios<- base.comp %>% 
+    slice(rep(1:n(),each=length(manip.var.vals))) %>%
+    select(-all_of(manip.var.name)) %>%
+    mutate(!!manip.var.name:=manip.var.vals) %>% 
+    filter(!pmap_lgl(.,~all(c(...)==base.comp))) %>% 
+    mutate (sim.id=manip.var.name)
+}
+
 
 #set base.values
 base.values<-data.frame(K=10, 

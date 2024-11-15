@@ -160,7 +160,9 @@ test_that( "build_disticts() works", {
   
   expect_true( sd( grid$Xd1 ) > 0 )
   expect_true( sd( grid$J ) > 0 )
-  expect_equal( grid$p , rep( 0.7, 10 ) )
+  expect_equal( grid$p * grid$J - round( grid$p * grid$J ), rep( 0, 10 ) )
+  
+  expect_equal( grid$p , rep( 0.7, 10 ), tolerance = 1/200 )
   
   
   
@@ -180,6 +182,7 @@ test_that( "build_disticts() works", {
   expect_true( !is.null( grid$Xd5 ) )
   expect_equal( sd( grid$Xd5 ), 1, tolerance=0.3 )  
   
+  expect_equal( grid$p * grid$J - round( grid$p * grid$J ), rep( 0, 10 ) )
   
 })
 
