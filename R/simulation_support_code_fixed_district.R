@@ -14,8 +14,8 @@ library( multiwayvcov )
 library( clusterRCT )
 
 
-source( "util.R" )
-source( "data_generation_code.R" )
+source( here::here( "R/util.R" ) )
+source( here::here( "R/data_generation_code.R" ) )
 
 
 

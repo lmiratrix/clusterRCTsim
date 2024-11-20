@@ -13,7 +13,7 @@ library( multiwayvcov )
 
 library( clusterRCT )
 
-source( here::here( "util.R" ) )
+source( here::here( "R/util.R" ) )
 
 
 #### Simulation code ####

@@ -2,9 +2,14 @@
 
 # Superpopulation vs. finite population simulation
 
+# This script runs through several scenarios to target how
+# superpopulation vs. finite population TRUE standard errrors can be
+# different (holding districts as fixed and looking at super vs.
+# finite for the clusters themselves)
 
-source( "data_generation_code.R" )
-source( "simulation_support_code_fixed_district.R" )
+
+source( "R/data_generation_code.R" )
+source( "R/simulation_support_code_fixed_district.R" )
 
 library( lme4 )
 library( lmerTest )

@@ -8,7 +8,7 @@
 library( tidyverse )
 
 
-source( "MCSE_functions.R" )
+source( "R/MCSE_functions.R" )
 
 calculate_range_statistics <- function( simdata ) {
   simdata <- mutate( simdata,
