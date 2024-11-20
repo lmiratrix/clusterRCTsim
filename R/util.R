@@ -237,4 +237,71 @@ if ( FALSE ) {
 
 
 
+#' Taken from the clusterRCT::describe_clusterRCT() method, this takes
+#' a list of parameter values in x and prints them out in a nicely
+#' formatted block.
+#' 
+#' @param x List of parameter values (or estimates)
+print_stats <- function( x ) {
+  
+  if (  is.null( x$K ) || x$K == 1 ) {
+    clusterRCT:::scat( "Cluster RCT: %d units in %d clusters\n", x$n, x$J )
+  } else {
+    clusterRCT:::scat( "Cluster RCT: %d units in %d clusters across %d blocks\n",
+                       x$n, x$J, x$K )
+  }
+  
+  
+  if ( !is.null( x$K ) && x$K != 1 ) {
+    clusterRCT:::scat( "Block Statistics:\n\tAvg units/block: %.2f (coef var %.2f)\n\tAvg clusters/block: %.2f (coef var %.2f)\n\t25-75 Quantiles: %.1f-%.1f w/ IQR = %.1f\n\tICC: %.2f\n\tAvg tx: %.2f (coef var %.2f)\n\t25-75 Quantile tx: %.2f-%.2f w/ IQR %.2f\n",
+                       x$n_block, x$n_block_cv,
+                       x$Jbar, x$Jcv,
+                       x$J.25, x$J.75, x$J.IQR,
+                       x$block_ICC,
+                       x$tx.avg, x$tx.cv,
+                       x$tx.25, x$tx.75, x$tx.IQR)
+    if ( hasName( x, "R2.3" ) ) {
+      clusterRCT:::scat( "\tR2.3: %.2f (%d fixed effects)\n", x$R2.3, x$K)
+    }
+  }
+  
+  clusterRCT:::scat( "Cluster Statistics:\n\tAvg size: %.2f (coef var %.2f)\n\t25-75 Quantiles: %.1f-%.1f w/ IQR = %.1f\n\tICC: %.2f\n\tProp treated: %.2f\n",
+                     x$nbar, x$ncv,
+                     x$n.25, x$n.75, x$n.IQR,
+                     x$cluster_ICC,
+                     x$p.tx )
+  if ( hasName( x, "R2.2" ) ) {
+    clusterRCT:::scat( "\tR2.2: %.2f (%d covariates)\n", x$R2.2, x$ncov.2)
+  }
+  
+  
+  clusterRCT:::scat( "Unit Statistics:\n\tstddev( Y0 ): %.2f\n",
+                     x$sdY0 )
+  if ( hasName( x, "R2.1" ) ) {
+    clusterRCT:::scat( "\tR2.1: %.2f (%d covariates)\n", x$R2.1, x$ncov.1)
+  }
+  
+  if ( ".missing" %in% names(x) ) {
+    clusterRCT:::scat( "missing data counts:\n" )
+    print( x$.missing[[1]] )
+  }
+  
+  notes = attr( x, "notes" )
+  if ( !is.null(notes) && ( length( notes ) > 0 ) ) {
+    cat( "Notes:\n" )
+    for ( n in notes ) {
+      cat( "\t", n, "\n" )
+    }
+  }
+  
+  cat( glue::glue( "{x$num_singletons} singletons, {x$num_doubletons} doubletons." ) )
+  cat( "\n" )
+  if ( x$matched_pairs ) {
+    cat( "Matched pairs experiment\n" )
+  }
+  
+  invisible( x )
+  
+}
+
 

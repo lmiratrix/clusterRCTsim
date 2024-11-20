@@ -16,8 +16,8 @@ library( lmerTest )
 library( future )
 
 WHICH_SIMS <- c() # Run none of the simulations
-WHICH_SIMS <- c( 7 )
-
+WHICH_SIMS <- c( 8 )
+R = 500
 
 set.seed( 404404 )
 grid <- build_districts( K = 20, J.bar = 10, n.bar = 30, 
@@ -503,4 +503,41 @@ if ( FALSE ) {
   
   
 }
+
+
+
+# Simulation 8 (sim 3, but limited cluster variation) ----
+
+
+if ( 8 %in% WHICH_SIMS ) {
+  set.seed( 434343 )
+  grid3 = build_districts(  K = 4, J.bar = 7, n.bar = 50, 
+                            p.bar = 0.5,
+                            ATE = 0.2, sd.ATE = 0.2,
+                            sd.school = 0.5, 
+                            
+                            ICC = 0.2,
+                            ICC.school = 0.2,
+                            
+                            variable.J = TRUE, 
+                            variable.p = TRUE, 
+                            variable.nbar = TRUE,
+                            variable.n = TRUE,
+                            
+                            size.ratio = 0.2,
+                            min.size = 4,
+                            
+                            size.ratio.school = 0.1,
+                            
+                            #size.intercept.cor = -0.7,
+                            #size.impact.cor = 1,
+                            #proptx.impact.cor = 0, 
+                            #nbar.J.cor = 0, 
+                            #size.impact.cor.school = -0.8,
+                            empirical = TRUE )
+  
+  describe_district_grid( grid3 )
+  sim8 <- run_sim( 8, grid = grid3, R = 500, n.runs = 3, parallel=TRUE )
+}
+
 
