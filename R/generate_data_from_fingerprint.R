@@ -81,5 +81,13 @@ if (FALSE) {
   parameters = list( block_ICC = 0.1, cluster_ICC = 0.2, R2.1 = 0.1, R2.2 = 0.2,
                      ncov.1 = 1, ncov.2 = 1 )
   generate_data_from_fingerprint( structure, parameters )
+  
+  
+  # Generate data "like" fakeCRT
+  data( fakeCRT )
+  dd = describe_clusterRCT( Yobs ~ Z | cid | did, data = fakeCRT,
+                            control_formula = ~ d )
+  generate_data_from_fingerprint( dd$structure, dd$parameters )
+  
 }
 

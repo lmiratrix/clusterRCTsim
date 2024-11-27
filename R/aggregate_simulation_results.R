@@ -8,7 +8,9 @@
 library( tidyverse )
 
 
-source( "R/MCSE_functions.R" )
+source( here::here( "R/MCSE_functions.R" ) )
+
+
 
 calculate_range_statistics <- function( simdata ) {
   simdata <- mutate( simdata,
@@ -119,7 +121,8 @@ calculate_performance_statistics <- function( simdata,
                cover.s.sch = mean( cov.s.sch, na.rm=TRUE ),
                #cover.s.dstu = mean( cov.s.dstu ),
                #cover.s.dsch = mean( cov.s.dsch ),
-               
+               MCSE.cover = pmax( MCSE_bias( cov.f.stu ),
+                                  MCSE_bias( cov.f.sch ) ),
                avg.df = mean( df, na.rm=TRUE ),
                
                # var.err2.s.stu = var( ATE.hat - ATE.super.student ),
@@ -172,11 +175,20 @@ align_performance_stats <- function( stats ) {
   
   stats %>%
     mutate( 
-      bias = ifelse( grepl( "Student|Person", weight ), bias.f.stu, bias.f.sch ),
-      RMSE = ifelse( grepl( "Student|Person", weight ), RMSE.f.stu, RMSE.f.sch ),
-      cover = ifelse( grepl( "Student|Person", weight ), cover.f.stu, cover.f.sch )
+      bias = ifelse( grepl( "Student|Person", weight ),
+                     bias.f.stu, bias.f.sch ),
+      RMSE = ifelse( grepl( "Student|Person", weight ), 
+                     RMSE.f.stu, RMSE.f.sch ),
+      cover = ifelse( grepl( "Student|Person", weight ),
+                      cover.f.stu, cover.f.sch )
     ) %>%
-    dplyr::select( method, weight, mean.SE.hat, mean.ATE.hat, bias, MCSE.bias, RMSE, MCSE.RMSE, cover, p.noSE, avg.df, SE.s, SE.f, MCSE.SE )
+    dplyr::select( method, weight, 
+                   mean.SE.hat, mean.ATE.hat, 
+                   bias, MCSE.bias, 
+                   RMSE, MCSE.RMSE, 
+                   cover, MCSE.cover,
+                   p.noSE, avg.df,
+                   SE.s, SE.f, MCSE.SE )
   
 }
 

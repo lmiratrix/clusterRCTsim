@@ -19,8 +19,8 @@ knitr::opts_chunk$set(echo = FALSE,
 options(list(dplyr.summarise.inform = FALSE))
 theme_set( theme_classic() )
 
-source( here::here( "data_generation_code.R" ) )
-source( here::here( "aggregate_simulation_results.R" ) )
+source( here::here( "R/data_generation_code.R" ) )
+source( here::here( "R/aggregate_simulation_results.R" ) )
 
 ```
 
@@ -40,7 +40,7 @@ I use the "empirical" setting to make sure our multivariate normal distributions
 The following is a set of descriptive features of the fixed set of districts in our simulation:
 
 ```{r describe_1}
-grid <- readRDS( "results/superpop_SE_simulation_grid.rds" )
+grid <- readRDS( here::here( "results/superpop_SE_simulation_grid.rds" ) )
 describe_district_grid( grid )
 ```
 
@@ -69,7 +69,7 @@ The figure shows average estimate, the bias (relative to cluster or person avera
 
 
 ```{r, include=FALSE}
-sim <- readRDS( "results/superpop_SE_simulation.rds" ) %>%
+sim <- readRDS( here::here( "results/superpop_SE_simulation.rds" ) ) %>%
   dplyr::filter( !disfavored )
 
 ATE.school = mean( sim$ATE.finite.school )
@@ -96,7 +96,7 @@ names(rs) <- str_replace( names(rs), "mean.", "mn." )
 print_table <- function( rs, ... ) {
   
   rs2 <- rs %>%
-    dplyr::select( -MCSE.bias, -MCSE.RMSE, -MCSE.SE )
+    dplyr::select( -MCSE.bias, -MCSE.RMSE, -MCSE.SE, -MCSE.cover )
   
   colnames(rs2) <- c("Method", "Weight", 
                      "$\\overline{\\widehat{SE}}$", "$\\overline{\\widehat{ATE}}$", 
@@ -117,17 +117,20 @@ print_table( rs, caption = "Simulation 1 results" )
 
 ```{r performance_1, fig.width=7, fig.height = 4, out.width="100%"}
 
-make_performance_plot <- function( rs, title ) {
-  rsL <- rs %>%
-    pivot_longer( c( "mn.ATE.hat", "SE.s", "bias", "RMSE" ) )
+make_performance_data <- function( rs, include_cover = FALSE ) {
+  #rsL <- rs %>%
+  #  pivot_longer( c( "mn.ATE.hat", "SE.s", "bias", "RMSE" ) )
   
   rr <- rs %>%
     mutate( MCSE.mn.ATE.hat = MCSE.bias ) %>%
-    dplyr::select( method, weight, mn.ATE.hat, SE.s, bias, RMSE, MCSE.mn.ATE.hat, MCSE.SE, MCSE.bias, MCSE.RMSE ) %>%
+    dplyr::select( method, weight,
+                   mn.ATE.hat, SE.s, bias, RMSE, cover, 
+                   MCSE.mn.ATE.hat, MCSE.SE, MCSE.bias, MCSE.RMSE, MCSE.cover ) %>%
     rename( value.ATE_hat = mn.ATE.hat,
             value.SE = SE.s,
             value.bias = bias,
             value.RMSE = RMSE,
+            value.cover = cover,
             MCSE.ATE_hat = MCSE.mn.ATE.hat )
   
   rr
@@ -135,10 +138,21 @@ make_performance_plot <- function( rs, title ) {
     pivot_longer(
       cols = starts_with("value") | starts_with("MCSE"),
       names_to = c(".value", "metric"),
-      names_pattern = "(value|MCSE)\\.(ATE_hat|SE|bias|RMSE)" )
+      names_pattern = "(value|MCSE)\\.(ATE_hat|SE|bias|RMSE|cover)" )
   rsL
   
-  rsL$metric = factor( rsL$metric, levels = c( "ATE_hat", "SE", "bias", "RMSE" ) )
+  rsL$metric = factor( rsL$metric, levels = c( "ATE_hat", "SE", "bias", "RMSE", "cover" ) )
+  
+  if ( !include_cover ) {
+    rsL <- rsL %>% filter( metric != "cover" )
+    rsL$metric <- droplevels( rsL$metric )
+  }
+  
+  rsL
+}
+
+make_performance_plot <- function( rs, title ) {
+  rsL <- make_performance_data( rs )
   ggplot( rsL, aes( x=method, y=value, colour = weight ) ) +
     facet_wrap( ~ metric, nrow = 1 ) +
     geom_point( shape=124, size=3 ) +
@@ -215,7 +229,7 @@ The data were generated with complete independence, but we still see some non-ze
 ## Descriptive statistics:
 
 ```{r describe_2, warnings=FALSE}
-grid2 <- readRDS( "results/superpop_SE_simulation_grid2.rds" )
+grid2 <- readRDS( here::here( "results/superpop_SE_simulation_grid2.rds" ) )
 describe_district_grid( grid2 )
 ```
 
@@ -225,7 +239,7 @@ describe_district_grid( grid2 )
 
 
 ```{r, include=FALSE, results="asis"}
-sim2 <- readRDS( "results/superpop_SE_simulation2.rds" ) %>%
+sim2 <- readRDS( here::here( "results/superpop_SE_simulation2.rds" ) ) %>%
   dplyr::filter( !disfavored )
 
 ATE.school = mean( sim2$ATE.finite.school )
@@ -280,7 +294,7 @@ We make sure no district has fewer than 4 clusters, which ensures all estimators
 ## Descriptive statistics:
 
 ```{r describe_3, warnings=FALSE}
-grid3 <- readRDS( "results/superpop_SE_simulation_grid3.rds" )
+grid3 <- readRDS( here::here( "results/superpop_SE_simulation_grid3.rds" ) )
 describe_district_grid( grid3 )
 ```
 
@@ -290,7 +304,7 @@ describe_district_grid( grid3 )
 
 
 ```{r, include=FALSE}
-sim3 <- readRDS( "results/superpop_SE_simulation3.rds" ) %>%
+sim3 <- readRDS( here::here( "results/superpop_SE_simulation3.rds" ) ) %>%
   dplyr::filter( !disfavored )
 
 ATE.school = mean( sim3$ATE.finite.school )
@@ -298,9 +312,9 @@ ATE.school
 ATE.student = mean( sim3$ATE.finite.student )
 ATE.student
 
-rs <- calculate_performance_statistics( sim3, align = TRUE ) %>%
+rs3 <- calculate_performance_statistics( sim3, align = TRUE ) %>%
   arrange( weight, cover ) 
-names(rs) <- str_replace( names(rs), "mean.", "mn." )
+names(rs3) <- str_replace( names(rs3), "mean.", "mn." )
 
 ```
 
@@ -308,19 +322,19 @@ names(rs) <- str_replace( names(rs), "mean.", "mn." )
 In this scenario, we run into estimation issues due to small sample sizes.  In particular, our rates of completion are as follows:
 ```{r}
 sim3 %>% group_by( method ) %>%
-  summarise( noATE = mean( is.na( ATE.hat ) ),
-             noSE = mean( is.na( SE.hat ) ) )
+summarise( noATE = mean( is.na( ATE.hat ) ),
+noSE = mean( is.na( SE.hat ) ) )
 ```
 -->
 
 ```{r perfstat_3, results="asis"}
-print_table( rs,
+print_table( rs3,
              caption = "Simulation 3 (small number blocks) results" )
 ```
 
 
 ```{r performance_3, fig.width=7, fig.height=4, out.width="100%"}
-make_performance_plot( rs, "no3: small sample case" )
+make_performance_plot( rs3, "no3: small sample case" )
 ```
 
 <!--
@@ -335,8 +349,8 @@ We can look at the distribution of the MLM-RE estimates to see what is going on.
 ```{r, out.height = "2.5in"}
 smlm <- sim3 %>% filter( method == "MLM-RE" )
 ggplot( smlm, aes( ATE.hat ) ) +
-  geom_histogram() +
-  geom_vline( xintercept=c( ATE.school, ATE.student ), col=c( "red", "blue" ) )
+geom_histogram() +
+geom_vline( xintercept=c( ATE.school, ATE.student ), col=c( "red", "blue" ) )
 ```
 
 They are off, and there is no easy explanation.
@@ -384,17 +398,17 @@ These two scenarios have the exact same district characteristics as simulation 3
 Here are the stats:
 
 ```{r}
-grid4 <- readRDS( "results/superpop_SE_simulation_grid4.rds" )
+grid4 <- readRDS( here::here( "results/superpop_SE_simulation_grid4.rds" ) )
 describe_district_grid( grid4 )
-grid5 <- readRDS( "results/superpop_SE_simulation_grid5.rds" )
+grid5 <- readRDS( here::here( "results/superpop_SE_simulation_grid5.rds" ) )
 describe_district_grid( grid5 )
 ```
 
 
 ```{r, include=FALSE}
-sim4 <- readRDS( "results/superpop_SE_simulation4.rds" ) %>%
+sim4 <- readRDS( here::here( "results/superpop_SE_simulation4.rds" ) ) %>%
   dplyr::filter( !disfavored )
-sim5 <- readRDS( "results/superpop_SE_simulation5.rds" ) %>%
+sim5 <- readRDS( here::here( "results/superpop_SE_simulation5.rds" ) ) %>%
   dplyr::filter( !disfavored )
 
 all_sim = bind_rows( medium=sim3, none=sim4, lots=sim5, .id = "variation" )
@@ -403,10 +417,12 @@ rs <- all_sim %>%
   group_by( variation ) %>%
   do( calculate_performance_statistics( . ) ) %>%
   mutate( method = fct_reorder( method, SE.s ),
-          variation = factor( variation, levels=c("none", "medium", "lots") ) )
+          variation = factor( variation,
+                              levels=c("none", "medium", "lots") ) )
 
 rsL <- rs %>%
-  pivot_longer( cols = c(SE.f, SE.s), names_to="SE_type", values_to="SE" )
+  pivot_longer( cols = c(SE.f, SE.s), 
+                names_to="SE_type", values_to="SE" )
 
 
 ```
@@ -475,7 +491,7 @@ We only have 30 clusters in this nice case, to try and keep within mostly realis
 ## Descriptive statistics:
 
 ```{r describe_6, warnings=FALSE}
-grid6 <- readRDS( "results/superpop_SE_simulation_grid6.rds" )
+grid6 <- readRDS( here::here( "results/superpop_SE_simulation_grid6.rds" ) )
 describe_district_grid( grid6 )
 ```
 
@@ -485,7 +501,7 @@ describe_district_grid( grid6 )
 
 
 ```{r, include=FALSE, results="asis"}
-sim6 <- readRDS( "results/superpop_SE_simulation6.rds" ) %>%
+sim6 <- readRDS( here::here( "results/superpop_SE_simulation6.rds" ) ) %>%
   dplyr::filter( !disfavored )
 
 ATE.school = mean( sim6$ATE.finite.school )
@@ -527,4 +543,120 @@ rs %>%
 
 
 Everything is estimating the same thing, estimated standard errors are mostly calibrated (but a bit small, on average), and coverage is good.
+
+
+
+# Simulation 8: A second sanity check simulation
+
+
+```{r, include=FALSE, eval=FALSE}
+# checking simulation results
+grid3
+grid8
+arsenal::comparedf( grid3, grid8 ) # only 1 difference, the sizes
+grid3$J
+grid8$J
+grid3$size.ratio.school
+grid8$size.ratio.school
+```
+
+Here we replicate simulation 3 (of 30 clusters), but just restrict cluster sizes, but we still have all the correlations.
+
+
+
+## Descriptive statistics:
+
+```{r describe_8, warnings=FALSE}
+grid8 <- readRDS( here::here( "results/superpop_SE_simulation_grid8.rds" ) )
+describe_district_grid( grid8 )
+```
+
+
+
+## Simulation results
+
+
+```{r, include=FALSE, results="asis"}
+sim8 <- readRDS( here::here( "results/superpop_SE_simulation8.rds" ) ) %>%
+  dplyr::filter( !disfavored )
+
+ATE.school = mean( sim6$ATE.finite.school )
+ATE.school
+ATE.student = mean( sim6$ATE.finite.student )
+ATE.student
+```
+
+```{r perfstat_8, results="asis"}
+rs8 <- calculate_performance_statistics( sim8, align = TRUE ) %>%
+  arrange( weight, cover )
+names(rs8) <- str_replace( names(rs8), "mean.", "mn." )
+
+print_table( rs8, 
+             caption = "Simulation 8 (small variablity) results")
+```
+
+
+```{r performance_8, fig.width=7, out.width="100%"}
+make_performance_plot( rs8, title = "Performance" )
+```
+
+
+
+## Calibrated Standard Errors
+
+```{r}
+# Estimated standard errors for individual linear regression (and
+# variants) are terrible in this scenario???
+rs %>%
+  group_by( method, weight ) %>%
+  summarise( SErat.s = mn.SE.hat / SE.s,
+             SErat.f = mn.SE.hat / SE.f,
+             SE_fs = SE.s / SE.f,
+             cover = cover ) %>%
+  arrange( SErat.s ) %>%
+  knitr::kable( digits=2 )
+```
+
+
+Everything is estimating the same thing, estimated standard errors are mostly calibrated (but a bit small, on average), and coverage is good.
+
+
+# Comparing Simulation 3 to Simulation 8
+
+Simulation 3 and 8 differ _only_ in terms of the variation in cluster size. This has various downstream effects as well.
+
+```{r}
+s38 = bind_rows( `3` = sim3, `8` = sim8, .id = "simID" )
+
+rs38 <- s38 %>%
+  group_by( simID ) %>%
+  group_modify( ~ calculate_performance_statistics( .x, align = TRUE ) ) 
+names(rs38) <- str_replace( names(rs38), "mean.", "mn." )
+
+rL <- rs38 %>%
+  dplyr::select( simID, method, bias, SE.s, RMSE, cover ) %>%
+  pivot_wider( names_from = simID, values_from = c( bias, SE.s, RMSE, cover ) )
+
+knitr::kable( rL, digits = 2 )
+
+```
+
+
+```{r, message = FALSE}
+rsL <- make_performance_data( rs38, include_cover = TRUE ) %>%
+  dplyr::filter( metric != "ATE_hat" )
+dd = tibble( metric = c("SE","bias","RMSE","cover" ),
+             int = c( 0.20, 0, 0.20, 0.95 ) )
+ggplot( rsL, aes( method, value, col=simID ) ) +
+  facet_wrap( ~ metric, scales = "free_x" ) +
+  geom_point() +
+  geom_hline( data = dd, aes( yintercept = int ) ) +
+  coord_flip()
+```
+
+
+We see that the variable cluster sizes causes problems, and modest variation does not cause problems, even in this fairly small experiment.  Note how coverage is basically fine for the small variation case.
+om
+
+
 

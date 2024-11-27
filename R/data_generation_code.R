@@ -275,6 +275,17 @@ describe_district_grid <- function( grid ) {
 #' Build set of districts with cluster sizes and proportion treated,
 #' etc.
 #'
+#' @param sd.ATE Standard deviation of the district-average ATEs
+#'   (i.e., the target cluster-average ATE for each district).  The
+#'   district average ATE is what is passed to the code to generate
+#'   the clusters for the district as the "ATE."
+#' @param size.ratio This number is a measure of how variable either
+#'   number of clusters (district) or size of clusters (cluster level)
+#'   is.
+#' @param empirical If TRUE generate district variation to get as
+#'   close as possible to the set targets.  In particular, if the
+#'   sd.ATE = 0.1, then the standard deviation of the actual generated
+#'   ATEs will equal 0.1 exactly if empirical = TRUE.
 #' @param variable.p Variable proportion treated per district, uniform
 #'   around the p.bar value, reaching 2/3 the distance from 0 or 1
 #'   (whichever is closer).

@@ -21,13 +21,18 @@ source( here::here( "R/data_generation_code.R" ) )
 
 
 
-# Run a single round of simulation.
-#
-# Generate a cluster-randomized trial, and then repeatedly rerandomize the fixed 
-# dataset n.runs times, each time estimating the ATE using all our methods.  
-# It also calculates the true finite-sample ATE (person and site weighted).
-#
-# @return Dataframe with the estimates along with the true baseline values.
+#' Run a single round of simulation.
+#'
+#' Generate a cluster-randomized trial dataset, and then repeatedly
+#' rerandomize the fixed dataset n.runs times, each time estimating
+#' the ATE using all our methods. It also calculates the true
+#' finite-sample ATE (person and site weighted).
+#'
+#' There are two ways to generate data: via the grid or via
+#' dgp_function (with possible additional dgp_args).
+#'
+#' @return Dataframe with the estimates along with the true baseline
+#'   values.
 single.CRT.fixed.district = function(
     grid,
     
@@ -40,10 +45,14 @@ single.CRT.fixed.district = function(
     ...,
     .progress = FALSE ) {
   
+  # Make the dataset
+  stopifnot( is.null( grid ) || is.null( dgp_function ) )
   if ( !is.null( dgp_function ) ) {
     df <- do.call( dgp_function, dgp_args )
-  } else {
+  } else if ( !is.null( grid ) ) {
     df <- generate_data_for_districts( grid = grid )
+  } else {
+    stop( "Need to provide either a grid or a data generating function." )
   }
   
   if ( just.return.data ) {
@@ -173,8 +182,19 @@ if ( FALSE ) {
 #' Run a simulation with R trials and return all the simulation runs
 #' as a large dataframe.
 #'
-#' @param sd.school Treatment variation at the cluster level.
-#' 
+#' This function takes a given grid (or data generating process) and
+#' runs a simulation using it.
+#'
+#' @param grid Dataframe, one row per district, of DGP parameters.
+#' @param dgp_function Function to generate data for a single
+#'   district.  Will use if grid is NULL.
+#' @param dgp_args List of arguments to pass to dgp_function.
+#' @param R Number of datasets to generate.
+#' @param n.runs Number of "finite sample" replicates for each
+#'   dataset.  So total of R x n.runs simulation runs done.
+#' @param parallel Should the simulation runs be parallelized using
+#'   the purrr package?
+#'
 #' @param n.runs Number of "finite sample" replicates for each
 #'   generated dataset.
 #' @param R Number of datasets.
@@ -298,6 +318,56 @@ if ( FALSE ) {
                     n.runs = 3, R = 10 )
 }
 
+
+
+
+# Function to run and save simulation and simulation grid ----
+
+
+#' Run a simulation and save results to "results" directory
+#'
+#'
+#' @inheritParams run.scenario.fixed.district
+#' @param name Name of the simulation (will cast this to character),
+#'   used in filenames.
+#'   
+#' @return The dataframe of simulation results.
+run_sim <- function( name = "", 
+                     R, n.runs, 
+                     grid = NULL, 
+                     dgp_function = NULL, dgp_args = NULL, 
+                     parallel = TRUE ) {
+  
+  name = as.character(name)
+  
+  if ( !is.null( grid ) ) {
+    saveRDS( grid, file=paste0( "results/superpop_SE_simulation_grid", 
+                                name, ".rds" ) )
+  }
+  
+  cat( "\n\n" )
+  cli::cli_alert_info( "Running simulation {name}\n" )
+  #options( warn = 2 )
+  sim <- run.scenario.fixed.district( 
+    grid,
+    dgp_function = dgp_function,
+    dgp_args = dgp_args,
+    ID = name,
+    # method params
+    n.runs = n.runs,
+    R = R,
+    .progress="Rs",
+    parallel = parallel )
+  
+  if ( !is.null(grid) ) {
+    attr( sim, "grid" ) <- grid
+  }
+  
+  saveRDS( sim, file=glue::glue( "results/superpop_SE_simulation{name}.rds" ) )
+  cli::cli_alert_info( "Simulation {name} complete and saved.\n" )
+  
+  invisible( sim )
+}
 
 
 

@@ -16,7 +16,7 @@ library( lmerTest )
 library( future )
 
 WHICH_SIMS <- c() # Run none of the simulations
-WHICH_SIMS <- c( 8 )
+WHICH_SIMS <- c( 3, 8 )
 R = 500
 
 set.seed( 404404 )
@@ -110,40 +110,6 @@ if ( FALSE ) {
 }
 
 
-# Function to run and save simulation and simulation grid ----
-
-
-run_sim <- function( name = "", grid = NULL, dgp_function = NULL, dgp_args = NULL, R, n.runs, parallel = TRUE ) {
-  
-  name = as.character(name)
-  
-  if ( !is.null( grid ) ) {
-    saveRDS( grid, file=paste0( "results/superpop_SE_simulation_grid", name, ".rds" ) )
-  }
-  
-  cat( "\n\n" )
-  cli::cli_alert_info( "Running simulation {name}\n" )
-  #options( warn = 2 )
-  sim <- run.scenario.fixed.district( 
-    grid,
-    dgp_function = dgp_function,
-    dgp_args = dgp_args,
-    ID = name,
-    # method params
-    n.runs = n.runs,
-    R = R,
-    .progress="Rs",
-    parallel = parallel )
-  
-  if ( !is.null(grid) ) {
-    attr( sim, "grid" ) <- grid
-  }
-  
-  saveRDS( sim, file=glue::glue( "results/superpop_SE_simulation{name}.rds" ) )
-  cli::cli_alert_info( "Simulation {name} complete and saved.\n" )
-  
-  invisible( sim )
-}
 
 
 
@@ -151,7 +117,7 @@ run_sim <- function( name = "", grid = NULL, dgp_function = NULL, dgp_args = NUL
 
 
 if ( 1 %in% WHICH_SIMS ) {
-  sim <- run_sim( "", grid, 500, 3 )
+  sim <- run_sim( "", grid=grid, R=500, n.runs=3 )
 }
 
 
@@ -239,7 +205,7 @@ if ( 2 %in% WHICH_SIMS ) {
                             size.ratio.school = 0.6,
                             size.impact.cor.school = 0,
                             empirical = TRUE )
-  run_sim( 2, grid2, 500, 3 )
+  run_sim( 2, grid=grid2, R=500, n.runs = 3 )
 }
 
 
@@ -248,7 +214,7 @@ if ( 2 %in% WHICH_SIMS ) {
 if ( 3 %in% WHICH_SIMS ) {
   set.seed( 434343 )
   grid3 = build_districts(  K = 4, J.bar = 7, n.bar = 50, 
-                            p.bar = 0.5,
+                            p.bar = 0.7,
                             ATE = 0.2, sd.ATE = 0.2,
                             sd.school = 0.5, 
                             
@@ -260,20 +226,25 @@ if ( 3 %in% WHICH_SIMS ) {
                             variable.nbar = TRUE,
                             variable.n = TRUE,
                             
-                            size.ratio = 0.2,
+                            size.ratio = 1,
                             min.size = 4,
                             
                             size.ratio.school = 0.6,
                             
-                            #size.intercept.cor = -0.7,
-                            #size.impact.cor = 1,
-                            #proptx.impact.cor = 0, 
-                            #nbar.J.cor = 0, 
-                            #size.impact.cor.school = -0.8,
+                            size.intercept.cor = -0.7,
+                            size.impact.cor = 1,
+                            proptx.impact.cor = 1, 
+                            nbar.J.cor = 1, 
+                            size.impact.cor.school = -0.8,
                             empirical = TRUE )
+  grid3 <- arrange( grid3, J )
+  grid3$J
+  grid3$p <- c( 3, 3, 3, 3 ) / grid3$J
+  grid3$district.tau
   
   describe_district_grid( grid3 )
-  sim3 <- run_sim( 3, grid3, 500, 3, parallel=TRUE )
+  
+  sim3 <- run_sim( 3, grid = grid3, R = 500, n.runs = 3, parallel=TRUE )
 }
 
 
@@ -328,7 +299,7 @@ if ( 4 %in% WHICH_SIMS ) {
   grid4$sd.school = 0
   
   #options( warn = 2 )
-  run_sim( 4, grid4, 500, 3, parallel=TRUE )
+  run_sim( 4, grid = grid4, R = 500, n.runs = 3, parallel=TRUE )
 }
 
 
@@ -343,7 +314,7 @@ if ( 5 %in% WHICH_SIMS ) {
   grid5 = readRDS( "results/superpop_SE_simulation_grid3.rds")
   grid5$sd.school = 1
   
-  run_sim( "5", grid5, 500, 3, parallel=TRUE )
+  run_sim( "5", grid = grid5, 500, 3, parallel=TRUE )
 }
 
 
@@ -398,7 +369,7 @@ if ( 7 %in% WHICH_SIMS ) {
   
   describe_district_grid( grid7 )
   
-
+  
   set.seed( 344314333 )
   
   
@@ -407,9 +378,9 @@ if ( 7 %in% WHICH_SIMS ) {
   
   library(MASS)
   
- 
+  
   generate_clusterCRT( 3, 5, 0.2, 0.3^2, -1, 0.5 )  
-
+  
   sim8 <- run_sim( "8", 
                    dgp_function = generate_clusterCRT,
                    dgp_args = list( J=9, n = 500, ICC = 0.0031, tau=0.25, cor.ICC.tau=-1, p=7/9 ),
@@ -537,7 +508,8 @@ if ( 8 %in% WHICH_SIMS ) {
                             empirical = TRUE )
   
   describe_district_grid( grid3 )
-  sim8 <- run_sim( 8, grid = grid3, R = 500, n.runs = 3, parallel=TRUE )
+  sim8 <- run_sim( 8, grid = grid3, R = 500, n.runs = 3,
+                   parallel=TRUE )
 }
 
 
