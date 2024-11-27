@@ -29,12 +29,14 @@ source( here::here( "R/data_generation_code.R" ) )
 #' finite-sample ATE (person and site weighted).
 #'
 #' There are two ways to generate data: via the grid or via
-#' dgp_function (with possible additional dgp_args).
+#' dgp_function (with possible additional dgp_args).  
+#' 
+#' @inheritParams run.scenario.fixed.district
 #'
 #' @return Dataframe with the estimates along with the true baseline
 #'   values.
 single.CRT.fixed.district = function(
-    grid,
+    grid = NULL,
     
     # method params
     n.runs = 3,
@@ -60,7 +62,7 @@ single.CRT.fixed.district = function(
   }
   
   if ( just.describe.data ) {
-    return( describe.data( df ) )
+    return( describe.data( df, print = FALSE ) )
   }
   
   # Calculate true finite-sample estimands
@@ -182,24 +184,24 @@ if ( FALSE ) {
 #' Run a simulation with R trials and return all the simulation runs
 #' as a large dataframe.
 #'
-#' This function takes a given grid (or data generating process) and
-#' runs a simulation using it.
+#' This function takes a given grid (or, alternatively, a data
+#' generating process) and runs a simulation using it.
 #'
 #' @param grid Dataframe, one row per district, of DGP parameters.
-#' @param dgp_function Function to generate data for a single
-#'   district.  Will use if grid is NULL.
-#' @param dgp_args List of arguments to pass to dgp_function.
+#' @param dgp_function Function to generate dataset.  Will use if grid
+#'   is NULL.
+#' @param dgp_args List of arguments to pass to dgp_function, if there
+#'   is one.
 #' @param R Number of datasets to generate.
 #' @param n.runs Number of "finite sample" replicates for each
-#'   dataset.  So total of R x n.runs simulation runs done.
+#'   dataset.  So total of R x n.runs simulation runs will be done.
 #' @param parallel Should the simulation runs be parallelized using
 #'   the purrr package?
 #'
-#' @param n.runs Number of "finite sample" replicates for each
-#'   generated dataset.
-#' @param R Number of datasets.
+#' @return Stacked dataframe of all the results of the
+#'   compare_methods() calls.
 run.scenario.fixed.district = function( 
-    grid,
+    grid = NULL,
     #ICC.district = sd( grid$district.alpha ),
     
     # method params
@@ -254,8 +256,10 @@ run.scenario.fixed.district = function(
                    .id="run", .progress=.progress )
   }
   
-  rps$subrun = paste0( rps$run, ".", rps$subrun )
-  
+  if ( "subrun" %in% colnames( rps ) ) {
+    rps$subrun = paste0( rps$run, ".", rps$subrun )
+  }
+
   scat("**\n**\tTotal time elapsed:\n")
   tot.time = proc.time() - ptm
   print(tot.time)

@@ -55,30 +55,69 @@ get.estimates = function( df, ... ) {
 }
 
 
-# Reassign treatment to all clusters within blocks.
-rerandomize.data = function( dat ) {
+rerandomize <- function( Z, clusterID, blockID = NULL ) {
   
-  stopifnot( all( c("sid", "Z", "Y1", "Y0" ) %in% colnames(dat) ) )
+  stopifnot( length( Z ) == length( clusterID ) )
+  stopifnot( is.null( blockID ) || length( Z ) == length( blockID ) )
+  
+  newZ = NA
+  if ( !is.null( blockID ) ) {
+    cnts <- tibble( clusterID = clusterID, blockID = blockID, Z = Z ) %>% 
+      group_by( blockID ) %>% 
+      mutate( p = mean( Z[ !duplicated( clusterID ) ] ) ) %>%
+      ungroup() %>%
+      mutate( Z = randomizr::block_and_cluster_ra( blocks=blockID,
+                                                   clusters=clusterID, 
+                                                   prob_unit=p) )
+    newZ = cnts$Z
+  } else {
+    # No blocking
+    p = rep( mean( Z[ !duplicated( clusterID ) ] ), length( clusterID ) )
+    newZ = randomizr::cluster_ra( clusters=clusterID, 
+                               prob_unit=p )
+  }
+  
+  return( newZ )
+  
+}
+
+if ( FALSE ) {
+  # Testing code for rerandomize
+  set.seed(123)
+  clusterID = rep( 1:6, 1:6 )
+  blockID = as.numeric( clusterID <= 3 )
+  Z = as.numeric( clusterID %% 2 )
+  
+  rerandomize( Z, clusterID )
+  
+  rbind( clusterID, Z,
+         rerandomize( Z, clusterID ) )
+  
+  rbind( blockID, clusterID, Z,
+         rerandomize( Z, clusterID, blockID ) )
+}
+
+
+# Reassign treatment to all clusters within blocks.
+rerandomize.data = function( dat, recalc_outcomes = TRUE ) {
+  
+  stopifnot( all( c("sid", "Z" ) %in% colnames(dat) ) )
+  if ( recalc_outcomes ) {
+    stopifnot( all( c( "Y1", "Y0" ) %in% colnames(dat) ) )
+  }
   
   grid <- attr( dat, "district_key" )
   
   if ( "did" %in% names(dat) ) {
-    dat <- dat %>% group_by( did ) %>% 
-      mutate( p = mean( Z[ !duplicated( sid ) ] ) ) %>%
-      ungroup() %>%
-      mutate( Z = randomizr::block_and_cluster_ra( blocks=did,
-                                                   clusters=sid, 
-                                                   prob_unit=p),
-              Yobs = ifelse(Z, Y1, Y0) ) %>% 
-      dplyr::select(-p)
+    dat$Z = rerandomize( dat$Z, dat$sid, dat$did )
   } else {
     # No blocking
-    dat <- dat %>% 
-      mutate( p = mean( Z[ !duplicated( sid ) ] ),
-              Z = randomizr::cluster_ra( clusters=sid, 
-                                         prob_unit=p),
-              Yobs = ifelse(Z, Y1, Y0)) %>%
-      dplyr::select(-p)
+    dat$Z = rerandomize( dat$Z, dat$sid )
+  }
+  
+  if ( recalc_outcomes ) {
+    dat = dat %>% 
+      mutate( Yobs = ifelse(Z, Y1, Y0) )
   }
   
   attr( dat, "district_key" ) <- grid
@@ -91,10 +130,9 @@ rerandomize.data = function( dat ) {
 
 #### Code to explore scenarios and sample datasets ####
 
-# Utility function to describe a given data set to explore the data
-# generation process
+# Utility function to describe a given simulated data set to explore
+# the data generation process
 #
-# TODO
 describe.data = function( df, 
                           # formula = NULL, 
                           print=TRUE ) {
