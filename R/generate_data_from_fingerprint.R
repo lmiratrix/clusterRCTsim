@@ -17,10 +17,29 @@ source( here::here( "R/util.R" ) )
 #'   keeping the same proportions.  FALSE means it will keep the
 #'   original randomization.
 #' @return A data frame with the generated data.
-generate_data_from_fingerprint <- function( structure, parameters, 
+generate_data_from_fingerprint <- function( structure = NULL, parameters = NULL, 
                                             rerandomize = TRUE,
                                             tau = 0.20,
                                             names = c( "Yobs", "Z", "clusterID", "blockID") ) {
+  
+  stopifnot( !is.null( parameters ) )
+  
+  if ( is.null( structure ) ) {
+    stopifnot( all( c("K", "n", "n.25", "J", "J.25", "nbar", "Jcv") %in% names(parameters) ) )
+    K = parameters$K
+    num_clusters <- cluster_distn(K, parameters$Jbar, 
+                                  size.ratio=parameters$Jcv,
+                                  min.size = parameters$J.25 )
+    structure = tibble( blockID = rep( paste0( "B", 1:K ), num_clusters ),
+                        clusterID = rep( paste0( "C", 1:sum(num_clusters) ) ) )
+    structure$n <- blkvar::block_distn( nrow(structure), 
+                                        n.bar = parameters$nbar, 
+                                        size.ratio = parameters$ncv, 
+                                        min.size = 1 )
+    
+    structure$Z = randomizr::block_ra( structure$blockID,
+                                      prob = parameters$p.tx )
+  }
   
   if ( !all( c("blockID", "clusterID", "Z") %in% colnames( structure ) ) ) {
     stop( "structure must have columns blockID, clusterID, and Z" )
@@ -36,27 +55,29 @@ generate_data_from_fingerprint <- function( structure, parameters,
                        blockID = as.character(blockID),
                        clusterID = as.character(clusterID ) )
   
+  # Generate block and cluster intercepts
   block_int = rnorm( K, mean = 0, sd = sqrt( parameters$block_ICC ) )
   names( block_int ) = unique( structure$blockID )
   
   cluster_int = rnorm( J, mean = 0, sd = sqrt( parameters$cluster_ICC ) )
   names( cluster_int ) = unique( structure$clusterID )
   
+  # Generate our covariates
   W = rnorm( J )
   names(W) = names( cluster_int )
   X = rnorm( n )
   
   beta_W = sqrt( parameters$R2.2 * parameters$cluster_ICC )
-  beta_X = sqrt( (1-parameters$block_ICC-parameters$cluster_ICC) * parameters$R2.1 )
   
+  beta_X = sqrt( (1-parameters$block_ICC-parameters$cluster_ICC) * parameters$R2.1 )
   sigma_e = sqrt( ( 1 - parameters$block_ICC - parameters$cluster_ICC ) * (1-parameters$R2.1 ) )
   
   if ( rerandomize ) {
     structure$Z = rerandomize( structure$Z, structure$clusterID, structure$blockID )
   }
   
-  # TODO: Possibly group mean center individual level covariate.  Good
-  # idea?
+  # TODO: I am group mean centering the individual level covariate.
+  # Good idea?
   dat <- structure %>% 
     mutate( e = rnorm( n(), mean = 0, sd = sigma_e ),
             X = X ) %>%
@@ -69,7 +90,9 @@ generate_data_from_fingerprint <- function( structure, parameters,
       Y1 = Y0 + tau,
       Yobs = Z * Y1 + (1-Z) * Y0 )
   
-  # Make it so we end up with right number of covariates
+  # Make it so we end up with right number of covariates by combining
+  # our covariates.  The compare code, etc., will then generate group
+  # mean centered covariates to split them back into two.
   if ( parameters$ncov.2 > 0 ) {
     dat$X = dat$X + W[ dat$clusterID ]
   }

@@ -31,9 +31,9 @@ scat = function( str, ... ) {
 #  - analogue to blkvar::block_distn()
 cluster_distn <- function(K, J.bar, size.ratio, min.size = 4) {
   stopifnot(J.bar >= min.size + 1)
-  nk <- min.size + blkvar::block_distn(J=K, n.bar=J.bar-min.size, size.ratio)
-  nk[nk<min.size] <- min.size
-  
+  nk <- min.size + blkvar::block_distn(J=K, n.bar=J.bar-min.size, size.ratio, min.size=0 )
+  #nk[nk<min.size] <- min.size
+  stopifnot( all( nk >= min.size ) )
   nk
 }
 
