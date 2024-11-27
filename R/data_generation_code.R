@@ -189,8 +189,11 @@ describe_district_grid <- function( grid ) {
   
   #         district ATE(J)=%.2f\tdistrict ATE(n)=%.2f
   
-  scat( "K=%d\tJ.bar=%.2f (%.2f)\tn.bar=%.2f (%.2f)\tp.bar=%.2f (%.2f)\n",
-        K, J.bar, sd.J, n.bar, sd.nbar, p.bar, sd.p )
+  scat( "K=%d\tJ.bar=%.2f (%.2f, cv=%.2f)\tn.bar=%.2f (%.2f cv=%.2f)\tp.bar=%.2f (%.2f)\n",
+        K, 
+        J.bar, sd.J, sd.J / J.bar, 
+        n.bar, sd.nbar, sd.nbar / n.bar, 
+        p.bar, sd.p )
   scat( "District stats:\n\tdistrict ATE=%.2f (%.2f)\tdistrict ICC=%.2f\t
 \tcor(J,tau)=%.2f\t\tcor(ptx,tau)=%.2f
 \tcor(J,alpha)=%.2f\t\tcor(nbar, J)=%.2f\n",
@@ -230,10 +233,10 @@ describe_district_grid <- function( grid ) {
   
   
   cat( "Cluster stats:\n")
-  scat( "\tschool ICC=%.2f (%.2f)\n\tavg cluster size = %.1f (range %.0f--%.0f, sd = %.1f)\n\tcor(n,tau) = %.2f (across blocks)\n",
+  scat( "\tschool ICC=%.2f (%.2f)\n\tavg cluster size = %.1f (range %.0f--%.0f, sd = %.1f, cv=%.2f)\n\tcor(n,tau) = %.2f (across blocks)\n",
         mean(grid$ICC.school), sd(grid$ICC.school),
         mean( dagg$n ), 
-        min(dagg$n), max(dagg$n), sd(dagg$n),
+        min(dagg$n), max(dagg$n), sd(dagg$n), sd(dagg$n) / mean(dagg$n),
         #quantile(dagg$n, 0.25), quantile(dagg$n, 0.75), sd(dagg$n),
         corntau )
   
@@ -267,8 +270,29 @@ describe_district_grid <- function( grid ) {
   cat( "\n" )
   
   
-  
-  invisible(0)
+  stats = tibble( K = K, J = sum(grid$J), 
+                  mean.J = J.bar, sd.J = sd.J, cv.J = sd.J / J.bar,
+                  mean.p = p.bar, sd.p = sd.p,
+                  mean.nbar = n.bar, sd.nbar = sd.nbar,
+                  ATE.district = ATE.district, 
+                  sdATE.district = sd.district,
+                  ICC.district = ICC.district,
+                  mean.n = mean( dagg$n ),
+                  sd.n = sd( dagg$n ),
+                  cv.n = sd( dagg$n ) / mean( dagg$n ),
+                  mean.total.cluster.ATE = mean( dagg$tau ),
+                  sd.total.cluster.ATE = sd( dagg$tau ),
+                  mean.cluster.ATE = mean( daggagg$tau ),
+                  avg.sd.cluster.ATE = sqrt( mean( daggagg$sd_tau^2 ) ),
+                  mean.total.indiv.ATE = mean( dd$Y1 - dd$Y0 ),
+                  sd.total.indiv.ATE = sd( dd$Y1 - dd$Y0 ),
+                  cor.size.impact.district = size.impact.cor.district,
+                  cor.size.intercept.district = size.intercept.cor,
+                  cor.proptx.impact.district = proptx.impact.cor.district,
+                  cor.nbar.J = nbar.cor.J,
+                  cor.n.tau = corntau
+  )
+  invisible(stats)
 }
 
 
@@ -282,19 +306,19 @@ describe_district_grid <- function( grid ) {
 #' @param size.ratio This number is a measure of how variable either
 #'   number of clusters (district) or size of clusters (cluster level)
 #'   is.
+#' @param size.ratio.district If variable.J is TRUE, use this as a
+#'   measure of how much variation there is in number of clusters per
+#'   district.
 #' @param empirical If TRUE generate district variation to get as
 #'   close as possible to the set targets.  In particular, if the
 #'   sd.ATE = 0.1, then the standard deviation of the actual generated
-#'   ATEs will equal 0.1 exactly if empirical = TRUE.
+#'   ATEs will equal 0.1 exactly if empirical = TRUE.  I.e. TRUE means
+#'   try to get the target correlations more closely by connecting
+#'   things with a calibrated connection with the given correlation
+#'   (correlation will still not be exact).
 #' @param variable.p Variable proportion treated per district, uniform
 #'   around the p.bar value, reaching 2/3 the distance from 0 or 1
 #'   (whichever is closer).
-#' @param size.ratio.district IF variable.J is TRUE, use this as a
-#'   measure of how much variation there is in number of clusters per
-#'   district.
-#' @param empirical TRUE means try to get the target correlations more
-#'   closely by connecting things with a calibrated connection with
-#'   the given correlation (correlation will still not be exact).
 #'
 #' @return dataframe, one row per district.
 build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
@@ -371,10 +395,10 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
       did = 1:K,
       # district.tau = rnorm(K, mean=ATE, sd=sd.ATE))
       district.tau = MASS::mvrnorm(K, mu=ATE, Sigma=sd.ATE^2, 
-                                   empirical=TRUE) %>% 
+                                   empirical=empirical) %>% 
         as.vector(),
       district.alpha = MASS::mvrnorm(K, mu=0, Sigma=ICC,
-                                     empirical=TRUE) %>% 
+                                     empirical=empirical) %>% 
         as.vector())
   }
   
