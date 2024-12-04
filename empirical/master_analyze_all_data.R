@@ -474,23 +474,18 @@ compare <- grep('compare_', ls(), value = T) %>%
          Outcome_desc = str_trim(Outcome_desc)) %>%
   filter(cares_keep == T) %>%
   select(-cares_keep) %>%
-  # remove weird estimators
-  filter(!(method %in% c('DB_HT', 'DB_Raj', 'LR_FI_CRVE_Cluster', 'MLM_FI_Person'))) %>%
   rename(Estimator = method) %>%
   # map estimators to estimands
-  mutate(Estimand = case_when(Estimator %in% c('DB_FI_Person_Person', 'DBi_FI_Person_Person',
-                                               'DB_FE_Person', 'DBi_FE_Person',
-                                               'LR_FE_CRVE', 'LR_FI_CRVE_Person', 
-                                               'Agg_FE_Person', 'Agg_FI_Person_Person')    ~ 'SP_Person_Person',
-                              Estimator %in% c('DB_FI_Cluster_Cluster', 'DBi_FI_Cluster_Cluster', 
-                                               'DB_FE_Cluster', 'DBi_FE_Cluster',
-                                               'MLM_FE', 'MLM_RE', 'MLM_FI_Cluster', 
-                                               'Agg_FE_Cluster', 'Agg_FI_Cluster_Cluster') ~ 'SP_Cluster_Cluster',
-                              Estimator %in% c('DB_FI_Person_Block', 'DBi_FI_Person_Block',
-                                               'LR_FI_CRVE_Block', 'Agg_FI_Person_Block')  ~ 'SP_Person_Block',
-                              Estimator %in% c('DB_FI_Cluster_Block', 'DBi_FI_Cluster_Block',
-                                               'MLM_FI_Block', 'Agg_FI_Cluster_Block')     ~ 'SP_Cluster_Block',
-                              Estimator %in% c('MLM_FIRC', 'MLM_RIRC')                     ~ 'SP*_Cluster_Block'),
+  mutate(Estimand = case_when(Estimator %in% c('LRi-FE-crve',    'LRi-FE-db',
+                                               'LRi-FIpw-crve',  'LRi-FIpw-db',
+                                               'LRapw-FE-het',   'LRapw-FE-db',
+                                               'LRapw-FIpw-het', 'LRapw-FIpw-db')    ~ 'Person',
+                              Estimator %in% c('LRicw-FE-crve',   'LRicw-FE-db',
+                                               'LRicw-FIcw-crve', 'LRicw-FIcw-db',
+                                               'LRa-FE-het',      'LRa-FE-db',
+                                               'LRa-FIcw-het',    'LRa-FIcw-db',
+                                               'MLM-FE', 'MLM-RE', 'MLM-FIcw')       ~ 'Cluster'),
+         
          Outcome_desc = str_trim(Outcome_desc))
 
 ## Combine and save describe_clusterRCT() results ----
@@ -522,9 +517,9 @@ combined <- inner_join(describe %>%
   relocate(UniqueID) %>%
   relocate(ATE_hat_std, SE_hat_std, .after = SE_hat)
 
-write_xlsx(compare,  '/data/share/pse/IES CRT/sd7/master240528_compare.xlsx')
-write_xlsx(describe, '/data/share/pse/IES CRT/sd7/master240528_describe.xlsx') 
-write_xlsx(combined, '/data/share/pse/IES CRT/sd7/master240528_combined.xlsx') 
-saveRDS(combined,    '/data/share/pse/IES CRT/sd7/master240528_combined.RDS')
-saveRDS(combined,    '/data/share/pse/IES CRT/clusterRCTsim/empirical/results/master240528_combined.RDS')
+write_xlsx(compare,  '/data/share/pse/IES CRT/sd7/master241204_compare.xlsx')
+write_xlsx(describe, '/data/share/pse/IES CRT/sd7/master241204_describe.xlsx') 
+write_xlsx(combined, '/data/share/pse/IES CRT/sd7/master241204_combined.xlsx') 
+saveRDS(combined,    '/data/share/pse/IES CRT/sd7/master241204_combined.RDS')
+saveRDS(combined,    '/data/share/pse/IES CRT/clusterRCTsim/empirical/results/master241204_combined.RDS')
 

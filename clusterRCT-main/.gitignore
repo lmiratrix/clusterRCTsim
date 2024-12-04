@@ -1,0 +1,14 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.DS_Store
+inst/doc
+luke_scratch/
+*.log
+*.aux
+*.bbl
+*.blg
+*.synctex.gz
+.texpadtmp
+simulations/pointwise_similarity_results.rds
