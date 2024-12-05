@@ -30,7 +30,7 @@ if ( !dir.exists( PLOT_PATH ) ) {
 
 # Load the results from compare() ----
 
-combined <-  read_rds( here::here( "empirical/results/master240528_combined.RDS" ) ) %>%
+combined <-  read_rds( here::here( "empirical/results/master241204_combined.RDS" ) ) %>%
   as_tibble()
 
 combined

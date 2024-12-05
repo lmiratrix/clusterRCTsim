@@ -2,11 +2,12 @@
 
 source( here::here( "empirical/load_empirical_results.R" ) )
 
+
 # Drop the block estimands and the HT/Raj estimators
 table( combined$Estimand, useNA = 'always' )
-combined <- combined %>%
-  dplyr::filter( !(Estimand %in% c( 'SP_Person_Block', 'SP_Cluster_Block', "SP*_Cluster_Block" ) ) ) %>%
-  dplyr::filter( !(Estimator %in% c( "DB_HT", "DB_Raj" ) ) )
+# combined <- combined %>%
+#   dplyr::filter( !(Estimand %in% c( 'SP_Person_Block', 'SP_Cluster_Block', "SP*_Cluster_Block" ) ) ) %>%
+#   dplyr::filter( !(Estimator %in% c( "DB_HT", "DB_Raj" ) ) )
 
 
 # Research question 1 ----
