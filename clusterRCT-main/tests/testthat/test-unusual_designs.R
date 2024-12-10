@@ -275,7 +275,6 @@ test_that( "degrees of freedom at margin", {
 
 test_that( "matched pairs and matched doubles designs", {
 
-
     blk = blkvar::generate_blocked_data( n_k = rep( 10, 18 ) )
     head( blk )
     blks = tibble( B = paste0( "B", 1:18 ),
@@ -350,14 +349,24 @@ test_that( "matched pairs and matched doubles designs", {
     B = nC - 2*nB
     A
     B
-    expect_equal( setdiff( unique( round( df, digits=10 ) ), c(A,B) ), numeric(0) )
 
-    the_dfs <- c( B, B, A, A, B, B, B, B,
-                  A, A, B, B, B, B,
-                  A, A,
-                  B, B, B, B,
-                  A, B, B )
-    names( the_dfs ) <- c("DB_HT", "DB_Raj", "LRa-FE-db", "LRa-FE-het", "LRa-FIbw-db", "LRa-FIbw-het", "LRa-FIcw-db", "LRa-FIcw-het", "LRapw-FE-db", "LRapw-FE-het", "LRapw-FIbw-db", "LRapw-FIbw-het", "LRapw-FIpw-db", "LRapw-FIpw-het", "LRi-FE-crve", "LRi-FE-db", "LRi-FIbw-crve", "LRi-FIbw-db", "LRi-FIpw-crve", "LRi-FIpw-db", "LRicw-FE-db", "LRicw-FIbw-db", "LRicw-FIcw-db")
+    # Only have given two options for df
+    expect_equal( setdiff( unique( round( df, digits=10 ) ),
+                           c(A,B) ), numeric(0) )
+    df
+    the_dfs <- c( A, A, B, B,
+                  A, A, B, B,
+                  A, A, B, B,
+                  A, A, B, B )
+#                  A, A,
+#                  B, B, B, B,
+#                  A, B, B )
+#    names( the_dfs ) <- c("DB_HT", "DB_Raj", "LRa-FE-db", "LRa-FE-het", "LRa-FIbw-db", "LRa-FIbw-het", "LRa-FIcw-db", "LRa-FIcw-het", "LRapw-FE-db", "LRapw-FE-het", "LRapw-FIbw-db", "LRapw-FIbw-het", "LRapw-FIpw-db", "LRapw-FIpw-het", "LRi-FE-crve", "LRi-FE-db", "LRi-FIbw-crve", "LRi-FIbw-db", "LRi-FIpw-crve", "LRi-FIpw-db", "LRicw-FE-db", "LRicw-FIbw-db", "LRicw-FIcw-db")
+    names( the_dfs ) <-
+        c("LRa-FE-db", "LRa-FE-het", "LRa-FIcw-db", "LRa-FIcw-het", "LRapw-FE-db", "LRapw-FE-het", "LRapw-FIpw-db", "LRapw-FIpw-het", "LRi-FE-crve", "LRi-FE-db", "LRi-FIpw-crve", "LRi-FIpw-db", "LRicw-FE-crve", "LRicw-FE-db", "LRicw-FIcw-crve", "LRicw-FIcw-db")
+
+#        c("LRa-FE-db", "LRa-FE-het", "LRa-FIbw-db", "LRa-FIbw-het",
+#          "LRa-FIcw-db", "LRa-FIcw-het", "LRapw-FE-db", "LRapw-FE-het", #"LRapw-FIbw-db", "LRapw-FIbw-het", "LRapw-FIpw-db", "LRapw-FIpw-het", "LRi-FE-crve", "LRi-FE-db", "LRi-FIbw-crve", "LRi-FIbw-db", "LRi-FIpw-crve", # "LRi-FIpw-db", "LRicw-FE-db", "LRicw-FIbw-db", "LRicw-FIcw-db")
 
     round( as.numeric(df) - the_dfs[ names(df) ], digits = 2 )
 

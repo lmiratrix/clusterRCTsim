@@ -284,12 +284,20 @@ compare_methods <- function(formula,
     if (include_LM) {
         lms <- linear_model_estimators(formula = NULL, data = data,
                                        control_formula = control_formula )
-        summary_table = dplyr::bind_rows(summary_table, lms)
+        lmsW <- linear_model_estimators(formula = NULL, data = data,
+                                        weight = "Cluster",
+                                        control_formula = control_formula )
+        summary_table = dplyr::bind_rows(summary_table, lms, lmsW)
 
         if ( has_blocks ) {
             lms_int = interacted_linear_model_estimators( formula = NULL, data = data,
                                                           control_formula = control_formula )
-            summary_table = dplyr::bind_rows(summary_table, lms_int)
+            lms_intW = interacted_linear_model_estimators( formula = NULL, data = data,
+                                                           weight = "Cluster",
+                                                           control_formula = control_formula )
+
+            summary_table = dplyr::bind_rows(summary_table,
+                                             lms_int, lms_intW)
         }
     }
 
