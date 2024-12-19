@@ -146,6 +146,26 @@ se_summary_estimand <- combined %>%
             Max   = max(SE_hat_std, na.rm = T)) %>%
   mutate(Ratio = pmin( 5, Max / Min) )
 
+## SE (excluding fully interacted models) ----
+
+se_summary_exclFI <- combined %>%
+  filter(!grepl('-FI', Estimator)) %>%
+  group_by(Collection, Project, Trt_arm, Outcome, Outcome_desc, Covariates) %>%
+  summarize(N     = sum(!is.na(SE_hat_std)),
+            Nmiss = sum(is.na(SE_hat_std)),
+            Min   = min(SE_hat_std, na.rm = T),
+            Max   = max(SE_hat_std, na.rm = T)) %>%
+  mutate(Ratio = pmin( 5, Max / Min) )
+
+se_summary_estimand_exclFI <- combined %>%
+  filter(!grepl('-FI', Estimator)) %>%
+  group_by(Collection, Project, Trt_arm, Outcome, Outcome_desc, Covariates, Estimand) %>%
+  summarize(N     = sum(!is.na(SE_hat_std)),
+            Nmiss = sum(is.na(SE_hat_std)),
+            Min   = min(SE_hat_std, na.rm = T),
+            Max   = max(SE_hat_std, na.rm = T)) %>%
+  mutate(Ratio = pmin( 5, Max / Min) )
+
 # Figures ----
 ## Figure 1: The Range (across 11 Estimators) of Estimates of β for 28 Outcomes ----
 ate_summary %>%
@@ -203,3 +223,31 @@ se_summary_estimand %>%
               coordratio = 1.5,
               tcratio  = T,
               tcbreaks = c(1:5))
+
+## SE plots excluding fully interacted models ----
+
+se_summary_exclFI %>%
+  filter(Covariates == "best") %>%
+  makeDotplot(var      = 'Ratio',
+              xlab     = 'Ratio of Largest to Smallest SE across Point Estimates',
+              ylab     = 'Count',
+              title    = 'Figure 3a',
+              subtitle = 'The Ratio (across 10 estimators) of the Largest to Smallest\nEstimates of SE(β) for 28 outcomes\n(excluding fully interacted models)',
+              filename = 'fig3a_SEratio_exclFI',
+              rmlegend = T,
+              binw     = 0.1,
+              coordratio = 1)
+
+se_summary_estimand_exclFI %>%
+  filter(Covariates == "best") %>%
+  makeDotplot(var      = 'Ratio',
+              xlab     = 'Ratio of Largest to Smallest SE across Point Estimates',
+              ylab     = 'Count',
+              title    = 'Figure 4a',
+              subtitle = 'The Ratio (across 10 estimators) of the Largest to Smallest Estimates of SE(β)\namong all estimators targeting a given estimand for 28 outcomes\n(excluding fully interacted models)',
+              filename = 'fig4a_SEratio_byestimand_exclFI',
+              byest = T,
+              rmlegend = T,
+              binw     = 0.1,
+              coordratio = 1.5)
+
