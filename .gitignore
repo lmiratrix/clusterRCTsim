@@ -35,3 +35,6 @@ po/*~
 rsconnect/
 .DS_Store
 empirical/tables/
+luke_scratch/
+.texpadtmp/
+results/
