@@ -61,7 +61,11 @@ compare_methods( Yobs ~ Z | sid | did,
                  include_method_characteristics = FALSE )
 
 
-# Here we generate data from a file ----
+
+
+# fingerprint simulation for beaconmentor ----
+
+# Here we generate data from a file
 
 # We need the skeleton and the describe data results stored in some
 # result file

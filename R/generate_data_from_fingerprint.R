@@ -8,7 +8,10 @@ source( here::here( "R/util.R" ) )
 #' ICC, etc., as you would get from a `describe_data()` call).
 #'
 #' @param structure A data frame with columns `blockID`, `clusterID`,
-#'   and `Z` (treatment assignment).
+#'   and `Z` (treatment assignment).  If `n` is also present, then the
+#'   data will be expanded to have the correct number of rows.  If
+#'   structure is NULL, then it will make data with roughly the same
+#'   number of clusters, etc., as specified in the parameters list.
 #' @param parameters A list with the following elements: `block_ICC`,
 #'   `cluster_ICC`, `R2.1`, `R2.2`, `ncov.1`, `ncov.2`.
 #' @param tau The treatment effect (considered constant across dataset
@@ -39,7 +42,7 @@ generate_data_from_fingerprint <- function( structure = NULL, parameters = NULL,
     
     structure$Z = randomizr::block_ra( structure$blockID,
                                       prob = parameters$p.tx )
-  }
+  } 
   
   if ( !all( c("blockID", "clusterID", "Z") %in% colnames( structure ) ) ) {
     stop( "structure must have columns blockID, clusterID, and Z" )
@@ -47,6 +50,7 @@ generate_data_from_fingerprint <- function( structure = NULL, parameters = NULL,
   if ( "n" %in% colnames( structure ) ) {
     structure = make_skeleton(structure)
   }
+  structure$clusterID = paste0( structure$blockID, ".", structure$clusterID)
   
   K = length( unique( structure$blockID ) )
   J = length( unique( structure$clusterID ) )  
@@ -122,21 +126,14 @@ generate_data_from_fingerprint <- function( structure = NULL, parameters = NULL,
 }
 
 
-#' Given data, return a data frame with the structure of the data
-get_structure <- function( formula, data ) {
-  data = clusterRCT:::make_canonical_data( formula=formula, data=data )
-  data %>% 
-    group_by( blockID, clusterID ) %>%
-    summarize( Z = mean( Z == 1 ), 
-               n = n(),
-               .groups="drop" ) %>%
-    ungroup() 
-}
-
 
 make_skeleton <- function( structure ) {
-  K = length( unique( structure$blockID ) )
-  J = length( unique( structure$clusterID ) )
+  
+  stopifnot( is.data.frame( structure ) )
+  stopifnot( all( c("blockID", "clusterID", "Z", "n") %in% colnames( structure ) ) )
+             
+  #K = length( unique( structure$blockID ) )
+  #J = length( unique( structure$clusterID ) )
   
   tibble( blockID = rep( structure$blockID, structure$n ),
           clusterID = rep( structure$clusterID, structure$n ),
@@ -146,10 +143,14 @@ make_skeleton <- function( structure ) {
 
 # Some testing code for the above
 if (FALSE) {
+  library( clusterRCT )
   
   structure = data.frame( blockID = c("A", "A", "B", "B", "B"),
                           clusterID = c("1", "2", "1", "2", "3"),
-                          Z = c( 0, 1, 0, 1, 0) )
+                          Z = c( 0, 1, 0, 1, 0),
+                          n = c( 3, 2, 2, 1, 2 ) )
+  structure
+  
   parameters = list( block_ICC = 0.1, cluster_ICC = 0.2, R2.1 = 0.1, R2.2 = 0.2,
                      ncov.1 = 1, ncov.2 = 1 )
   generate_data_from_fingerprint( structure, parameters )

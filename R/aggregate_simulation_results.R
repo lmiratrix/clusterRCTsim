@@ -125,6 +125,8 @@ calculate_performance_statistics <- function( simdata,
                                   MCSE_bias( cov.f.sch ) ),
                avg.df = mean( df, na.rm=TRUE ),
                
+               power = mean( p_value <= 0.05 ),
+               
                # var.err2.s.stu = var( ATE.hat - ATE.super.student ),
                # var.err2.s.sch = var( ATE.hat - ATE.super.school ),
                # var.err2.s.dstu = var( ATE.hat - ATE.super.dist.student ),

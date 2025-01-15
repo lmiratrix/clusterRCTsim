@@ -212,6 +212,8 @@ run.scenario.fixed.district = function(
     dgp_args = NULL,
     ID=NULL, .progress="none", ... ) {
   
+  stopifnot( is.character(.progress) & length(.progress) == 1 )
+  
   ptm = proc.time()
   
   if ( is.null( ID ) ) {
@@ -283,7 +285,7 @@ generate_clusterCRT <- function(J, n, ICC, tau, cor.ICC.tau, p) {
                        nrow = 2)
   
   # Generate cluster-level random effects and cluster-average outcomes
-  cluster_random_effects <- mvrnorm(J, mu = mean_vec, Sigma = cov_matrix)
+  cluster_random_effects <- MASS::mvrnorm(J, mu = mean_vec, Sigma = cov_matrix)
   
   # Extract cluster effects and average outcomes
   cluster_effects <- cluster_random_effects[, 1]

@@ -31,7 +31,7 @@ The short version of the overall finding is that to have a large difference term
 ## Math Derivations
 Let $\mu_j$ be the average control-side mean and $ATE_j$ be the average treatment effect of cluster $j$.
 
-Take a DGP with a given ICC and $\tau$, where $\tau$ is the standard deviation of the cluster average effects: $\tau = Var( ATE_j )$.
+Take a DGP with a given ICC and $\tau^2$, where $\tau$ is the standard deviation of the cluster average effects: $\tau^2 = Var( ATE_j )$.
 Further assume all our clusters are the same size, $n_j = n$.
 
 Now take a simple difference in means estimator for an estimate of the cluster-average impact:
@@ -40,60 +40,64 @@ $$ \widehat{ATE} = \frac{1}{pJ} \sum_{j=1}^J Z_j \bar{Y}_{j} - \frac{1}{(1-p)J} 
 where $p$ is the proportion of clusters treated.
 
 The finite-sample Neyman variance of this estimator is:
-$$ \text{Var}(\widehat{ATE}) = \frac{1}{J_1} Var(\bar{Y}_j(1)) + \frac{1}{J_0} Var(\bar{Y}_j(1)) - \frac{1}{J} Var(ATE_j),$$
+$$ \text{Var}(\widehat{ATE}) = \frac{1}{J_1} Var(\bar{Y}_j(1)) + \frac{1}{J_0} Var(\bar{Y}_j(0)) - \frac{1}{J} Var(ATE_j),$$
 
 where $Var(\bar{Y}_j(z))$ is the variance of the cluster average effects under given treatment arm $z$.
 
 Under a superpopulation framing, we can think of each arm as independently drawn from a larger population, with
 $$ Var(\bar{Y}_j(0)) = \left( ICC + \frac{(1-ICC)}{n_j}\right) \sigma^2 $$
 and
-$$ Var(\bar{Y}_j(1)) = \tau + \left( ICC+ \frac{(1-ICC)}{n_j}\right) \sigma^2 $$
-This is under the assumption that the cluster treatment effects are independent of the cluster means (so we can add the ICC and $\tau$ terms).
+$$ Var(\bar{Y}_j(1)) = \tau^2 + \left( ICC+ \frac{(1-ICC)}{n_j}\right) \sigma^2 $$
+This is under the assumption that the cluster treatment effects are independent of the cluster means (so we can add the ICC and $\tau^2$ terms).
 This may be a very important thing to ponder.
 
-Under effect size units, drop the $\sigma^2$ and we have a superpopulation variance of
+Under effect size units, drop the $\sigma^2$ and we have a superpopulation variance (SE squared) of
 
 $$
 \begin{aligned}
 \text{Var}(\widehat{ATE})_{super} &= \frac{1}{J_1}Var(\bar{Y}_j(1))  +  \frac{1}{J_0}Var(\bar{Y}_j(0)) \\
-&=\frac{1}{J_1}\left( ICC + \frac{(1-ICC)}{n}\right) + \frac{1}{J_1}\tau + \frac{1}{J_0}\left( ICC+ \frac{(1-ICC)}{n}\right) \\
-&= \frac{ICC}{p(1-p)J}  +  \frac{(1-ICC)}{p(1-p)J n} + \frac{1}{J_1} \tau
+&=\frac{1}{J_1}\left( ICC + \frac{(1-ICC)}{n}\right) + \frac{1}{J_1}\tau^2 + \frac{1}{J_0}\left( ICC+ \frac{(1-ICC)}{n}\right) \\
+&= \frac{ICC}{p(1-p)J}  +  \frac{(1-ICC)}{p(1-p)J n} + \frac{1}{J_1} \tau^2
 \end{aligned}
 $$
 
 For finite SEs, we have this but have to subtract off of the variance of the ATE to get
 
 $$
-\text{Var}(\widehat{ATE})_{finite} = \frac{ICC}{J p(1-p)}  +  \frac{(1-ICC)}{p(1-p)J n} + \left(\frac{1}{J_1}- \frac{1}{J}\right) \tau
+SE_{finite}^2 = \text{Var}(\widehat{ATE})_{finite} = \frac{ICC}{J p(1-p)}  +  \frac{(1-ICC)}{p(1-p)J n} + \left(\frac{1}{J_1}- \frac{1}{J}\right) \tau^2
 $$
-So superpopulation SEs will not generally be substantially different, if the cluster treatment effects are uncorrelated with control-side cluster means.
-In particular, $Var_{super} - Var_{finite} = \frac{1}{J}\tau$ and
 
-$$ \frac{Var_{super} - Var_{finite}}{Var_{finite}} =  \frac{ p \cdot \tau }{\left(\frac{ICC}{1-p} + \frac{1}{(1-p)n}+\tau\right)} $$
-To make superpopulation large, we need $\tau$ to be large, $n$ to be large, and $ICC$ to be small.
+So superpopulation SEs will not generally be substantially different, if the cluster treatment effects are uncorrelated with control-side cluster means.
+In particular, $Var_{super} - Var_{finite} = \frac{1}{J}\tau^2$ and the percent increase of super vs. finite would be
+
+$$ \frac{Var_{super} - Var_{finite}}{Var_{finite}} =  \frac{ p \cdot \tau^2 }{\left(\frac{ICC}{1-p} + \frac{1}{(1-p)n}+\tau^2\right)} . $$
+
+To make superpopulation SEs large, relative to finite SEs, we need $\tau^2$ to be large, $n$ to be large, and $ICC$ to be small.
 Interestingly, if $p$ is large, then $1-p$ is small, which makes the ratio even larger.
 
 Overall, however, what is happening is that in order to increase heterogeniety in treatment effects, we are also increasing heterogeniety in the treatment group, and elevating the standard error.
 The relative size, therefore, is not changing much.
 
+As a numerical example, say $J = 10$, and $\tau^2 = 0.3^2$. Then $\tau^2 / J = 0.3^2 / 10 = 0.01$, a small increase in the superpopulation variance vs. finite.
+(Take the square root to get 0.10, but this is not actually the increase as it would be $\sqrt{ SE^2_{fin} + 0.01}$, which is likely to be close to $SE_{fin}$.  E.g., if $SE_{fin} = 0.20$ we would get around 0.22, a modest increase.)
 
 
 
 ## So how could they be different?
 
 All of the above was under the assumption that the cluster mean under control was uncorrelated with the cluster average impact.
-If they are not correlated, then the variance of the $\bar{Y}_j(1)$ is no longer $ICC + \tau$, but instead $ICC + \tau + cov( ICC, ATT_j)$.
+If they are not correlated, then the variance of the $\bar{Y}_j(1)$ is no longer $ICC + \tau^2$, but instead $ICC + \tau^2 + cov( ICC, ATT_j)$.
 
 We can therefore make the finite population SE smaller by making the correlation between the cluster average impact and the cluster average control mean negative.
 The smaller it gets, the larger the ratio of superpopulation to finite SEs.
 
 In particular, we have
-$$ Var(\bar{Y}_j(1)) = \tau + \left( ICC+ \frac{(1-ICC)}{n_j}\right) \sigma^2 + \sqrt{\tau \cdot ICC} \rho$$
+$$ Var(\bar{Y}_j(1)) = \tau^2 + \left( ICC+ \frac{(1-ICC)}{n_j}\right) \sigma^2 + \sqrt{\tau^2 \cdot ICC} \rho$$
 where $\rho = cor( ATE_j, \mu_j )$.
 We only have correlation on the cluster mean, not the noise of individual students in the cluster, hence the final term not having the $1/n$ term in it.
 
 This gives
-$$ \frac{Var_{super} - Var_{finite}}{Var_{finite}} =  \frac{ p \cdot \tau }{\left(\frac{ICC}{1-p} + \frac{1-ICC}{(1-p)n}+\tau+\sqrt{\tau \cdot ICC}\rho\right)} $$
+$$ \frac{Var_{super} - Var_{finite}}{Var_{finite}} =  \frac{ p \cdot \tau^2 }{\left(\frac{ICC}{1-p} + \frac{1-ICC}{(1-p)n}+\tau^2+\sqrt{\tau^2 \cdot ICC}\rho\right)} $$
 (I think the above holds--this is careless math here, and I am operating on intuition, not actual derivation.)
 
 To make this large, we need $ICC > 0$ so the $\rho$ can do its thing.
@@ -105,28 +109,28 @@ In the following code I implement the above formula and then search across a ran
 <!--
   
 # Implement the above formula
-calc_ratio <- function( ICC, tau, p, n, J, rho ) {
-  #denom = ( ICC/(1-p) + (1-ICC)/((1-p)*n) + tau + sqrt(tau*ICC)*rho )
-  #rat = (p * tau) / denom
+calc_ratio <- function( ICC, tau2, p, n, J, rho ) {
+  #denom = ( ICC/(1-p) + (1-ICC)/((1-p)*n) + tau2 + sqrt(tau2*ICC)*rho )
+  #rat = (p * tau2) / denom
   #rat
-  se = calc_SE( ICC = ICC, tau = tau, p = p, n = n, J = J, rho = rho )
+  se = calc_SE( ICC = ICC, tau2 = tau2, p = p, n = n, J = J, rho = rho )
   se$super / se$finite
 }
 calc_ratio( 0.2, 0.2, 0.75, 500, 9, -1 )
 
-#  se2 = ICC / (p*(1-p)*J) + (1-ICC)/(p*(1-p)*n*J) + sqrt(tau*ICC)*rho/(J*p)
-  #sup2 = se2 + tau/J
+#  se2 = ICC / (p*(1-p)*J) + (1-ICC)/(p*(1-p)*n*J) + sqrt(tau2*ICC)*rho/(J*p)
+  #sup2 = se2 + tau2/J
 
 -->
 
 ```{r, echo=FALSE}
 
 # Calculate SEs by hand, using the above math.
-calc_SE <- function( ICC, tau, p, n, J, rho ) {
-  vY1 = tau + ICC + (1-ICC)/n + sqrt(tau*ICC)*rho
+calc_SE <- function( ICC, tau2, p, n, J, rho ) {
+  vY1 = tau2 + ICC + (1-ICC)/n + sqrt(tau2*ICC)*rho
   vY0 = ICC + (1-ICC)/n
   sup2 = vY1 / (p*J) + vY0 / ((1-p)*J)
-  fin2 = sup2 - tau/J
+  fin2 = sup2 - tau2/J
   
   tibble( super = sqrt(sup2), finite = sqrt(fin2), 
           vY1 = vY1, vY0 = vY0, 
@@ -135,13 +139,13 @@ calc_SE <- function( ICC, tau, p, n, J, rho ) {
     
 # put in optimizer form
 a = \(x) { 
-  aa = calc_SE( ICC = x[[1]], tau=x[[2]], p = x[[3]], n = x[[4]], J = 9, rho=x[[5]] )
+  aa = calc_SE( ICC = x[[1]], tau2=x[[2]], p = x[[3]], n = x[[4]], J = 9, rho=x[[5]] )
   -aa$ratio
 }
 a( c( 0.2, 0.2, 0.75, 500, -1 ) )
 ```
 
-In the following we optimize over ICC, tau, p, n, and rho to find the largest ratio.
+In the following we optimize over ICC, tau2, p, n, and rho to find the largest ratio.
 I do not include J since it is not in the formula of the ratio.
 I flip the sign of the ratio as the optimizer looks for a minimum---we want the maximum.
 I do not know if our problem is convex, so it is possible we are seeing a local maximum rather than global, but we can fiddle with start parameters to try and find something different if needed.
@@ -150,7 +154,7 @@ We also bound the parameter values between lower and upper bounds.
 
 Here is the initial stab:
 ```{r, echo=TRUE}
-pp = c( ICC = 0.2, tau = 0.2, p = 0.75, n = 1, rho = -1 )
+pp = c( ICC = 0.2, tau2 = 0.2, p = 0.75, n = 1, rho = -1 )
 opt <- optim(  pp, a,
                method ="L-BFGS-B",
                lower = c(0, 0, 0.01, 1, -1),
@@ -166,11 +170,11 @@ If we constrain $p = 7/9$ and $n=500$ we get
 
 ```{r}
 a = \(x) { 
-  aa = calc_SE( ICC = x[[1]], tau=x[[2]], p = 7/9, n = 500, J = 9, rho=x[[3]] )
+  aa = calc_SE( ICC = x[[1]], tau2=x[[2]], p = 7/9, n = 500, J = 9, rho=x[[3]] )
   -aa$ratio
 }
 
-pp = c( ICC = 0.2, tau = 0.2, rho = -1 )
+pp = c( ICC = 0.2, tau2 = 0.2, rho = -1 )
 opt <- optim(  pp, a,
                method ="L-BFGS-B",
                lower = c(0, 0,  -1),
@@ -180,7 +184,7 @@ round( opt$par, digits = 2 )
 ```
 and SEs of 
 ```{r}
-calc_SE( ICC = opt$par[1], tau = opt$par[[2]], p = 7/9, n = 500, J = 9, rho = opt$par[3] ) %>%
+calc_SE( ICC = opt$par[1], tau2 = opt$par[[2]], p = 7/9, n = 500, J = 9, rho = opt$par[3] ) %>%
   knitr::kable( digits = 2 )
 ```
 
@@ -198,7 +202,7 @@ round( opt$par, digits = 2 )
 ```
 and SEs and ratio of 
 ```{r}
-calc_SE( ICC = opt$par[1], tau = opt$par[[2]], p = 7/9, n = 500, J = 9, rho = opt$par[3] ) %>%
+calc_SE( ICC = opt$par[1], tau2 = opt$par[[2]], p = 7/9, n = 500, J = 9, rho = opt$par[3] ) %>%
   knitr::kable( digits = 2 )
 ```
 
@@ -206,7 +210,7 @@ We end up a ratio of `r round( 100 * -a(opt$par) )`%, i.e., our superpopulation 
 So we can get big, if our treatment variation is huge.
 
 
-If we constrain $tau = 0.5^2$ (which is still huge) we get
+If we constrain $tau2 = 0.5^2$ (which is still huge) we get
 ```{r}
 opt <- optim(  pp, a,
                method ="L-BFGS-B",
@@ -217,11 +221,11 @@ print( opt$par, digits = 2 )
 ```
 and SEs of
 ```{r}
-calc_SE( ICC = opt$par[1], tau = opt$par[[2]], p = 7/9, n = 500, J = 9, rho = opt$par[3] ) %>%
+calc_SE( ICC = opt$par[1], tau2 = opt$par[[2]], p = 7/9, n = 500, J = 9, rho = opt$par[3] ) %>%
   knitr::kable( digits = 2 )
 ```
 
-If we constrain $\tau = 0.2^2$ we get
+If we constrain $\tau^2 = 0.2^2$ we get
 ```{r}
 opt <- optim(  pp, a,
                method ="L-BFGS-B",
@@ -232,27 +236,41 @@ print( opt$par, digits = 2 )
 ```
 and SEs of
 ```{r}
-calc_SE( ICC = opt$par[1], tau = opt$par[[2]], p = 7/9, n = 500, J = 9, rho = opt$par[3] ) %>%
+calc_SE( ICC = opt$par[1], tau2 = opt$par[[2]], p = 7/9, n = 500, J = 9, rho = opt$par[3] ) %>%
   knitr::kable( digits = 2 )
 ```
 
 
+# Comparing to multi-site experiments
+
+For multisite experiments, we empirically found superpopulation SEs to be around 20% larger than finite, _on average_.
+But we also found contexts where there was great difference.
+In multisite experiments we have
+
+$$ SE^2 = \frac{ \tau^2 }{J} +  \frac{1-ICC}{J p(1-p)n} $$
+and the ratio of super to finite was
+
+$$ \frac{ \frac{\tau^2}{ J} }{ \frac{1-ICC}{J p(1-p)n} } = \frac{\tau^2 p(1-p)n}{1-ICC}$$
+If $p=0.5, n = 100$, and $ICC = 0.2$, this gives $\approx 31 \tau^2$.
+If $\tau^2 = 0.3^3$, for example, this is 2.8, which is a large difference.
+We do not seem to be able to achieve such differences with cluster RCTs.
+
 
 # A simulation to check
 
-Let's simulate a simple case where we have a DGP with a given ICC and $\tau$ and see if our formula are correct.
-We start with $J = 9, n = 500, ICC = 0, \tau = 0.3^2, p = 7/9$ and $\rho = 0$.
+Let's simulate a simple case where we have a DGP with a given ICC and $\tau^2$ and see if our formula are correct.
+We start with $J = 9, n = 500, ICC = 0, \tau^2 = 0.3^2, p = 7/9$ and $\rho = 0$.
 The math says:
 
 ```{r}
-calc_SE( J=9, n=500, ICC=0, tau=0.3^2, p=7/9, 0 ) %>%
+calc_SE( J=9, n=500, ICC=0, tau2=0.3^2, p=7/9, 0 ) %>%
   knitr::kable( digits = 2 )
 ```
 
 And the simulation says:
 ```{r}
-source( "aggregate_simulation_results.R" )
-sim7 = read_rds( "results/superpop_SE_simulation7.rds" )
+source( here::here( "R/aggregate_simulation_results.R" ) )
+sim7 = read_rds( here::here( "results/superpop_SE_simulation7.rds" ) )
 
 sim7 %>%
   filter( !disfavored ) %>%
@@ -265,10 +283,10 @@ sim7 %>%
 
 They seem to match!  (At least in this case.)
 
-When I set the correlation of impact to level to -1, following our second to last optimization example from above (with $\tau = 0.5^2$), I get this:
+When I set the correlation of impact to level to -1, following our second to last optimization example from above (with $\tau^2 = 0.5^2$), I get this:
 
 ```{r}
-sim8 = read_rds( "results/superpop_SE_simulation8.rds" )
+sim8 = read_rds( here::here( "results/superpop_SE_simulation8.rds" ) )
 
 sim8 %>%
   filter( !disfavored ) %>%
@@ -280,19 +298,19 @@ sim8 %>%
 
 The numbers are coming in low, and the ratio is higher than expected.  But the SEs are large enough this could be noise.
 
-One more, for luck, with $ICC = 0.05$, $\tau=0.3^2$, $J = 16$, $n=100$, $p = 3/4$ and $\rho = -0.7$.
+One more, for luck, with $ICC = 0.05$, $\tau^2=0.3^2$, $J = 16$, $n=100$, $p = 3/4$ and $\rho = -0.7$.
 
 The math says:
 
 ```{r}
-calc_SE( J=16, n=100, ICC=0.05, tau=0.3^2, p=3/4, -0.7 ) %>%
+calc_SE( J=16, n=100, ICC=0.05, tau2=0.3^2, p=3/4, -0.7 ) %>%
   knitr::kable( digits = 2 )
 ```
 
 The simulation says:
 
 ```{r}
-sim9 = read_rds( "results/superpop_SE_simulation9.rds" )
+sim9 = read_rds( here::here( "results/superpop_SE_simulation9.rds" ) )
 
 sim9 %>%
   filter( !disfavored ) %>%
