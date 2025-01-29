@@ -76,8 +76,7 @@ single.CRT = function( # district-level params
     size.impact.cor.district = size.impact.cor.district,
     size.intercept.cor.district = size.intercept.cor.district,
     size.impact.cor.school = size.impact.cor.school,
-    proptx.impact.cor.district = proptx.impact.cor.district,
-    cor.strength.school = cor.strength.school)
+    proptx.impact.cor.district = proptx.impact.cor.district)
   
   if ( just.return.data ) {
     return( df )

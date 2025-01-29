@@ -5,8 +5,8 @@
 library( testthat )
 library( tidyverse )
 
-source( here::here( "simulation_support_code_crt.R" ) )
-source( here::here( "data_generation_code.R" ) )
+source( here::here( "R/simulation_support_code_crt.R" ) )
+source( here::here( "R/data_generation_code.R" ) )
 
 
 ##### Test the DGP code #####

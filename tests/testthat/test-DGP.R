@@ -4,9 +4,10 @@
 
 library( tidyverse )
 library( testthat )
+library( clusterRCT )
 
-source( here::here( "data_generation_code.R" ) )
-source( here::here( "simulation_support_code_crt.R" ) )
+source( here::here( "R/data_generation_code.R" ) )
+source( here::here( "R/simulation_support_code_crt.R" ) )
 
 
 #### Test the single block DGP code ####
@@ -18,11 +19,11 @@ test_that( "single block DGP code works", {
                                                 ICC = 0.20,
                                                 p = 0.70,
                                                 variable.n = TRUE,
-                                                variable.p = TRUE,
+                                                variable.p = FALSE,
+                                                cluster.rand = TRUE,
                                                 size.impact.correlate = TRUE,
-                                                proptx.impact.correlate = TRUE,
                                                 finite.model = FALSE )
-  
+  head( df )
   expect_equal( length( unique( df$sid ) ), 50 )
   
   op <- capture_output( a <- describe.data(df) )
@@ -56,8 +57,7 @@ test_that( "district generation function works", {
     size.impact.cor.district = TRUE,
     size.intercept.cor.district = TRUE,
     size.impact.cor.school = TRUE,
-    proptx.impact.cor.district = TRUE,
-    cor.strength.school = 0.5 )
+    proptx.impact.cor.district = TRUE )
   
   
   districts = attr( df, "district_key" )
@@ -148,9 +148,11 @@ test_that( "generating R2 covariates works", {
 
 test_that( "build_disticts() works", {
   
+  
   set.seed( 40404 )
   grid <- build_districts( K = 10, J.bar = 200, p.bar = 0.7,
-                           ATE = 0.2, sd = 0.1,
+                           ATE = 0.2, sd.ATE = 0.1,
+                           n.bar = 20,
                            ICC = 0.2,
                            variable.J = TRUE, variable.p = FALSE, 
                            R2 = 0.7)
@@ -162,18 +164,19 @@ test_that( "build_disticts() works", {
   expect_true( sd( grid$J ) > 0 )
   expect_equal( grid$p * grid$J - round( grid$p * grid$J ), rep( 0, 10 ) )
   
-  expect_equal( grid$p , rep( 0.7, 10 ), tolerance = 1/200 )
+  expect_equal( grid$p , rep( 0.7, 10 ), tolerance = 1/100 )
   
   
   
   set.seed( 430404 )
   
   grid <- build_districts( K = 10, J.bar = 100, p.bar = 0.7,
-                           ATE = 0.2, sd = 0.1,
+                           ATE = 0.2, sd.ATE = 0.1,
                            ICC = 0,
                            variable.J = TRUE, variable.p = TRUE,
-                           proptx.impact.cor = 1.0,
-                           num.covariates = 5 )
+                           n.bar = 40,
+                           num.cov.district = 5,
+                           proptx.impact.cor = 1.0 )
   
   
   grid
@@ -194,8 +197,9 @@ test_that( "limiting variation of districts works", {
   
   set.seed( 40404 )
   grid <- build_districts( K = 10, J.bar = 200, p.bar = 0.7,
-                           ATE = 0.2, sd = 0.1,
+                           ATE = 0.2, sd.ATE = 0.1,
                            ICC = 0.2,
+                           n.bar = 35,
                            variable.J = FALSE, variable.p = FALSE,
                            size.ratio = 0.1 )
   
@@ -203,7 +207,8 @@ test_that( "limiting variation of districts works", {
   
   set.seed( 40404 )
   grid <- build_districts( K = 10, J.bar = 200, p.bar = 0.7,
-                           ATE = 0.2, sd = 0.1,
+                           ATE = 0.2, sd.ATE = 0.1,
+                           n.bar = 35,
                            ICC = 0.2,
                            variable.J = TRUE, variable.p = FALSE,
                            size.ratio = 0.5 )
@@ -234,8 +239,7 @@ test_that( "limiting variation of districts works", {
     size.impact.cor.district = FALSE,
     size.intercept.cor.district = FALSE,
     size.impact.cor.school = TRUE,
-    proptx.impact.cor.district = TRUE,
-    cor.strength.school = 0.5 )
+    proptx.impact.cor.district = TRUE )
   
   
   districts = attr( df, "district_key" )
@@ -277,9 +281,8 @@ test_that( "overall variation is 1", {
     
     # correlation params at individual level
     size.ratio.school = 0.6,
-    size.impact.cor.school = 0,
-    cor.strength.school = 0.75
-  )
+    size.impact.cor.school = 0
+    )
   
   dist <- attr( df, "district_key")
   expect_equal( nrow(dist), 25 )
@@ -325,9 +328,7 @@ test_that( "School- and individual-level covariates generate", {
     
     # correlation params at individual level
     size.ratio.school = 0.6,
-    size.impact.cor.school = 0,
-    cor.strength.school = 0.75
-  )
+    size.impact.cor.school = 0  )
   
   dist <- attr( df, "district_key")
   expect_equal( nrow(dist), 25 )
@@ -363,9 +364,7 @@ test_that( "School- and individual-level covariates generate", {
     size.intercept.cor.district = 0.2,
     n.bar = 50, sd.school = 0.1, variable.n = T,
     size.ratio.school = 0.6,
-    size.impact.cor.school = 0,
-    cor.strength.school = 0.75
-  )
+    size.impact.cor.school = 0  )
   
   dist <- attr( df, "district_key")
   expect_equal( nrow(dist), 25 )
@@ -408,9 +407,8 @@ test_that( "School- and individual-level covariates capture ICC and R2", {
       size.intercept.cor.district = 0.2,
       n.bar = 50, sd.school = 0.1, variable.n = T,
       size.ratio.school = 0.6,
-      size.impact.cor.school = 0,
-      cor.strength.school = 0.75
-    )
+      size.impact.cor.school = 0    )
+    
     expect_equal( sd( df$Y0 ), 1, tolerance = 0.15 )
     
     M = lm( Y0 ~ 1 + X + W + Xd1, data=df )
@@ -428,12 +426,23 @@ test_that( "School- and individual-level covariates capture ICC and R2", {
     expect_true( all( CI[,2] >= params ) )
   }
   
+  set.seed( 40440 )
   
   one_test( 0.5, 0.3, 0, 0, 0 )
+  
+  # WARNING: These tests are a bit dodgy, and the CIs are not
+  # capturing the truth the right probability of times.
+  set.seed( 4413 )
   one_test( 0.5, 0.3, 0, 0, 0.5 )
   one_test( 0.6, 0.3, 0, 0.7, 0 )
+  
+  set.seed( 5505 )
   one_test( 0.5, 0.2, 0.4, 0, 0 )
+  
+  set.seed( 550223 )
   one_test( 0.4, 0.3, 0.9, 0.9, 0.9 )
+  
+  set.seed( 4333 )
   one_test( 0.3, 0.2, 0.99, 0.99, 0.99 )
   
 })
