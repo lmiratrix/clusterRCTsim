@@ -21,6 +21,25 @@ if ( FALSE ) {
 }
 
 
+# Calculate what proportion of time each estimator is defined ----
+names(combined)
+filter( combined, Estimator == "MLM-FE", Covariates == "best" ) %>%
+  dplyr::select( Collection, UniqueID, ATE_hat_std, SE_hat_std ) %>%
+  knitr::kable()
+
+tallys <- combined %>%
+  mutate( Covariates = factor( Covariates, levels = c( "none", "best", "all" ) ) ) %>%
+  group_by( Estimator, Covariates ) %>%
+  summarise( na_ATE = mean( is.na( ATE_hat_std ) ),
+             na_SE = mean( is.na( SE_hat_std ) ),
+             n = n() )
+
+stopifnot( all( tallys$n == tallys$n[[1]] ) )
+tallys %>%
+  pivot_wider( names_from = Covariates, values_from = c(na_ATE, na_SE) ) %>%
+  knitr::kable( digits = 2 )
+
+
 
 # Summarize results for aggregate plots  ----
 
