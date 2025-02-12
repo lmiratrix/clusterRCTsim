@@ -1,4 +1,12 @@
 
+# Script purpose:
+#
+# this script is a mish-mash of things as we tried different idea for
+# figures, was eventually cleaned up to become the script above it. I
+# always get nervous about removing things, but I don't think there's
+# any code here we're actively using... Maybe we could hide it away
+# somewhere?
+
 
 source( here::here( "empirical/load_empirical_results.R" ) )
 

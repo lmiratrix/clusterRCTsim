@@ -84,7 +84,7 @@ if ( TRUE ) {
   
   # All original datasets are blocked
   combined$blocked = 1
-
+  
   josh_blocked = josh   %>%
     filter( blocked == 1 )
   
@@ -97,7 +97,7 @@ if ( TRUE ) {
   names(combined)
   rm( josh_blocked )
   rm( josh )
-
+  
 }
 
 
@@ -141,7 +141,7 @@ if ( FALSE ) {
     arrange( UniqueID, Estimator ) %>%
     filter( Estimator == "DB_FI_Cluster_Cluster" ) %>%
     print( n = 20 )
-
+  
   cc %>%
     dplyr::select( -SE_hat ) %>%
     group_by( UniqueID ) %>% 
@@ -151,5 +151,29 @@ if ( FALSE ) {
     print( n = 30 )
 }
 
+# Calculate some data set descriptives such as low DF datasets ----
+
+combined <- combined %>% 
+  group_by( UniqueID ) %>%
+  mutate( low_df = ifelse( min( df ) < 10, "low", "high" ),
+          has_single = num_singletons > 0,
+          class = case_when(
+            low_df == "low" & has_single ~ "Low df & singletons",
+            low_df == "low" & !has_single ~ "Low df only",
+            low_df != "low" & has_single ~ "Singletons",
+            TRUE ~ "Large"
+          ),
+          has_single = ifelse( has_single, "singetons", "no singletons" ) ) %>%
+  ungroup()
+
+combined %>% 
+  filter( Estimator == "MLM-RE", Covariates == "best" ) %>%
+  pull( class ) %>%
+  table()
+
+outs <- combined %>% 
+  filter( !duplicated( UniqueID ) )
+outs
+table( collection = outs$Collection, blocked = outs$blocked )
 
 cat( "Data loaded\n" )

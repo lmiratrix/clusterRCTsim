@@ -1,6 +1,8 @@
 
-
-# Identifying datasets where Agg and DB are not being the same on when they provide standard errors
+# Script purpose:
+#
+# Identify datasets where Agg and DB are not being the same on when
+# they provide standard errors
 
 source( "empirical/load_empirical_results.R" )
 

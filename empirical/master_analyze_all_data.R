@@ -1,8 +1,13 @@
 
-# This script analyzes the datasets and stacks them and saves them
-# into a final results file.
+# Core Analysis Script
+# 
+# This script performs the main empirical analysis by running 
+# `compare_methods()` and `describe_clusterRCT()` on all non-clean 
+# room datasets. The results are then combined with the clean room 
+# output, stacked, and saved as `empirical/results/master241204_combined.RDS`.
+
 #
-# Files saved: 
+# Files saved:
 # - Three excel sheets
 # - master240528_combined.RDS (or whatever date)
 

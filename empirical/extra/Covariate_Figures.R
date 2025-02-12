@@ -1,6 +1,11 @@
 
 # Old script from Multisite project, slightly tweaked
 
+# Note on use:
+# this was an example script you provided from the multisite project
+# to produce plots like this one. Doesn't look like we need to keep it
+# around, or could move it to an "examples" folder or something.
+
 # packages
 #install.packages("devtools","kfigr","ggplot2","ggthemes","grid","gridExtra","lattice",
 #               "dplyr","caret","knitr","kableExtra","tidyverse","pBrackets","extrafont","ggrepel")
