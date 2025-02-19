@@ -21,23 +21,6 @@ if ( FALSE ) {
 }
 
 
-# Calculate what proportion of time each estimator is defined ----
-names(combined)
-filter( combined, Estimator == "MLM-FE", Covariates == "best" ) %>%
-  dplyr::select( Collection, UniqueID, ATE_hat_std, SE_hat_std ) %>%
-  knitr::kable()
-
-tallys <- combined %>%
-  mutate( Covariates = factor( Covariates, levels = c( "none", "best", "all" ) ) ) %>%
-  group_by( Estimator, Covariates ) %>%
-  summarise( na_ATE = mean( is.na( ATE_hat_std ) ),
-             na_SE = mean( is.na( SE_hat_std ) ),
-             n = n() )
-
-stopifnot( all( tallys$n == tallys$n[[1]] ) )
-tallys %>%
-  pivot_wider( names_from = Covariates, values_from = c(na_ATE, na_SE) ) %>%
-  knitr::kable( digits = 2 )
 
 
 
@@ -188,9 +171,9 @@ se_summary_estimand %>%
 ## SE plots excluding fully interacted models ----
 
 n_est_noFI = combined %>% 
-                           filter( !grepl('-FI', Estimator) ) %>%
-                           pull( Estimator ) %>%
-                           n_distinct()
+  filter( !grepl('-FI', Estimator) ) %>%
+  pull( Estimator ) %>%
+  n_distinct()
 n_est_noFI
 
 se_summary_exclFI %>%
@@ -200,7 +183,7 @@ se_summary_exclFI %>%
               ylab     = 'Count',
               title    = 'Figure 3a',
               subtitle = glue::glue( 'The Ratio (across {n_est_noFI} estimators) of the Largest to Smallest\nEstimates of SE(β) for {n_outcomes} outcomes\n(excluding fully interacted models)' ),
-              filename = 'fig3a_SEratio_exclFI',
+              filename = 'final paper figures/fig3a_SEratio_exclFI',
               rmlegend = T,
               binw     = 0.05,
               coordratio = 0.8)
@@ -212,7 +195,7 @@ se_summary_estimand_exclFI %>%
               ylab     = 'Count',
               title    = 'Figure 4a',
               subtitle = glue::glue( 'The Ratio (across {n_est_noFI} estimators) of the Largest to Smallest Estimates of SE(β)\namong all estimators targeting a given estimand for {n_outcomes} outcomes\n(excluding fully interacted models)' ),
-              filename = 'fig4a_SEratio_byestimand_exclFI',
+              filename = 'final paper figures/fig4a_SEratio_byestimand_exclFI',
               byest = T,
               rmlegend = T,
               binw     = 0.05,

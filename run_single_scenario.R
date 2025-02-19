@@ -1,37 +1,30 @@
 #
-# Run a single scenario
+# Run a single simulation scenario
 #
-# This will provide a nested simulation with R superpopulation
-# replications.
+# This runs a nested simulation with R superpopulation (at the cluster
+# level) replications.
 #
 # Output is a tibble, one row per method per simulation run.
 
-source( "data_generation_code.R" )
-source( "simulation_support_code_crt.R" )
+source( here::here( "R/data_generation_code.R" ) )
+source( here::here( "R/simulation_support_code_fixed_district.R" ) )
 
 
 # This will run a single scenario!
-rr = run.scenario( K = 10, 
-                   J.bar = 10,
-                   p.bar = 0.5,
-                   ATE.district = 10.2, 
-                   sd.district = 0.1,
-                   ICC.district = 0.2,
-                   variable.J = F,
-                   variable.p = T,
-                   
-                   # cluster-level params
-                   n.bar = 50, 
-                   sd.school = 0.1, 
-                   ICC.school = 0.2,
-                   variable.n = T,
-                   
-                   # size and correlation params
-                   size.impact.cor.district = 0,
-                   size.intercept.cor.district = 0.5,
-                   size.impact.cor.school = 0,
-                   proptx.impact.cor.district = 0,
-                   
+
+grid <- build_districts( K = 10, J.bar = 20, n.bar = 20, p.bar = 0.5,
+                         ATE = 0.2, sd.ATE = 0.1,
+                         ICC = 0.2,
+                         variable.J = TRUE, variable.p = TRUE, variable.nbar = TRUE,
+                         num.cov.school = 3, size.intercept.cor = -0.8,
+                         size.impact.cor = 0.75, proptx.impact.cor = 0.75, nbar.J.cor = 0.9, 
+                         empirical = TRUE )
+
+grid
+describe_district_grid( grid )
+
+
+rr = run.scenario.fixed.district( grid,
                    R = 2,
                    .progress="text",
                    include_method_characteristics=FALSE)

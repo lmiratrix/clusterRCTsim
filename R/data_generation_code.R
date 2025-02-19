@@ -482,8 +482,11 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
   grid$sd.school = sd.school
   grid$ICC.school = ICC.school
   grid$variable.n = variable.n
-  grid$R2.school = R2.school
   grid$num.cov.school = num.cov.school
+  grid$R2.school = R2.school
+  if ( num.cov.school > 0 && is.null( R2.school ) ) {
+    grid$R2.school = 0
+  }
   grid$size.ratio.school = size.ratio.school
   grid$size.impact.cor.school = size.impact.cor.school
   

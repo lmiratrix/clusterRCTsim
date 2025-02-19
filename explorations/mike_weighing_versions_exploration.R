@@ -5,7 +5,7 @@
 # This script generates two districts, one with big clusters and one
 # with small clusters.
 #
-# We then compare two different weighting scheemes, one within block
+# We then compare two different weighting schemes, one within block
 # and one overall.  They give the same point estimates as long as
 # there is no covariate adjustment.
 

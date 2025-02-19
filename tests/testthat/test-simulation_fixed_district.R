@@ -13,6 +13,17 @@ source( here::here( "R/simulation_support_code_fixed_district.R" ) )
 ##### Test the DGP code #####
 
 test_that( "single.CRT.fixed.district() works", {
+
+  grid <- build_districts( K = 10, J.bar = 20, n.bar = 20, p.bar = 0.5,
+                           ATE = 0.2, sd.ATE = 0.1,
+                           ICC = 0.2,
+                           variable.J = TRUE, variable.p = TRUE, variable.nbar = TRUE,
+                           num.cov.school = 3, size.intercept.cor = -0.8,
+                           size.impact.cor = 0.75, proptx.impact.cor = 0.75, nbar.J.cor = 0.9, 
+                           empirical = TRUE )
+  
+  grid
+  describe_district_grid( grid )
   
   grid <- build_districts( K = 10, J.bar = 20, n.bar = 20, p.bar = 0.5,
                            ATE = 0.2, sd.ATE = 0.1,
