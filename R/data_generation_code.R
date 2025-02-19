@@ -303,12 +303,13 @@ describe_district_grid <- function( grid ) {
 #'   (i.e., the target cluster-average ATE for each district).  The
 #'   district average ATE is what is passed to the code to generate
 #'   the clusters for the district as the "ATE."
-#' @param size.ratio This number is a measure of how variable either
-#'   number of clusters (district) or size of clusters (cluster level)
-#'   is.
+#' @param size.ratio This number is a measure of how variable the
+#'   cluster sizes are.
 #' @param size.ratio.district If variable.J is TRUE, use this as a
 #'   measure of how much variation there is in number of clusters per
-#'   district.
+#'   district.  If variable.nbar is TRUE, ALSO use this as a measure
+#'   of how much variation there is in the average size of clusters
+#'   within a district.
 #' @param empirical If TRUE generate district variation to get as
 #'   close as possible to the set targets.  In particular, if the
 #'   sd.ATE = 0.1, then the standard deviation of the actual generated
@@ -370,7 +371,8 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
   
   # district J values
   if (variable.J) {
-    num_clusters <- cluster_distn(K, J.bar, size.ratio=size.ratio, min.size = min.size )
+    num_clusters <- cluster_distn(K, J.bar, size.ratio=size.ratio, 
+                                  min.size = min.size )
   } else {
     num_clusters <- rep(J.bar, K)
   }

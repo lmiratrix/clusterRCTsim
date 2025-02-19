@@ -1,6 +1,6 @@
 
 
-# Looking at bias of person weighted....
+# Looking at bias of person weighted estimators
 
 source( here::here( "R/data_generation_code.R" ) )
 

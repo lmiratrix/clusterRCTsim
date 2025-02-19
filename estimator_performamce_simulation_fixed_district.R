@@ -1,9 +1,13 @@
 
-# Large simulation to look at stability of the different SE estimators and true
-# performances of the ATE estimators.
+# Large simulation (to be run on cloud computing) to look at stability
+# of the different SE estimators and true performances of the ATE
+# estimators.
 #
-# This script runs a bunch of scenarios and saves the massive amount of results
-# to a file to be processed.
+# This script runs a bunch of scenarios and saves the massive amount
+# of results to a file to be processed.
+#
+# NOTE: 'index' is a system variable that stores which iteration of
+# the simulation to run
 
 
 # clear workspace
@@ -64,9 +68,12 @@ if ( exists( "TESTING" ) || !exists( "index" ) || is.na( index ) ) {
   cat( "WARNING: In TEST mode for simulation script\n" )
   TESTING = TRUE
   index = 0 # c( 41, 42 )
-  FILENAME = "results/testing_simulation_results_" 
   
-  #  APPROX_NUM_TRIALS_PER_RUN = 20
+  path = here::here( "results/test/" )
+  dir.create( path,
+              showWarnings = FALSE, recursive = TRUE )
+  FILENAME = paste0( path, "/testing_simulation_results_" )
+  
   NUM_TRIALS_PER_SCENARIO = 2  
   
 } else {
@@ -106,11 +113,11 @@ ptm = proc.time()
 
 #load in the simulations
 
-#I NEED TO WRITE THIS CODE 
 
 # What simulation are we running?
-scenarios = readRDS("scenarios.rds")
-
+# 'scenarios.rds' is generated via 'generate_grid'
+scenarios = readRDS( "scenarios.rds" )
+nrow( scenarios )
 
 if ( TESTING ) {
   cat( "Cutting scenario list down for testing\n" )
@@ -121,18 +128,21 @@ if ( TESTING ) {
 
 #### Run the simulation ####
 
-#NUM_TRIALS_PER_SCENARIO = round( APPROX_NUM_TRIALS_PER_RUN / nrow( scenarios ) )
-scat( "Running %d trials per scenario\n", NUM_TRIALS_PER_SCENARIO )
+scat( "Running %d trials per scenario for %d scenarios\n", 
+      NUM_TRIALS_PER_SCENARIO,
+      nrow(scenarios) )
 
-scenarios$run = map( scenarios$grid, run.scenario.fixed.district, R = NUM_TRIALS_PER_SCENARIO, parallel=F)
+scenarios$run = map( scenarios$grid, run.scenario.fixed.district, 
+                     R = NUM_TRIALS_PER_SCENARIO, parallel=FALSE )
 
 scat("**\n**\tTotal time elapsed:\n")
 tot.time = proc.time() - ptm
 print(tot.time)
 
-sim.per.min = sim.per.min = nrow(scenarios) * NUM_TRIALS_PER_SCENARIO / (tot.time["elapsed"] / 60)
+sim.per.min = nrow(scenarios) * NUM_TRIALS_PER_SCENARIO / (tot.time["elapsed"] / 60)
 
-scat( "Num trials / scenario = %d with %d scenarios = %d runs\n", NUM_TRIALS_PER_SCENARIO, nrow( scenarios ), NUM_TRIALS_PER_SCENARIO * nrow( scenarios ) )
+scat( "Num trials / scenario = %d with %d scenarios = %d runs\n", 
+      NUM_TRIALS_PER_SCENARIO, nrow( scenarios ), NUM_TRIALS_PER_SCENARIO * nrow( scenarios ) )
 scat("Realized simulations per minute = %.2f\n", sim.per.min )
 # scenarios$sim.per.min = sim.per.min
 
@@ -144,10 +154,10 @@ scat( "**\n**")
 #### Clean up the simulation results a wee bit ####
 
 # Rearrange columns to be nice
-scenarios = dplyr::select( scenarios, ID, everything(),-grid )
+scenarios = dplyr::select( scenarios, ID, everything(), -grid )
 scenarios
 
-# Add in (estimated) superpopulation person weighted ATE
+# Add in (estimated) superpopulation person weighted ATE by averaging across the runs.
 scenarios = mutate( scenarios, 
                     ATE.super.student = map_dbl( run, ~ mean( .$ATE.finite.student ) ),
                     ATE.super.school = map_dbl( run, ~ mean(.$ATE.finite.school )),
@@ -166,7 +176,9 @@ scenarios = dplyr::select( scenarios,
                            ATE.super.student, 
                            ATE.super.dist.student,
                            ATE.super.dist.school,
-                           everything() ) %>% mutate(group=group)
+                           everything() ) %>% 
+  mutate(group=group)
+
 scenarios
 
 filename = make.file.name(index)
@@ -174,7 +186,8 @@ saveRDS( scenarios, file=filename )
 scat( "Simulations saved to '%s'\n", filename )
 
 
-# NOTE: ID refers to simulation scenario, NOT index variable!
+# NOTE: ID, in the final results, refers to simulation scenario, NOT
+# the index for iteration number!
 
 
 
