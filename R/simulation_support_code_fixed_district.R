@@ -377,30 +377,6 @@ run_sim <- function( name = "",
 
 
 
-# Test code -----
+# Test code: See the test code in the testthat package. ----
 
-
-if ( FALSE ) {
-  
-  grid <- build_districts( K = 10, J.bar = 20, n.bar = 20, p.bar = 0.5,
-                           ATE = 0.2, sd.ATE = 0.1,
-                           ICC = 0.2,
-                           variable.J = TRUE, variable.p = TRUE, variable.nbar = TRUE,
-                           num.covariates = 3, size.intercept.cor = -0.8,
-                           size.impact.cor = 0.75, proptx.impact.cor = 0.75, nbar.J.cor = 0.9, 
-                           empirical = TRUE )
-  
-  grid
-  describe_district_grid( grid )
-  
-  a = single.CRT.fixed.district( grid = grid )
-  a
-  
-  df = run.scenario.fixed.district( grid, n.bar = 50, sd.school = 0.1, 
-                                    size.impact.cor.school = 0.75,
-                                    variable.n = TRUE,
-                                    n.runs = 3 )  
-  
-  df
-}
 

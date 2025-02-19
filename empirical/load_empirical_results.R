@@ -18,6 +18,7 @@ theme_set( theme_classic() )
 
 PLOT_PATH = '/data/share/pse/IES CRT/tables/'
 PLOT_PATH = paste0( here::here( "empirical", "tables" ), "/" )
+
 plot_path <- function( filename ) {
   here::here( PLOT_PATH, filename )
 }
@@ -37,6 +38,7 @@ combined
 
 
 
+# Add in the Josh datasets ----
 
 if ( TRUE ) {
   # Add in josh results
@@ -63,9 +65,10 @@ if ( TRUE ) {
   tb = sort( table( josh$study_id ) )
   tb2 = sort( table( josh$Project ) )
   stopifnot( all( tb == tb2 ) )
-  
+  rm( tb, tb2 )
   
   table( josh$UniqueID )
+  n_distinct(josh$UniqueID)
   skimr::skim( josh )
   
   setdiff( names(combined), names(josh) )
@@ -73,6 +76,7 @@ if ( TRUE ) {
   
   josh <- josh %>%
     rename( Estimator = method,
+            Estimand = weight,
             ATE_hat_std = ATE_hat,
             SE_hat_std = SE_hat )
   
@@ -85,38 +89,16 @@ if ( TRUE ) {
   # All original datasets are blocked
   combined$blocked = 1
   
-  josh_blocked = josh   %>%
-    filter( blocked == 1 )
   
-  josh_unblocked = josh %>%
-    filter( blocked == 0 )
-  josh_unblocked$Collection ="JG"
-  length( unique( josh_unblocked$UniqueID ) )
-  
-  combined = bind_rows( `Curated` = combined, `Public` = josh_blocked, .id="Collection" )
+  combined = bind_rows( `Curated` = combined, `Public` = josh, .id="Collection" )
   names(combined)
-  rm( josh_blocked )
   rm( josh )
   
+
 }
 
-
-
-
-# Copy over estimand in the file (they are missing in Josh results)
-cw <- combined %>%
-  dplyr::select( Estimator, Estimand ) %>%
-  dplyr::filter( !is.na( Estimand ) ) %>%
-  unique()
-
-combined <- combined %>%
-  dplyr::select( -Estimand ) %>%
-  left_join( cw, by = "Estimator" )
-
-rm( cw )
-
-#head( combined$UniqueID)
-#table( combined$Trt_arm)
+# Check all estimators have same estimand for all estimates
+table( combined$Estimator, combined$Estimand )
 
 
 # Remove "of the" from all the names, etc
@@ -151,10 +133,10 @@ if ( FALSE ) {
     print( n = 30 )
 }
 
-# Calculate some data set descriptives such as low DF datasets ----
+# Calculate some data set descriptive such as low DF datasets ----
 
 combined <- combined %>% 
-  group_by( UniqueID ) %>%
+  group_by( UniqueID, Covariates ) %>%
   mutate( low_df = ifelse( min( df ) < 10, "low", "high" ),
           has_single = num_singletons > 0,
           class = case_when(
@@ -166,14 +148,37 @@ combined <- combined %>%
           has_single = ifelse( has_single, "singetons", "no singletons" ) ) %>%
   ungroup()
 
+
+# Divide the datasets into blocked and non-blocked ----
+
+
+unblocked = filter( combined, blocked == 0 ) %>%
+  dplyr::select( -blocked )
+
+combined = filter( combined, blocked == 1 ) %>%
+  dplyr::select( -blocked )
+
+
+# Print out some descriptives on combined dataset ----
+
+
+# See the various kinds of contexts across the datasets
 combined %>% 
   filter( Estimator == "MLM-RE", Covariates == "best" ) %>%
   pull( class ) %>%
   table()
 
+# Make table of all the outcomes
 outs <- combined %>% 
-  filter( !duplicated( UniqueID ) )
+  filter( Covariates == "best" ) %>%
+  filter( !duplicated( UniqueID ) ) %>%
+  dplyr::select( -c( Estimator:df ), -Covariates, -c( Estimand:disfavored ) )
+
 outs
-table( collection = outs$Collection, blocked = outs$blocked )
+
+outs %>%
+  group_by( Collection ) %>%
+  summarise( n_study = n_distinct(Project),
+             n_outcome = n_distinct(UniqueID) )
 
 cat( "Data loaded\n" )
