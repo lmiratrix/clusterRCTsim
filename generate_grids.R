@@ -15,6 +15,9 @@ library( lmerTest )
 library( future )
 library("furrr")
 
+
+set.seed( 40444 )
+
 group="fullfactor"
 
 
@@ -96,17 +99,18 @@ scenarios = expand.grid(
 scenarios <- scenarios %>% 
   mutate(R2.school = ifelse(num.cov.school==0, 0, R2.school) )
 
+scenarios$ID = 1:nrow(scenarios)
+
 scenarios <- merge(scenarios, blockvars, by="blocktype", all = T) %>% 
   select(-blocktype) %>% 
   as_tibble()
 
 
 #make the grid 
-scenarios$grid <- pmap(scenarios, build_districts)
+scenarios$grid <- pmap( dplyr::select( scenarios, -ID ), build_districts)
 
-scenarios$ID = 1:nrow(scenarios)
 
 #scenarios$run = map(scenarios$grid, run.scenario.fixed.district, R=1 , parallel=F)
 
-saveRDS( scenarios, "results/scenarios.rds" )
+saveRDS( scenarios, "scenarios.rds" )
 
