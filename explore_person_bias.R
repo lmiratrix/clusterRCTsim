@@ -7,7 +7,8 @@ source( here::here( "R/data_generation_code.R" ) )
 grid <- build_districts( K = 10, J.bar = 20, n.bar = 20, p.bar = 0.5,
                          ATE = 0.2, sd.ATE = 0.3,
                          ICC = 0.2,
-                         variable.J = TRUE, variable.p = FALSE, variable.nbar = TRUE,
+                         variable.J = TRUE, variable.p = FALSE,
+                         variable.nbar = TRUE,
                          num.cov.district = 3, size.intercept.cor = -0.8,
                          size.impact.cor = 0, nbar.J.cor = -0.9, 
                          empirical = TRUE ) %>%
@@ -22,12 +23,14 @@ grid$district.tau[1] = -2
 cor( grid$J, grid$n.bar )  
 describe_district_grid( grid )
 
-ac = single.CRT.fixed.district( grid = grid, variable.n = TRUE, size.impact.cor.school = 0.75, 
+ac = single.CRT.fixed.district( grid = grid, variable.n = TRUE, 
+                                size.impact.cor.school = 0.75, 
                                 sd.school = 0.5, n.runs = 50, 
                                 just.describe.data = TRUE )
 ac
 
-a = single.CRT.fixed.district( grid = grid, variable.n = FALSE, size.impact.cor.school = 0, 
+a = single.CRT.fixed.district( grid = grid, variable.n = FALSE, 
+                               size.impact.cor.school = 0, 
                                sd.school = 0.5, n.runs = 100, 
                                .progress = TRUE )
 table( a$subrun )

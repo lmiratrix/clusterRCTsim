@@ -6,6 +6,10 @@
 #
 # This script has functions to run a single trial, generate a list of
 # all scenarios, and a few other things.
+#
+# NOTE: This regenerates districts (blocks) and so operates in a very
+# super-population framework.  We now usually fix the districts, and
+# use the companion "fixed_district" version of this script.
 
 library( tidyverse )
 library( purrr )

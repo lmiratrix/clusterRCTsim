@@ -11,7 +11,8 @@ source( here::here( "R/util.R" ) )
 #'   and `Z` (treatment assignment).  If `n` is also present, then the
 #'   data will be expanded to have the correct number of rows.  If
 #'   structure is NULL, then it will make data with roughly the same
-#'   number of clusters, etc., as specified in the parameters list.
+#'   number of clusters, etc., as specified by values in the
+#'   parameters list.
 #' @param parameters A list with the following elements: `block_ICC`,
 #'   `cluster_ICC`, `R2.1`, `R2.2`, `ncov.1`, `ncov.2`.
 #' @param tau The treatment effect (considered constant across dataset
@@ -19,6 +20,9 @@ source( here::here( "R/util.R" ) )
 #' @param rerandomize If `TRUE`, then the data will be re-randomized,
 #'   keeping the same proportions.  FALSE means it will keep the
 #'   original randomization.
+#' @param names List of what to call outcome, treatment, cluster, and
+#'   block ID, in that order.
+#'
 #' @return A data frame with the generated data.
 generate_data_from_fingerprint <- function( structure = NULL, parameters = NULL, 
                                             rerandomize = TRUE,
@@ -28,6 +32,7 @@ generate_data_from_fingerprint <- function( structure = NULL, parameters = NULL,
   stopifnot( !is.null( parameters ) )
   
   if ( is.null( structure ) ) {
+    stopifnot( !is.null( parameters ) )
     stopifnot( all( c("K", "n", "n.25", "J", "J.25", "nbar", "Jcv") %in% names(parameters) ) )
     K = parameters$K
     num_clusters <- cluster_distn(K, parameters$Jbar, 
@@ -126,7 +131,13 @@ generate_data_from_fingerprint <- function( structure = NULL, parameters = NULL,
 }
 
 
-
+#' Given a structure, make a full skeleton
+#'
+#' A "skeleton" has one row per level 1 observation.  A structure has
+#' cluster-level statistics, including number of units and number of
+#' treated units.
+#'
+#' @return dataframe, one row per level 1 unit.
 make_skeleton <- function( structure ) {
   
   stopifnot( is.data.frame( structure ) )
@@ -140,42 +151,4 @@ make_skeleton <- function( structure ) {
           Z = rep( structure$Z, structure$n ) )
 }
 
-
-# Some testing code for the above
-if (FALSE) {
-  library( clusterRCT )
-  
-  structure = data.frame( blockID = c("A", "A", "B", "B", "B"),
-                          clusterID = c("1", "2", "1", "2", "3"),
-                          Z = c( 0, 1, 0, 1, 0),
-                          n = c( 3, 2, 2, 1, 2 ) )
-  structure
-  
-  parameters = list( block_ICC = 0.1, cluster_ICC = 0.2, R2.1 = 0.1, R2.2 = 0.2,
-                     ncov.1 = 1, ncov.2 = 1 )
-  generate_data_from_fingerprint( structure, parameters )
-  
-  
-  # Generate data "like" fakeCRT
-  data( fakeCRT )
-  head( fakeCRT )
-  fakeCRT$X2 = rnorm( nrow(fakeCRT) )
-  dd = describe_clusterRCT( Yobs ~ T.x | S.id | D.id, data = fakeCRT,
-                            control_formula = ~ X.jk + C.ijk + X2 )
-  dd
-  
-  struc <- get_structure( Yobs ~ T.x | S.id | D.id, data=fakeCRT )
-  struc
-  
-  make_skeleton(struc)
-  nrow(fakeCRT)
-  
-  fakeStar <- generate_data_from_fingerprint( struc, dd )
-  head( fakeStar )
-  star_stat <- describe_clusterRCT( Y ~ Z | clusterID | blockID, 
-                                    control_formula = ~ X1 + X2 + W,
-                                    data=fakeStar )
-  
-  bind_rows( dd, star_stat )
-}
 

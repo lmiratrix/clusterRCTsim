@@ -55,6 +55,9 @@ get.estimates = function( df, ... ) {
 }
 
 
+#' Return new treatment assignment based on passed one.
+#' 
+#' @return vector of 1s and 0s.
 rerandomize <- function( Z, clusterID, blockID = NULL ) {
   
   stopifnot( length( Z ) == length( clusterID ) )

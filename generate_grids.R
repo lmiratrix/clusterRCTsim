@@ -1,13 +1,17 @@
 
 ##########################################
+#
 # Author: Sophie Litschwartz
 # Date Created:11/27/2024
 # Project Name: Cluster RCT Estimators
 # File Name: generate_grids.R
 # File Description: 
-#generates blocks to be used across parallel iterations of the simulation
-#this creates finite block sample simulations 
+#
+# generates full set of scenarios, including the statistics on the
+# districts for each scenario, for the main cloud-based simulation.
+#
 ################################
+
 rm(list=ls())
 library( tidyverse )
 library( lme4 )
