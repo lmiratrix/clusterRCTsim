@@ -31,7 +31,7 @@ geometry:
 ```{r setup, include=FALSE, echo=FALSE}
 
 knitr::opts_chunk$set(echo = TRUE)
-load( "/Users/sophielitschwartz/Dropbox/clusterRCTsim/results/processed_simulation_results_agg_full_factor_2025-01-20.RData" )
+load( "/Users/sophielitschwartz/Dropbox/clusterRCTsim/results_agg/processed_simulation_results_agg_full_factor_2025-01-20.RData" )
 
 require(tidyverse)
 require(rlang)
@@ -44,25 +44,35 @@ my_t = theme_tufte() + theme( legend.position="bottom",
                               panel.border = element_blank(), axis.title=element_text(size=12))
 theme_set( my_t )
  
+DGP_vars <- c( "K", "J.bar", "p.bar", "sd.ATE", "ICC", "variable.J", "variable.p", 
+               "n.bar", "sd.school", "ICC.school", "variable.n", "size.impact.cor",
+               "size.impact.cor.school", "proptx.impact.cor","ATE.super.district", 
+               "num.cov.district", "R2.school", "num.cov.school", 
+               "size.ratio.school","size.intercept.cor") 
 ```
+## Introduction and Overview
+
+*I need to write this once I figure out what goes here 
+
+
 
 ## Data Generating Process
 
 The simulations are a fully factored experiment. 
 
 **Block Level Fixed Covariates**  
-Number of Blocks: 5;  ATE: .2; ICC: .2; Average Number of Observations Per Cluster: 20; Does the average number of observations per cluster vary: TRUE, Proportion of Clusters Treated: .5 (this is fixed across blocks); Number of District Level Covariates: 0
+Number of Blocks: 5;  ATE: .2; ICC: .2; Average Number of Observations Per Cluster: 20; Proportion of Clusters Treated: .5 (this is fixed across blocks); Number of District Level Covariates: 0
 
 
 **Block Level Varying Covariates (Factors that are varied across simulations)**
 
 Three groups of block level parameters Blocks all the same, Blocks all messy, and Blocks all reasonable
 
-Blocks all the same: Is the number cluster per block variable?: False; How much does the size of the cluster vary (size ratio)? 0; ATE SD: 0; Correlation Between Treatment Effect and Cluster Size: 0; Correlation Between Average Number of Observations Per Cluster and Total Number of Clusters: 0; Correlation of Proportion of Clusters Treated per Block and Impact: 0; Correlation Between Outcome Intercept and Cluster Size: 0
+Blocks all the same: How much do number clusters per block vary (size ratio)?: 0 (none); How much does the size of the cluster vary (size ratio)? 0 (none); ATE SD: 0; Correlation Between Treatment Effect and Cluster Size: 0; Correlation Between Average Number of Observations Per Cluster and Total Number of Clusters: 0; Correlation of Proportion of Clusters Treated per Block and Impact: 0; Correlation Between Outcome Intercept and Cluster Size: 0
 
-Blocks all messy: Is the number cluster per block variable?: True; How much does the size of the cluster vary (size ratio)? 1.3 (big); ATE SD: .6; Correlation Between Treatment Effect and Cluster Size: .8; Correlation Between Average Number of Observations Per Cluster and Total Number of Clusters: .8; Correlation of Proportion of Clusters Treated per Block and Impact: .8; Correlation Between Outcome Intercept and Cluster Size: .8
+Blocks all messy: How much do number clusters per block vary (size ratio)?: 1.3 (big) ; How much does the size of the cluster vary (size ratio)? 1.3 (big); ATE SD: .6; Correlation Between Treatment Effect and Cluster Size: .8; Correlation Between Average Number of Observations Per Cluster and Total Number of Clusters: .8; Correlation of Proportion of Clusters Treated per Block and Impact: .8; Correlation Between Outcome Intercept and Cluster Size: .8
 
-Blocks all reasonable: Is the number cluster per block variable?: True; How much does the size of the cluster vary (size ratio)? .4 (average); ATE SD: .1; Correlation Between Treatment Effect and Cluster Size: .2; Correlation Between Average Number of Observations Per Cluster and Total Number of Clusters: .1; Correlation of Proportion of Clusters Treated per Block and Impact: 0; Correlation Between Outcome Intercept and Cluster Size: .1
+Blocks all reasonable: How much do number clusters per block vary (size ratio)?: .4 (average); How much does the size of the cluster vary (size ratio)? .4 (average); ATE SD: .1; Correlation Between Treatment Effect and Cluster Size: .2; Correlation Between Average Number of Observations Per Cluster and Total Number of Clusters: .1; Correlation of Proportion of Clusters Treated per Block and Impact: 0; Correlation Between Outcome Intercept and Cluster Size: .1
 
 Each of the rest of these factors don't vary as a group but vary each individually and are fully factored with all other factors:
 
@@ -84,6 +94,55 @@ Number of School-Level Covariates: 0, 1, 5
 
 [School Level Covariate R Squared is always .5]
 
+## When are Each of the Estimands Different From Each Other
+
+**When there is a correlation between number of schools per district and treatment effects, then the district weighted estimands are different from the school weighted estimands.**
+
+
+```{r dataprep, echo=FALSE, include=FALSE, fig.width=7, fig.height=6}
+sruns.graph<- sruns.full_factor %>% mutate(method = reorder(method, -biased), bias.ratio.sch=(round(bias.f.sch/bias.s.sch,4)),
+bias.ratio.stu=(round(bias.f.stu/bias.s.stu,4)),
+RMSE.ratio.sch=(round(RMSE.f.sch/RMSE.s.sch,4)),
+RMSE.ratio.stu=(round(RMSE.f.stu/RMSE.s.stu,4)),
+cover.ratio.stu=(round(cover.f.stu/cover.s.stu,4)),
+cover.ratio.sch=(round(cover.f.sch/cover.s.sch,4)),    
+true.se.ratio=(round(SE.f/SE.s,4)))
+
+
+
+df.plot.estimands<-sruns.graph %>% filter(method=="LRa-FE-db") %>%
+                             
+   %>%
+                                  dplyr::select(method,sim.id, all_of(vary_cols),
+                                         ATE.super.school, ATE.super.student, 
+                                         ATE.super.dist.school, ATE.super.dist.student) %>%
+                                  pivot_longer(cols=starts_with("ATE.super"),
+                                               names_to = "Estimand.type", values_to ="Estimand.values") %>%
+                                separate(col=Estimand.type,into = c("junk","Estimand.type"),sep="ATE.") %>% 
+                                dplyr::select(-junk)
+```
+
+```{r dataprep, echo=FALSE, include=FALSE, fig.width=7, fig.height=6}
+
+```
+
+
+
+
+
+```{r estimands, echo=FALSE, include=T,fig.width=7, fig.height= 6}
+
+
+
+ggplot(data=df.plot.estimands %>% filter(sim.id %in% c("size.impact.cor.district","base.values")))+
+  geom_line(aes(y=Estimand.values,x=size.impact.cor.district,color=Estimand.type))+
+  geom_hline(yintercept = .2, color="black", lty=2)+
+  scale_y_continuous(limits =c(.12,.26),breaks = seq(.12,.26,.02))+
+  labs(x="Correlation between Treatment Effect and District Size",
+       y="Estimand Value")
+
+
+```
 
 
 ## What does the bias look like for each estimator 
@@ -94,17 +153,11 @@ There are tables showing how the different simulation facets predict bias. The r
 
 ```{r bias, include=TRUE, echo=FALSE}
 
-sruns.graph<- sruns.full_factor %>% mutate(method = reorder(method, -biased), bias.ratio.sch=(round(bias.f.sch/bias.s.sch,4)),
-bias.ratio.stu=(round(bias.f.stu/bias.s.stu,4)),
-RMSE.ratio.sch=(round(RMSE.f.sch/RMSE.s.sch,4)),
-RMSE.ratio.stu=(round(RMSE.f.stu/RMSE.s.stu,4)),
-cover.ratio.stu=(round(cover.f.stu/cover.s.stu,4)),
-cover.ratio.sch=(round(cover.f.sch/cover.s.sch,4)),    
-true.se.ratio=(round(SE.f/SE.s,4)))   
+   
 
 #split the plots by weight
 
-ggplot(sruns.graph %>% filter(weight=="Cluster"), aes(x = method, y = bias.f.sch, color = biased)) +
+ggplot(sruns.graph %>% filter(weight=="Cluster"), aes(x = method, y = bias.s.sch, color = biased)) +
   geom_boxplot() +
 labs(
     title = "Bias by Method, Cluster Weighted",
@@ -126,7 +179,7 @@ labs(
   #theme(legend.position = "none", axis.text.x = element_text(size = 8))
 
 
-ggplot(sruns.graph %>% filter(weight=="Person"), aes(x = method, y = bias.f.stu, color = biased)) +
+ggplot(sruns.graph %>% filter(weight=="Person"), aes(x = method, y = bias.s.stu, color = biased)) +
   geom_boxplot() +
   labs(
     title = "Bias Method, Person Weight",
