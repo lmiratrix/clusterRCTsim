@@ -19,14 +19,12 @@ geometry:
 
 #To-Do Notes:
 
-#true finite to true super 
+#figure out which estimators produce the same ATE estimates and use that to simplify all the bias results
+#finish running the bias models by method, I mostly ran all the models but I need to combine it all
+#into one table 
 
-#numbers of clusters - number of blocks is low and that's blowing up standard errors 
-#no reason to distinguish between finite and super populations 
-#could do plots of estimated finite versus super. 
-#I gotta make time to skim time 
-#Go find the existing list of research questions 
 ```
+
 
 ```{r setup, include=FALSE, echo=FALSE}
 
@@ -35,9 +33,13 @@ load( "/Users/sophielitschwartz/Dropbox/clusterRCTsim/results_agg/processed_simu
 
 require(tidyverse)
 require(rlang)
-library(stargazer)
+require(stargazer)
+require( ggthemes )
+require(broom)
+require(knitr)
+require(kableExtra)
 
-library( ggthemes )
+
 
 my_t = theme_tufte() + theme( legend.position="bottom", 
                               legend.direction="horizontal", legend.key.width=unit(1,"cm"),
@@ -53,8 +55,6 @@ DGP_vars <- c( "K", "J.bar", "p.bar", "sd.ATE", "ICC", "variable.J", "variable.p
 ## Introduction and Overview
 
 *I need to write this once I figure out what goes here 
-
-
 
 ## Data Generating Process
 
@@ -110,36 +110,92 @@ true.se.ratio=(round(SE.f/SE.s,4)))
 
 
 
-df.plot.estimands<-sruns.graph %>% filter(method=="LRa-FE-db") %>%
-                             
-   %>%
-                                  dplyr::select(method,sim.id, all_of(vary_cols),
-                                         ATE.super.school, ATE.super.student, 
-                                         ATE.super.dist.school, ATE.super.dist.student) %>%
-                                  pivot_longer(cols=starts_with("ATE.super"),
-                                               names_to = "Estimand.type", values_to ="Estimand.values") %>%
-                                separate(col=Estimand.type,into = c("junk","Estimand.type"),sep="ATE.") %>% 
-                                dplyr::select(-junk)
-```
+#figure out which estimators produce the same ATE results 
 
-```{r dataprep, echo=FALSE, include=FALSE, fig.width=7, fig.height=6}
+group_estimators <- function( rps,var ) {
+  
+  wid <-rps %>% dplyr::select( ID, method, all_of(var) ) %>% 
+    pivot_wider( names_from = method, values_from = var ) %>%
+    dplyr::select( -ID)
+  
+  results <- combn(names(wid), 2, function(x) {
+    mean_diff <- mean(wid[[x[1]]] - wid[[x[2]]])
+    tibble(pair = paste(x, collapse = " - "), mean_difference = round( mean_diff, digits=10 ) )
+  }, simplify = FALSE) %>% bind_rows()
+  
+  
+  # Create a matrix where each element is the mean difference between two columns
+  mean_diff_matrix <- outer(1:ncol(wid), 1:ncol(wid), Vectorize(function(x, y) {
+    abs( mean(wid[[x]] - wid[[y]]) )
+  }))
+  
+  # Naming rows and columns for clarity
+  colnames(mean_diff_matrix) <- names(wid)
+  rownames(mean_diff_matrix) <- names(wid)
+  
+  mean_diff_matrix
+  
+  # Assuming mean_diff_matrix is your matrix of pairwise mean differences
+  tolerance <- 10^-7
+  
+  # Create a binary matrix where 1 indicates differences below the tolerance
+  binary_matrix <- 0 + (mean_diff_matrix < tolerance)
+  binary_matrix
+  
+  # Convert this binary matrix into a list of groups
+  groups <- list()
+  already_included <- c()
+  
+  ests = sort( rownames(binary_matrix) )
+  for (i in ests) {
+    if (!( i %in% already_included)) {
+      # Find indices where the estimator is within tolerance of others
+      in_group <- which(binary_matrix[i, ] == 1)
+      group_names <- colnames(binary_matrix)[in_group]
+      groups[[length(groups) + 1]] <- group_names
+      already_included <- c(already_included, group_names)
+    }
+  }
+  groups
+}
 
-```
+groups<-group_estimators(sruns.full_factor, var= "mean.ATE.hat")
+
+
+# List the groups
+map_chr( groups, paste, collapse = ", " ) %>%
+  as.data.frame() %>%
+  mutate( grp = 1:n() ) %>%
+  relocate( grp ) %>%
+  knitr::kable()
+
+
+#this is the list of methods that don't produce the same ATE estimates
+core.methods <- c("LRa-FE-db", "LRa-FIcw-db", "LRapw-FE-db", "LRapw-FIpw-db", "MLM-FE", "MLM-FIcw", "MLM-RE")
+
+
+#this is the list of MLM methods
+MLM.methods<-c( "MLM-FE", "MLM-FIcw", "MLM-RE" )
+
+#this is the list of methods that don't produce the same se estimates
+all.methods<-all_methods <- c("LRa-FE-db", "LRa-FE-het", "LRicw-FE-crve", "LRicw-FE-db","LRa-FIcw-db","LRa-FIcw-het", "LRicw-FIcw-crve", "LRicw-FIcw-db", "LRapw-FE-db", "LRapw-FE-het", "LRi-FE-crve", "LRi-FE-db","LRapw-FIpw-db", "LRapw-FIpw-het", "LRi-FIpw-crve", "LRi-FIpw-db", "MLM-FE", "MLM-FIcw","MLM-RE")
+
+groups<-group_estimators(sruns.full_factor, var= "mean.SE.hat")
+
+
+# List the groups
+map_chr( groups, paste, collapse = ", " ) %>%
+  as.data.frame() %>%
+  mutate( grp = 1:n() ) %>%
+  relocate( grp ) %>%
+  knitr::kable()
+
+
+core.methods.se <- c("LRa-FE-db", "LRa-FE-het", "LRa-FIcw-db", "LRapw-FE-db", "LRapw-FE-het", "LRapw-FIpw-db", "LRapw-FIpw-het", "LRicw-FE-crve", "LRicw-FIcw-crve", "MLM-FE", "MLM-FIcw", "MLM-RE")
 
 
 
 
-
-```{r estimands, echo=FALSE, include=T,fig.width=7, fig.height= 6}
-
-
-
-ggplot(data=df.plot.estimands %>% filter(sim.id %in% c("size.impact.cor.district","base.values")))+
-  geom_line(aes(y=Estimand.values,x=size.impact.cor.district,color=Estimand.type))+
-  geom_hline(yintercept = .2, color="black", lty=2)+
-  scale_y_continuous(limits =c(.12,.26),breaks = seq(.12,.26,.02))+
-  labs(x="Correlation between Treatment Effect and District Size",
-       y="Estimand Value")
 
 
 ```
@@ -205,6 +261,43 @@ ggplot(sruns.graph %>% filter(weight=="Person"), aes(x = method, y = bias.s.stu,
 ```
 
 ```{r biasmodel, include=TRUE, echo=FALSE, results='asis'}
+
+# Function to create labeled factors with zero as base level
+create_labeled_factor <- function(x) {
+  unique_values <- sort(unique(x))
+  num_levels <- length(unique_values)
+  
+  if (num_levels == 1) {
+    # If only one level, just return as is
+    return(factor(x))
+  } else if (num_levels == 2) {
+    # For two levels: 0 (base) and "L" (for larger value)
+    labels <- c("0", "L")
+    return(factor(x, levels = unique_values, labels = labels))
+  } else if (num_levels == 3) {
+    # For three levels: 0 (base), "S" (small/middle), and "L" (large)
+    labels <- c("0", "S", "L")
+    return(factor(x, levels = unique_values, labels = labels))
+  } else {
+    # For more than three levels, label by position
+    # Zero is always the base (first level), and others are numbered
+    zero_pos <- which(unique_values == 0)
+    if (length(zero_pos) > 0) {
+      # Reorder so 0 is first
+      ordered_levels <- c(0, unique_values[unique_values != 0])
+      labels <- c("0", paste0("L", 1:(num_levels-1)))
+      return(factor(x, levels = ordered_levels, labels = labels))
+    } else {
+      # If no zero value exists, just use ordered values
+      warning("No zero value found in variable. Using smallest value as base.")
+      labels <- c("0", paste0("L", 1:(num_levels-1)))
+      return(factor(x, levels = unique_values, labels = labels))
+    }
+  }
+}
+
+
+
 sruns.model <- sruns.full_factor %>%  
    mutate(block_type = case_when(
    variable.J == FALSE & sd.ATE == 0 & 
@@ -221,29 +314,223 @@ sruns.model <- sruns.full_factor %>%
    
    TRUE ~ "Other"  # Catch any other combinations
  ) ) %>% mutate(
-   bias.f.estimand = case_when(
-     weight == "Cluster" ~ bias.f.sch,
-     weight == "Person" ~ bias.f.stu
+   bias.s.estimand = case_when(
+     weight == "Cluster" ~ bias.s.sch,
+     weight == "Person" ~ bias.s.stu
    ))%>% 
-  mutate(
-   sd.ATE = as.factor(sd.ATE),
-   size.impact.cor = as.factor(size.impact.cor),
-   J.bar = as.factor(J.bar),
-   sd.school = as.factor(sd.school),
-   ICC.school = as.factor(ICC.school), 
-   size.ratio.school = as.factor(size.ratio.school),
-   num.cov.school = as.factor(num.cov.school),
-   proptx.impact.cor = as.factor(proptx.impact.cor),
-   size.intercept.cor = as.factor(size.intercept.cor),
-   size.impact.cor.school = as.factor(size.impact.cor.school)
- )
+mutate(
+  sd.ATE = create_labeled_factor(sd.ATE),
+  size.impact.cor = create_labeled_factor(size.impact.cor),
+  J.bar = create_labeled_factor(J.bar),
+  sd.school = create_labeled_factor(sd.school),
+  ICC.school = create_labeled_factor(ICC.school),
+  size.ratio.school = create_labeled_factor(size.ratio.school),
+  num.cov.school = create_labeled_factor(num.cov.school),
+  proptx.impact.cor = create_labeled_factor(proptx.impact.cor),
+  size.intercept.cor = create_labeled_factor(size.intercept.cor),
+  size.impact.cor.school = create_labeled_factor(size.impact.cor.school),
+  bias.s.estimand.mag=abs(bias.s.estimand)
+)
+
+# Check the levels of one of the variables
+levels(sruns.model$sd.ATE)
 
 
-model.sch <- lm(bias.f.sch ~ (block_type+J.bar +  size.impact.cor.school +  sd.school + ICC.school +  variable.n + size.ratio.school + num.cov.school)^2, data = sruns.model %>% filter(weight=="Cluster"))
+# Get unique methods
+methods <- unique(sruns.model$method)
 
-model.stu <- lm(bias.f.stu ~ (block_type+J.bar +  size.impact.cor.school +  sd.school + ICC.school +  variable.n + size.ratio.school + num.cov.school)^2, data = sruns.model %>% filter(weight=="Person"))
+# Create a list to store models
+models_by_method <- list()
+model_summaries <- list()
 
-model.full <- lm(bias.f.estimand ~ (block_type+J.bar +  size.impact.cor.school +  sd.school + ICC.school +  variable.n + size.ratio.school + num.cov.school)^2, data = sruns.model)
+# Run separate models for each method
+for (m in methods) {
+  # Subset data for this method
+  method_data <- sruns.model %>% filter(method == m)
+  
+  # Run the model for this method
+  # Note: I'm using bias.s.estimand as you specified in your formula
+  # Make sure this column exists or replace with the correct one
+  models_by_method[[m]] <- lm(bias.s.estimand.mag ~ (block_type + J.bar + size.impact.cor.school + 
+                                                 sd.school + ICC.school + variable.n + 
+                                                 size.ratio.school + num.cov.school)^2, 
+                              data = method_data)
+  
+  # Store summary statistics
+  model_summaries[[m]] <- broom::tidy(models_by_method[[m]])
+  
+  # Print basic information about the model
+  cat("\n\n=======================================\n")
+  cat("Model for method:", m, "\n")
+  cat("Number of observations:", nrow(method_data), "\n")
+  cat("R-squared:", summary(models_by_method[[m]])$r.squared, "\n")
+  cat("=======================================\n\n")
+}
+
+# Function to extract important coefficients from each model
+# You can customize this based on what you want to compare
+extract_key_coefficients <- function(model_list) {
+  result <- data.frame()
+  
+  for (m in names(model_list)) {
+    # Get top coefficients by absolute t-value
+    top_coefs <- broom::tidy(model_list[[m]]) %>%
+      filter(!is.na(p.value)) %>%
+      arrange(p.value) %>%
+      head(5)
+    
+    # Add method column
+    top_coefs$method <- m
+    
+    # Append to results
+    result <- rbind(result, top_coefs)
+  }
+  
+  return(result)
+}
+
+# Get key coefficients from all models
+key_coefficients <- extract_key_coefficients(models_by_method)
+
+# Example of how to access individual models
+# summary(models_by_method[["your_method_name"]])
+
+# Print top significant coefficients across all methods
+print(key_coefficients, n=100)
+
+###### this is where I started with the unedited code I got from Claude starts 
+
+# Get unique methods
+methods <- unique(sruns.model$method)
+
+# Create a list to store models
+models_by_method <- list()
+
+# Run separate models for each method
+for (m in methods) {
+  # Subset data for this method
+  method_data <- sruns.model %>% filter(method == m)
+  
+  # Run the model for this method
+  models_by_method[[m]] <- lm(bias.s.estimand ~ (block_type + J.bar + size.impact.cor.school + 
+                                                  sd.school + ICC.school + variable.n + 
+                                                  size.ratio.school + num.cov.school)^2, 
+                              data = method_data)
+}
+
+# Create comparison table
+create_comparison_table <- function(model_list) {
+  # Initialize a list to store tidy model outputs
+  tidy_models <- list()
+  
+  # Process each model
+  for (m in names(model_list)) {
+    # Get model coefficients and p-values
+    model_stats <- tidy(model_list[[m]]) %>%
+      # Create a column with coefficient and p-value together
+      mutate(coef_pval = sprintf("%.3f (p=%.3f)", estimate, p.value))
+    
+    # Add to our list
+    tidy_models[[m]] <- model_stats
+  }
+  
+  # Combine all models into a single data frame
+  all_terms <- unique(unlist(lapply(tidy_models, function(x) x$term)))
+  
+  # Initialize result dataframe
+  result <- data.frame(term = all_terms)
+  
+  # Add each method's coefficients as a column
+  for (m in names(model_list)) {
+    temp_df <- tidy_models[[m]] %>% 
+      select(term, coef_pval)
+    
+    # Rename to method name
+    names(temp_df)[2] <- m
+    
+    # Join to result
+    result <- result %>% 
+      left_join(temp_df, by = "term")
+  }
+  
+  return(result)
+}
+
+# Create simplified version with main effects only
+create_main_effects_table <- function(model_list) {
+  # Initialize a list to store tidy model outputs
+  tidy_models <- list()
+  
+  # Process each model
+  for (m in names(model_list)) {
+    # Get model coefficients and p-values
+    model_stats <- tidy(model_list[[m]]) %>%
+      # Filter for main effects only (terms without ":")
+      filter(!grepl(":", term)) %>%
+      # Create a column with coefficient and p-value together
+      mutate(coef_pval = sprintf("%.3f (p=%.3f)", estimate, p.value))
+    
+    # Add to our list
+    tidy_models[[m]] <- model_stats
+  }
+  
+  # Combine all models into a single data frame
+  all_terms <- unique(unlist(lapply(tidy_models, function(x) x$term)))
+  
+  # Initialize result dataframe
+  result <- data.frame(term = all_terms)
+  
+  # Add each method's coefficients as a column
+  for (m in names(model_list)) {
+    temp_df <- tidy_models[[m]] %>% 
+      select(term, coef_pval)
+    
+    # Rename to method name
+    names(temp_df)[2] <- m
+    
+    # Join to result
+    result <- result %>% 
+      left_join(temp_df, by = "term")
+  }
+  
+  return(result)
+}
+
+# Generate both tables
+full_comparison <- create_comparison_table(models_by_method)
+main_effects_only <- create_main_effects_table(models_by_method)
+
+# Print main effects table (which is more manageable)
+print(main_effects_only)
+
+# If you want to save this to a CSV file:
+# write.csv(full_comparison, "full_model_comparison.csv", row.names = FALSE)
+# write.csv(main_effects_only, "main_effects_comparison.csv", row.names = FALSE)
+
+# Create a nice HTML table for RMarkdown output
+if (requireNamespace("kableExtra", quietly = TRUE)) {
+  main_effects_kable <- kable(main_effects_only, format = "html") %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed"), 
+                  full_width = FALSE) %>%
+    row_spec(0, bold = TRUE, background = "#f7f7f7")
+  
+  # Print the table
+  print(main_effects_kable)
+}
+
+
+
+
+
+
+
+
+
+model.sch <- lm(bias.s.sch ~ (block_type+J.bar +  size.impact.cor.school +  sd.school + ICC.school +  variable.n + size.ratio.school + num.cov.school)^2, data = sruns.model %>% filter(weight=="Cluster"))
+
+model.stu <- lm(bias.s.stu ~ (block_type+J.bar +  size.impact.cor.school +  sd.school + ICC.school +  variable.n + size.ratio.school + num.cov.school)^2, data = sruns.model %>% filter(weight=="Person"))
+
+model.full <- lm(bias.s.estimand ~ (block_type+J.bar +  size.impact.cor.school +  sd.school + ICC.school +  variable.n + size.ratio.school + num.cov.school)^2, data = sruns.model %>% filter( method == "MLM-FIcw"))
 
 
 # Get coefficients
@@ -297,6 +584,38 @@ stargazer(model.sch, model.stu,model.full,
            column.sep.width = "1pt", 
           keep = (2*cutpoint+1):(coef1),
            omit.stat = "f")
+
+bias_column<-"bias.s.estimand"
+
+#just show the cases with the top bias for each model 
+top_five_bias_by_method <- sruns.model %>%
+  # Group by method
+  group_by(method) %>%
+  # Arrange by absolute bias value in descending order
+  arrange(desc(abs(!!sym(bias_column))), .by_group = TRUE) %>%
+  # Take the top 5 rows for each method
+  slice_head(n = 5) %>%
+  # Keep the grouping but sort methods alphabetically
+  arrange(method) %>% 
+  select(sd.ATE, size.impact.cor, J.bar, sd.school, ICC.school, size.ratio.school, num.cov.school, proptx.impact.cor, size.intercept.cor, size.impact.cor.school,block_type,method,bias.s.estimand) %>%
+  filter( abs( bias.s.estimand ) > 0.10 )
+
+rr <- top_five_bias_by_method %>%  arrange(method)%>% as.data.frame()
+View( rr )
+# View results
+print(top_five_bias_by_method %>%  arrange(method)%>% as.data.frame())
+
+View( )
+
+mlm_baddies <- sruns.model %>%
+  dplyr::filter( method == "MLM-FIcw", abs( bias.s.estimand ) > 0.05 ) %>%
+  arrange( -abs( bias.s.estimand ) ) %>%
+  select(sd.ATE, size.impact.cor, J.bar, sd.school, ICC.school, size.ratio.school, num.cov.school, proptx.impact.cor, size.intercept.cor, size.impact.cor.school,block_type,method,bias.s.estimand)
+  
+View( mlm_baddies )
+
+
+
 ```
 
 
