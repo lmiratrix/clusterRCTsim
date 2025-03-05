@@ -1,11 +1,14 @@
 
 
-source( here::here( "R/util.R" ) )
-
+source( here::here( "R/data_generation_code.R" ) )
 
 #' Generate data from a "fingerprint" of a structure (list of cluster
 #' IDs with associated sample sizes) and parameters (values of the
 #' ICC, etc., as you would get from a `describe_data()` call).
+#'
+#' There is no correlation of varying cluster or block sizes with
+#' outcome or treatment impact or proportion treated.  Everything is
+#' independent and, thus, well behaved in principle.
 #'
 #' @param structure A data frame with columns `blockID`, `clusterID`,
 #'   and `Z` (treatment assignment).  If `n` is also present, then the
@@ -14,7 +17,8 @@ source( here::here( "R/util.R" ) )
 #'   number of clusters, etc., as specified by values in the
 #'   parameters list.
 #' @param parameters A list with the following elements: `block_ICC`,
-#'   `cluster_ICC`, `R2.1`, `R2.2`, `ncov.1`, `ncov.2`.
+#'   `cluster_ICC`, `R2.1`, `R2.2`, `ncov.1`, `ncov.2`.  Additional
+#'   elements will be ignored.
 #' @param tau The treatment effect (considered constant across dataset
 #'   at this time).
 #' @param rerandomize If `TRUE`, then the data will be re-randomized,
@@ -26,18 +30,23 @@ source( here::here( "R/util.R" ) )
 #' @return A data frame with the generated data.
 generate_data_from_fingerprint <- function( structure = NULL, parameters = NULL, 
                                             rerandomize = TRUE,
-                                            tau = 0.20,
+                                            tau = 0.0,
                                             names = c( "Yobs", "Z", "clusterID", "blockID") ) {
   
   stopifnot( !is.null( parameters ) )
   
+  # Make the dataset of block and cluster IDs
   if ( is.null( structure ) ) {
     stopifnot( !is.null( parameters ) )
     stopifnot( all( c("K", "n", "n.25", "J", "J.25", "nbar", "Jcv") %in% names(parameters) ) )
     K = parameters$K
+    min.size = parameters$J.25
+    if ( parameters$Jbar - 1 < min.size ) {
+      min.size = 2
+    }
     num_clusters <- cluster_distn(K, parameters$Jbar, 
                                   size.ratio=parameters$Jcv,
-                                  min.size = parameters$J.25 )
+                                  min.size = min.size )
     structure = tibble( blockID = rep( paste0( "B", 1:K ), num_clusters ),
                         clusterID = rep( paste0( "C", 1:sum(num_clusters) ) ) )
     structure$n <- blkvar::block_distn( nrow(structure), 
@@ -63,6 +72,7 @@ generate_data_from_fingerprint <- function( structure = NULL, parameters = NULL,
   structure <- mutate( structure,
                        blockID = as.character(blockID),
                        clusterID = as.character(clusterID ) )
+  
   
   # Generate block and cluster intercepts
   block_int = rnorm( K, mean = 0, sd = sqrt( parameters$block_ICC ) )
@@ -120,6 +130,8 @@ generate_data_from_fingerprint <- function( structure = NULL, parameters = NULL,
     dat <- left_join( dat, W, by="clusterID" )
   }
   
+  
+  # Make the final dataset from the above results
   dat <- dat %>%
     rename( !!names[1] := Yobs,
             !!names[2] := Z,

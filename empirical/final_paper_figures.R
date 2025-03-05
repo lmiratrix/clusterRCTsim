@@ -39,7 +39,7 @@ ate_summary <- combined %>%
 
 # summarize ATE by study-outcome-estimand
 ate_summary_estimand <- combined %>%
-  group_by(Collection, class, low_df, has_single, Project, Trt_arm, Outcome, Covariates, Estimand) %>%
+  group_by(UniqueID, Collection, class, low_df, has_single, Project, Trt_arm, Outcome, Covariates, Estimand) %>%
   summarize(N     = n(),
             Nmiss = sum(is.na(ATE_hat_std)),
             Min   = min(ATE_hat_std, na.rm = T),
@@ -50,7 +50,7 @@ ate_summary_estimand <- combined %>%
 ## Summarize SEhat estimates to calculate ranges ----
 
 se_summary <- combined %>%
-  group_by(Collection, class, low_df, has_single, Project, Trt_arm, Outcome, Outcome_desc, Covariates) %>%
+  group_by(UniqueID,Collection, class, low_df, has_single, Project, Trt_arm, Outcome, Outcome_desc, Covariates) %>%
   summarize(N     = sum(!is.na(SE_hat_std)),
             Nmiss = sum(is.na(SE_hat_std)),
             Min   = min(SE_hat_std, na.rm = T),
@@ -58,7 +58,7 @@ se_summary <- combined %>%
   mutate(Ratio = pmin( 5, Max / Min) )
 
 se_summary_estimand <- combined %>%
-  group_by(Collection, class, low_df, has_single, Project, Trt_arm, Outcome, Outcome_desc, Covariates, Estimand) %>%
+  group_by(UniqueID,Collection, class, low_df, has_single, Project, Trt_arm, Outcome, Outcome_desc, Covariates, Estimand) %>%
   summarize(N     = sum(!is.na(SE_hat_std)),
             Nmiss = sum(is.na(SE_hat_std)),
             Min   = min(SE_hat_std, na.rm = T),
@@ -69,7 +69,7 @@ se_summary_estimand <- combined %>%
 
 se_summary_exclFI <- combined %>%
   filter(!grepl('-FI', Estimator)) %>%
-  group_by(Collection, class, low_df, has_single, Project, Trt_arm, Outcome, Outcome_desc, Covariates) %>%
+  group_by(UniqueID,Collection, class, low_df, has_single, Project, Trt_arm, Outcome, Outcome_desc, Covariates) %>%
   summarize(N     = sum(!is.na(SE_hat_std)),
             Nmiss = sum(is.na(SE_hat_std)),
             Min   = min(SE_hat_std, na.rm = T),
@@ -78,7 +78,7 @@ se_summary_exclFI <- combined %>%
 
 se_summary_estimand_exclFI <- combined %>%
   filter(!grepl('-FI', Estimator)) %>%
-  group_by(Collection, class, low_df, has_single, Project, Trt_arm, Outcome, Outcome_desc, Covariates, Estimand) %>%
+  group_by(UniqueID,Collection, class, low_df, has_single, Project, Trt_arm, Outcome, Outcome_desc, Covariates, Estimand) %>%
   summarize(N     = sum(!is.na(SE_hat_std)),
             Nmiss = sum(is.na(SE_hat_std)),
             Min   = min(SE_hat_std, na.rm = T),
@@ -203,7 +203,18 @@ se_summary_estimand_exclFI %>%
 
 
 
+# Which studies are troublemakers? ----
 
-# And figures for the non-blocked datasets ----
+se_summary_estimand
+se_summary_estimand %>% 
+  ungroup() %>%
+  filter( Ratio > 4.5 ) %>%
+  dplyr::select( Estimand, Collection, Project, low_df, has_single, Ratio ) %>%
+  arrange( Estimand, Ratio ) %>%
+  knitr::kable( digits = 1 )
+
+
+
+
 
 

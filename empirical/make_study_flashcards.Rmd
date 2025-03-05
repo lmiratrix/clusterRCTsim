@@ -1,0 +1,282 @@
+---
+title: "Statistics for all our datasets and outcomes"
+author: "Miratrix"
+date: "2025-02-19"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+# Introduction
+
+This makes a master file describing all our studies and things like their R2 values.  It then prints out each study as a little descriptive table.
+
+
+```{r setup, include=FALSE}
+library(tidyverse)
+knitr::opts_chunk$set(echo = FALSE,
+                      fig.width = 5,
+                      fig.height = 3,
+                      out.width = "75%",
+                      message = FALSE,
+                      fig.align = "center")
+options(list(dplyr.summarise.inform = FALSE))
+theme_set( theme_classic() )
+
+
+#j_studies = read_csv( here::here( "empirical/results/jg_describe.csv" ) )
+source( here::here( "empirical/load_empirical_results.R" ) )
+
+setdiff( names( combined ),
+         names( unblocked ) )
+setdiff(   names( unblocked ),
+           names( combined ))
+
+studies <- bind_rows( Blocked = combined, Unblocked = unblocked, .id="blocked" ) %>%
+  dplyr::filter( Covariates == "best" )
+
+n_defined <- studies %>% 
+  group_by( UniqueID ) %>%
+  summarise( n_ATE = sum( !is.na( ATE_hat ) ),
+             n_SE = sum( !is.na( SE_hat ) ) )
+
+studies <- studies %>%
+  dplyr::filter( Estimator %in% c( "LRi-crve", "LRi-FE-crve" ) ) %>%
+  dplyr::select( -c( Estimator:disfavored ) )
+
+studies <- left_join( studies, n_defined, by="UniqueID" )
+
+source( here::here( "empirical/final_paper_figures.R" ) )
+
+setdiff( ate_summary$UniqueID, ate_summary$UniqueID  )
+
+ranges = bind_rows( ate = ate_summary, 
+                    ate_est = ate_summary_estimand,
+                    se = se_summary,
+                    se_est = se_summary_estimand,
+                    se_noFI = se_summary_exclFI,
+                    se_noFI_est = se_summary_estimand_exclFI,
+                    .id = "measure" ) %>%
+  filter( Covariates == "best" ) %>%
+  mutate( Range = ifelse( is.na( Range ), Ratio, Range ) ) %>%
+  dplyr::select( UniqueID, measure, Estimand, Range )
+ranges$Estimand[ is.na( ranges$Estimand ) ] = ""
+table( ranges$Estimand, ranges$measure )
+
+filter( ate_summary,  UniqueID == "TRIAD_rema2" )
+print( filter( ranges, UniqueID == "TRIAD_rema2" ), n = 30 )
+
+ranges <- mutate( ranges,
+                  measure = str_replace( paste0( measure, Estimand ), "_est", "_" ) )
+table( ranges$measure )
+
+ranges <- mutate( ranges,
+                  ate = str_detect(measure, "ate"),
+                  big = ifelse( Range > ifelse( ate, 0.10, 4 ), "***", "" ) ) 
+
+table( ranges$UniqueID )
+table( ranges$measure )
+rW <- ranges %>%
+  dplyr::select( UniqueID, measure, Range, big ) %>%
+  pivot_wider( names_from = measure, values_from = c(Range, big), names_vary = "slowest" )
+rW
+
+studies
+
+studies <- left_join( studies, rW, by="UniqueID" )
+
+names(studies)
+
+write_csv( studies, here::here( "empirical/results/study_descriptions.csv" ) )
+names( studies )
+nrow( studies )
+
+colnames(studies) <- str_replace( colnames(studies), "_Cluster", "_Clu" )
+colnames(studies) <- str_replace( colnames(studies), "_Person", "_Per" )
+colnames(studies) <- str_replace( colnames(studies), "_exclFI", "_noFI" )
+colnames(studies) <- str_replace( colnames(studies), "Range_", "R_" )
+
+
+```
+
+Our count of studies is the following:
+```{r}
+whole_studies <- studies %>%
+  group_by( Project,Collection, blocked ) %>%
+  summarise( n = n() )
+table( whole_studies$Collection, whole_studies$blocked ) %>%
+  knitr::kable()
+```
+
+Our count of outcomes is the following:
+
+```{r}
+table( studies$Collection, studies$blocked ) %>%
+  knitr::kable()
+```
+
+The number of large ranges of SE and ATE (*** means yes, blank means no):
+
+```{r}
+table( `big ATE range` = studies$big_ate, `big SE ratio` = studies$big_se ) 
+```
+
+Some statistics across the `r nrow(filter( studies, blocked=="Blocked"))` outcomes:
+```{r}
+studies %>%
+  filter( blocked == "Blocked" ) %>%
+  pivot_longer( c( n, ncv, nbar, J, Jcv, K, cluster_ICC, block_ICC, R2.1, R2.2, p.tx, R_ate, R_se ),
+                names_to="statistic", values_to="value" ) %>%
+  group_by( statistic ) %>%
+  summarise( mean = mean(value),
+             median = median( value ),
+             sd = sd(value),
+             Q10 = quantile(value, 0.1),
+             Q90 = quantile(value, 0.9) ) %>%
+  knitr::kable(digits = 2)
+
+```
+
+# The troublesome studies
+
+## High range of ATE estimates
+
+```{r}
+ss <- studies %>%
+  filter( blocked == "Blocked", R_ate > 0.15 ) %>%
+  dplyr::select( Project, UniqueID, K, J, n, cons_df, R_ate, R_ate_Clu, R_ate_Per )
+
+ss %>%
+  knitr::kable( digits = 2 )
+```
+
+
+
+## High range of ATE estimates within Estimand
+
+```{r}
+ss <- studies %>%
+  filter( blocked == "Blocked", R_ate > 0.15 | R_ate_Clu > 0.10 | R_ate_Per > 0.10 ) %>%
+  dplyr::select( Project, UniqueID, K, J, n, cons_df, R_ate, R_ate_Clu, R_ate_Per )
+
+ss %>%
+  knitr::kable( digits = 2 )
+
+cc <- combined %>%
+  dplyr::filter( UniqueID %in% ss$UniqueID, Covariates == "best" ) 
+
+cc %>%
+  group_by( UniqueID, num_singletons, ncv, Jcv ) %>% 
+  summarise( ATE_min = min( ATE_hat_std, na.rm=TRUE ),
+             ATE_max = max( ATE_hat_std, na.rm=TRUE ),
+             range = ATE_max - ATE_min,
+             SE_avg = mean( SE_hat_std, na.rm=TRUE ),
+             n_est = n(),
+             n_def = sum( !is.na( ATE_hat_std ) ) ) %>%
+  arrange( UniqueID ) %>%
+  knitr::kable( digits = 2 )
+```
+
+
+```{r, fig.width = 8, fig.height = 6, out.height= "70%" }
+
+ggplot( cc, aes(Estimator, ATE_hat_std, color = Estimand ) ) +
+  facet_wrap( ~ UniqueID, scales="free_x", nrow=1 ) +
+  geom_point() +
+  geom_point( data=filter(cc,str_detect( Estimator, "MLM" ) ), 
+              color="black", shape = 21, size = 3 ) +
+  coord_flip()
+```
+
+
+## High range of SE estimates
+
+```{r}
+ss <- studies %>%
+  filter( blocked == "Blocked", R_se > 4 | R_se_Clu > 4 | R_se_Per > 4 ) %>%
+  dplyr::select( Project, UniqueID, K, J, n, cons_df, R_se, R_se_Clu, R_se_Per )
+
+ss %>%
+  arrange( UniqueID ) %>%
+  knitr::kable( digits = 2 )
+
+combined %>%
+  dplyr::filter( UniqueID %in% ss$UniqueID, Covariates == "best" ) %>%
+  group_by( UniqueID, cons_df, num_singletons ) %>% 
+  summarise( SE_min = min( SE_hat_std, na.rm=TRUE ),
+             SE_max = max( SE_hat_std, na.rm=TRUE ),
+             n_est = n(),
+             n_def = sum( !is.na( SE_hat_std ) ) ) %>%
+  arrange( UniqueID ) %>%
+  knitr::kable( digits = 4 )
+```
+
+```{r}
+jg_crt_6 <- filter( combined, UniqueID == "jg_crt_6" ) %>%
+  dplyr::filter( !is.na( SE_hat_std ) ) %>%
+  mutate( Estimator = factor(Estimator),
+          Estimator = fct_reorder(Estimator, SE_hat_std,.na_rm=TRUE) )
+ggplot( jg_crt_6, aes( Estimator, SE_hat_std, col = Covariates ) ) +
+  geom_point() +
+  coord_flip() +
+  labs( title = "jg_crt_6 SE estimates",
+        subtitle = "(For defined estimators)" )
+```
+
+
+
+# The individual studies follow:
+
+
+
+```{r, results="asis"}
+studies <- arrange( studies, blocked, Collection, Project, Outcome)
+walk( 1:nrow(studies), \(rn) {
+  cat( "\\newpage\n\n" )
+  if ( rn %% 2 == 1 ) {
+  }
+  study = studies[rn,]
+  cat(glue::glue( "## {study$UniqueID}: {study$Project}/{study$Outcome}\t({study$Collection}/{study$blocked})" ) )
+  cat( "\n```\n" )
+  clusterRCT:::print.clusterRCTstats(study)
+  cat( "\n```\n\n" )
+  
+  if ( study$blocked == "Blocked" ) {
+    cat( "\n\nRanges of estimates:\n\n" )
+    ss <- study %>%
+      dplyr::select( R_ate:big_se_noFI_Per )
+    ss <-    ss %>%
+      pivot_longer(
+        cols = everything(),
+        names_to = c(".value", "measure"),
+        names_pattern = "([^_]*)_(.*)"
+      ) %>%
+      mutate( R = paste0( round( R, digits = 2 ), big ),
+              measure = str_replace( measure, "R_", "" ) ) %>%
+      dplyr::select( -big ) %>%
+      pivot_wider( names_from = measure, values_from = R )
+    
+    
+    print( knitr::kable( ss, digits = 2 ) )
+  }
+  
+  cat( "\n\n * ", glue::glue( "Rough degrees-of-freedom: {study$cons_df}"), "\n")
+  cat( "\n\n * ", glue::glue( "num ATE ests {study$n_ATE}, num SE ests {study$n_SE}"), "\n")
+  if ( study$matched_pairs ) {
+    cat( "\n * Matched pairs experiment\n" )
+  } else if ( study$num_singletons > 0 || study$num_doubletons > 0 ) {
+    cat( "\n * ", glue::glue("num Singletons: {study$num_singletons}" ), "\n" )
+    cat( "\n * ", glue::glue("num Doubletons: {study$num_doubletons}" ), "\n" )
+  }
+  
+  #cat( glue::glue( "Outcome description: {study$Outcome_desc}"), "\n")
+  if ( !is.na( study$notes ) ) {
+    cat( "\n * ", glue::glue( "\nNotes: {study$notes}"), "\n")
+  }
+  if ( !is.na( study$lead_author) ) {
+    cat( "\n * ", glue::glue( "\n{study$lead_author} ({study$year})" ), "\n" )
+  }
+  cat( "\n\n\n" )
+} )
+```
+

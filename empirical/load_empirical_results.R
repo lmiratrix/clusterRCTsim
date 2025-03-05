@@ -138,6 +138,7 @@ if ( FALSE ) {
 combined <- combined %>% 
   group_by( UniqueID, Covariates ) %>%
   mutate( low_df = ifelse( min( df ) < 10, "low", "high" ),
+          cons_df = J - 2*K,
           has_single = num_singletons > 0,
           class = case_when(
             low_df == "low" & has_single ~ "Low df & singletons",

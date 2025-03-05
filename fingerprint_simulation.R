@@ -1,79 +1,35 @@
 
-
-source( here::here( "R/util.R" ) )
-source( here::here( "R/generate_data_from_fingerprint.R" ) )
-
-
-generate_and_analyze <- function( structure = NULL, parameters = NULL, ... ) {
-
-  dat = generate_data_from_fingerprint( structure = structure,
-                                        parameters = parameters )  
-  
-  compare_methods( Yobs ~ Z | clusterID | blockID, 
-                   data = dat, ... )  
-}
+# "Fingerprint" simulations are simulations calibrated to the
+# structure of a given dataset, or set of descriptive statistics
+# regarding a specific dataset.
+#
+# They usually have no treatment effect, and are more about much
+# variation we would see across estimators when there is in fact no
+# variation in the treatment effect, and thus in the possible
+# estimands one might consider.
 
 
-#' Run a finite sample simulation by permuting treatment assignment
-#' labels within each block.
-run_fingerprint_simulation <- function( structure = NULL, parameters = NULL, 
-                                        R = 100, ... ) {
-  
-  rps = map( 1:R, \(.) { generate_and_analyze( structure, parameters, ... ) },
-             .progress = TRUE )
-  
-  rps %>%
-    bind_rows() %>%
-    group_by( method, weight, biased ) %>%
-    summarise( EATE = mean( ATE_hat ),
-               ESEhat = sqrt( mean( SE_hat^2 ) ),
-               sdSEhat = sd( SE_hat ),
-               Q10 = quantile( SE_hat, 0.1 ),
-               Q90 = quantile( SE_hat, 0.9 ),
-               SE = sd( ATE_hat ), .groups = "drop" )
-  
-}
+source( "R/calibrated_simulation_code.R" )
 
 
-# Demo on fakeCRT ----
+# ---- First simulation ----
 
-data( fakeCRT )
-dd = describe_clusterRCT( Yobs ~ T.x | S.id | D.id, data = fakeCRT,
-                          control_formula = ~ X.jk + C.ijk )
-dd
+# Check one of our empirical studies --- do we get ranges like what we saw?
 
-struc <- get_structure( Yobs ~ T.x | S.id | D.id, data=fakeCRT )
-struc
+studies = read_csv( here::here( "empirical/results/study_descriptions.csv" ),
+                    show_col_types = FALSE )
+studies
 
-sim_res <- run_fingerprint_simulation( structure = struc, parameters = dd,
-                                       R = 100,
-                                       include_MLM = FALSE )
-sim_res
-
-ggplot( sim_res, aes( method, SE ) ) +
-  geom_point( aes( y = ESEhat, color = "SE_hat") ) +
-  geom_errorbar( aes( ymin = Q10, ymax = Q90, color = "SE_hat" ), width = 0 ) +
-  geom_point( aes( color = "true SE" ), size = 2 ) +
-  coord_flip()
-
-sL <- sim_res %>%
-  pivot_longer( cols = c(EATE, ESEhat, sdSEhat, SE), names_to="metric", values_to="value" )
-sL
-
-ggplot( sL, aes( method, value, pch=weight )) +
-  facet_wrap( ~ metric, scales="free_x" ) +
-  geom_hline( yintercept = 0 ) +
-  geom_point() +
-  coord_flip()
-
-sim_res
+stud = filter( studies, UniqueID == "CARES_TR_BPI_Incred" )
+clusterRCT:::print.clusterRCTstats( stud )
 
 
-# TODO: See if this compares to the permutation method---we should get
-# the same pattern of results?
+run_fingerprint_simulation( structure = NULL, parameters = stud, R = 10,
+                            include_MLM = FALSE )
 
 
-# Second simulation ----
+
+# Second simulation (simulation code check) ----
 
 # TODO: See if this compares to just generating data over and over?
 # We should get the same pattern of results.

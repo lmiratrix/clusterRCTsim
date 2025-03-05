@@ -1,6 +1,6 @@
 
 
-source( here::here( "R/util.R" ) )
+source( "R/calibrated_simulation_code.R" )
 
 data( fakeCRT )
 head( fakeCRT )
@@ -8,34 +8,7 @@ head( fakeCRT )
 #formula = Yobs ~ T.x | S.id | D.id
 #data = fakeCRT
 
-rerandomize_and_analyze <- function( formula, data, ... ) {
-  
-  form <- clusterRCT:::deconstruct_var_formula( formula, data = data )
-  
-  data[form$Z] = rerandomize( data[[form$Z]], data[[form$clusterID]], data[[form$blockID]] )
-  
-  compare_methods( formula, data, ... )  
-}
 
-
-#' Run a finite sample simulation by permuting treatment assignment
-#' labels within each block.
-run_rerandomize_simulation <- function( formula, data, R = 100, ... ) {
-  
-  rps = map( 1:R, \(.) { rerandomize_and_analyze( formula, data, ... ) },
-             .progress = TRUE )
-  
-  rps %>%
-    bind_rows() %>%
-    group_by( method, weight, biased ) %>%
-    summarise( EATE = mean( ATE_hat ),
-               ESEhat = sqrt( mean( SE_hat^2 ) ),
-               sdSEhat = sd( SE_hat ),
-               Q10 = quantile( SE_hat, 0.1 ),
-               Q90 = quantile( SE_hat, 0.9 ),
-               SE = sd( ATE_hat ), .groups = "drop" )
-  
-}
 
 sim_res <- run_rerandomize_simulation( Yobs ~ T.x | S.id | D.id, 
                                        data=fakeCRT,
