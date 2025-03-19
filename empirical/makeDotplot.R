@@ -24,7 +24,7 @@ makeDotplot <- function(df, var,
                         byest      = F) {
   
   p <- ggplot(df, aes(x = !!sym(var))) +
-    geom_dotplot( aes( fill = low_df, color = has_single ),
+    geom_dotplot( aes( fill = low_df ),
                   binwidth   = binw,
                   dotsize    = 0.8,
                   stackratio = 1.2,
@@ -36,8 +36,8 @@ makeDotplot <- function(df, var,
          y        = ylab,
          title    = title,
          subtitle = subtitle,
-         color = "Structure",
-         fill = "DF" ) +
+   #      color = "Structure",
+         fill = "df" ) +
     theme(axis.text.y        = element_blank(),
           panel.grid.major.y = element_blank(),
           panel.grid.minor.y = element_blank(),

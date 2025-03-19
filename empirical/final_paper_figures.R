@@ -27,6 +27,8 @@ source( here::here( "empirical/calculate_all_ranges.R" ) )
 
 
 # Make Paper Figures ----
+
+
 ## Figure 1: The Range (across 11 Estimators) of Estimates of β for {n_outcomes} Outcomes ----
 table( summary_stats$class )
 nrow( summary_stats )
