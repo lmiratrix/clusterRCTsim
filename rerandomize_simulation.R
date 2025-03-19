@@ -9,8 +9,6 @@ head( fakeCRT )
 #formula = Yobs ~ T.x | S.id | D.id
 #data = fakeCRT
 
-debug( run_rerandomize_simulation )
-
 sim_res <- run_rerandomize_simulation( Yobs ~ T.x | S.id | D.id, 
                                        data=fakeCRT,
                                        R = 3,

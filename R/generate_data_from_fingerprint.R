@@ -50,8 +50,8 @@ generate_data_from_fingerprint <- function( structure = NULL, parameters = NULL,
 
     # This should allow variation in treatment
     probs <- generate_treatment_probabilities( K, 
-                                               parameters$tx.avg,
-                                               parameters$tx.cv * parameters$tx.avg )
+                                               mean = parameters$tx.avg,
+                                               sd = parameters$tx.cv * parameters$tx.avg )
     num_Z = round( num_clusters * probs )
     num_Z = ifelse( num_Z == 0, 1, ifelse( num_Z == num_clusters, num_clusters-1, num_Z  ) )
     

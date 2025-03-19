@@ -190,7 +190,9 @@ if ( FALSE ) {
 
 
 
-generate_treatment_probabilities <- function(n, mean, var) {
+generate_treatment_probabilities <- function(n, mean, sd) {
+  var = sd^2
+  
   alpha <- mean * ((mean * (1 - mean) / var) - 1)
   beta <- (1 - mean) * ((mean * (1 - mean) / var) - 1)
   
@@ -201,12 +203,15 @@ generate_treatment_probabilities <- function(n, mean, var) {
   rbeta(n, alpha, beta)
 }
 
-# Example: Generate 1000 numbers with mean = 0.5 and variance = 0.02
-set.seed(123)
-random_numbers <- generate_treatment_probabilities(100000, mean = 0.5, var = 0.2)
 
-# Check mean and variance
-mean(random_numbers)
-var(random_numbers)
-
+if ( FALSE ) {
+  # Example: Generate 1000 numbers with mean = 0.5 and variance = 0.02
+  set.seed(123)
+  random_numbers <- generate_treatment_probabilities(100000, mean = 0.5, var = 0.2)
+  
+  # Check mean and variance
+  mean(random_numbers)
+  var(random_numbers)
+  
+}
 
