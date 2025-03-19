@@ -14,6 +14,7 @@ library( multiwayvcov )
 library( clusterRCT )
 
 source( here::here( "R/util.R" ) )
+source( here::here( "R/generate_nonnegative_integers.R" ) )
 
 #### Utility functions #####
 
@@ -28,10 +29,12 @@ scat = function( str, ... ) {
 #### Data-generating process ####
 
 # generate variable cluster sizes
-#  - analogue to blkvar::block_distn()
-cluster_distn <- function(K, J.bar, size.ratio, min.size = 4) {
-  stopifnot(J.bar >= min.size + 1)
-  nk <- min.size + blkvar::block_distn(J=K, n.bar=J.bar-min.size, size.ratio, min.size=0 )
+cluster_distn <- function(K, J.bar, cv, min.size = 4) {
+  stopifnot(J.bar >= min.size)
+  sd = cv * J.bar
+  nk <- min.size + generate_nonnegative_integers( n = K, 
+                                                  mean = J.bar-min.size, 
+                                                  sd = sd )
   #nk[nk<min.size] <- min.size
   stopifnot( all( nk >= min.size ) )
   nk
@@ -303,13 +306,14 @@ describe_district_grid <- function( grid ) {
 #'   (i.e., the target cluster-average ATE for each district).  The
 #'   district average ATE is what is passed to the code to generate
 #'   the clusters for the district as the "ATE."
-#' @param size.ratio This number is a measure of how variable the
-#'   cluster sizes are.
-#' @param size.ratio.district If variable.J is TRUE, use this as a
-#'   measure of how much variation there is in number of clusters per
-#'   district.  If variable.nbar is TRUE, ALSO use this as a measure
-#'   of how much variation there is in the average size of clusters
-#'   within a district.
+#' @param cv.school This is the coefficient of variation of cluster
+#'   sizes.
+#' @param cv.district This is the coefficient of variation of the
+#'   number of clusters in each district, across districts.
+#' @param cv.nbar This is the coefficient of variation of how much
+#'   variation there is in the cluster sizes within district, across
+#'   district (i.e., how much average cluster size `nbar` varies
+#'   across district)
 #' @param empirical If TRUE generate district variation to get as
 #'   close as possible to the set targets.  In particular, if the
 #'   sd.ATE = 0.1, then the standard deviation of the actual generated
@@ -328,7 +332,8 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
                              variable.J = FALSE,
                              variable.p = FALSE,
                              variable.nbar = FALSE,
-                             size.ratio = 0.6, 
+                             cv.district = 0.6, 
+                             cv.nbar = 0,
                              min.size = 4,
                              size.impact.cor = 0,
                              nbar.J.cor = 0,
@@ -344,7 +349,7 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
                              num.cov.school = 0 + !is.null(R2.school),
                              
                              # correlation params at school level
-                             size.ratio.school = 0.6,
+                             cv.school = 0.6,
                              size.impact.cor.school = 0,
                              
                              # Individual-level params
@@ -371,8 +376,11 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
   
   # district J values
   if (variable.J) {
-    num_clusters <- cluster_distn(K, J.bar, size.ratio=size.ratio, 
-                                  min.size = min.size )
+    stopifnot( cv.district > 0 )
+    num_clusters <- cluster_distn( K = K, 
+                                   J.bar = J.bar, 
+                                   cv=cv.district,
+                                   min.size = min.size )
   } else {
     num_clusters <- rep(J.bar, K)
   }
@@ -445,15 +453,15 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
   
   # Make average cluster sizes for districts
   if (variable.nbar) {
-    n.bar <- cluster_distn(K, n.bar, size.ratio=size.ratio)
-    if (nbar.J.cor != 0 || empirical) {
+    n.bar <- cluster_distn(K, n.bar, cv=cv.nbar)
+    if ( nbar.J.cor != 0 ) {
       n.bar <- induce_cor( x = num_clusters,
                            y = n.bar,
                            cor = nbar.J.cor,
                            empirical = empirical )
     }
   } else {
-    stopifnot( "cannot correlate number of clusters and cluster size if sizes do not vary" = 
+    stopifnot( "cannot correlate number of clusters and average cluster size if average cluster sizes (variable.nbar) do not vary" = 
                  (nbar.J.cor==0) )
   }
   grid$n.bar = n.bar
@@ -462,7 +470,7 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
   # make sure eventual randomization has at least min.size/2 treated/control clusters
   #  in each district, by applying floor and ceiling to p, depending on J
   #   - i.e., force 2 <= J*p <= J-2
-  stopifnot( "All districts should have two clusters at least" = all( grid$J >= 2 ) )
+  stopifnot( "All districts should have max( min.size, 2 )  clusters at least" = all( grid$J >= max( 2, min.size) ) )
   ms2 = pmax( 1, round( min.size/2 ) )
   grid <- grid %>% 
     mutate(p = ifelse(J*p < ms2, ms2/J, p),
@@ -489,7 +497,7 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
   if ( num.cov.school > 0 && is.null( R2.school ) ) {
     grid$R2.school = 0
   }
-  grid$size.ratio.school = size.ratio.school
+  grid$cv.school = cv.school
   grid$size.impact.cor.school = size.impact.cor.school
   
   # Add in the individual level stuff
@@ -548,7 +556,7 @@ generate_data_for_districts <- function(
         finite.model = FALSE,
         size.impact.correlate = sign( size.impact.cor.school ),
         correlate.strength = size.impact.cor.school,
-        size.ratio = size.ratio.school,
+        size.ratio = cv.school * 0.6,
         proptx.impact.correlate = FALSE,
         zero.corr = TRUE,
         varY0 = 1 - ICC.district,
@@ -586,7 +594,7 @@ if (FALSE) {
                            num.cov.district = 3,
                            
                            # correlation params at cluster level
-                           size.ratio = 0.6, 
+                           cv = 0.6, 
                            size.impact.cor = 0.2,
                            proptx.impact.cor = 0.2,
                            size.intercept.cor = 0.2, 
@@ -597,7 +605,7 @@ if (FALSE) {
                            variable.n = TRUE,
                            
                            # correlation params at individual level
-                           size.ratio.school = 0.1,
+                           cv.school = 0.1,
                            size.impact.cor.school = 0.75 )
   
   grid
@@ -621,11 +629,13 @@ if (FALSE) {
 #### Code to simulate full data set ####
 
 
-#' Generate a cluster-randomized trial, with multiple districts
+#' Generate a cluster-randomized trial, with multiple districts.  This
+#' will build a grid of the districts (stats on each of the
+#' districts), and then fill in the grid with individual schools and
+#' students.
 #' 
 generate_districts <- function(
     # district-level params
-  grid = NULL,
   K, J.bar, p.bar=0.5,
   ATE.district, sd.district,
   ICC.district,
@@ -636,7 +646,8 @@ generate_districts <- function(
   num.cov.district = 0 + !is.null(R2.district),
   
   # correlation params at district level
-  size.ratio.district = 0.6, 
+  cv.district = 0.6,
+  cv.nbar = 0,
   size.impact.cor.district = 0,
   proptx.impact.cor.district = 0,
   size.intercept.cor.district = 0,
@@ -648,7 +659,7 @@ generate_districts <- function(
   num.cov.school = 0 + !is.null(R2.school),
   
   # correlation params at school level
-  size.ratio.school = 0.6,
+  cv.school = 0.6,
   size.impact.cor.school = 0.75,
   
   # Individual-level params
@@ -657,11 +668,15 @@ generate_districts <- function(
   
   stopifnot( ICC.district + ICC.school < 1 )
   
-  grid <- build_districts( K = K, J.bar = J.bar, n.bar = n.bar, p.bar = p.bar,
+  grid <- build_districts( K = K, J.bar = J.bar, n.bar = n.bar, 
+                           p.bar = p.bar,
                            ATE = ATE.district, sd = sd.district,
                            ICC = ICC.district,
-                           variable.J = variable.J, variable.p = variable.p, variable.nbar = variable.nbar,
-                           size.ratio = size.ratio.district,
+                           variable.J = variable.J, 
+                           variable.p = variable.p, 
+                           variable.nbar = variable.nbar,
+                           cv.district = cv.district,
+                           cv.nbar = cv.nbar,
                            size.impact.cor = size.impact.cor.district,
                            proptx.impact.cor = proptx.impact.cor.district,
                            size.intercept.cor = size.intercept.cor.district,
@@ -673,12 +688,13 @@ generate_districts <- function(
                            variable.n = variable.n,
                            R2.school = R2.school,
                            num.cov.school = num.cov.school,
-                           size.ratio.school = size.ratio.school,
+                           cv.school = cv.school,
                            size.impact.cor.school = size.impact.cor.school,
                            
                            # Individual-level params
                            R2.indiv = R2.indiv,
                            num.cov.indiv = num.cov.indiv )
+  
   
   sim.data <- generate_data_for_districts( grid, 
                                            ICC.district = ICC.district )
@@ -704,7 +720,7 @@ if (FALSE) {
     variable.p = T,
     
     # correlation params at cluster level
-    size.ratio.district = 0.6, 
+    cv.district = 0.6, 
     size.impact.cor.district = 0.2,
     proptx.impact.cor.district = 0.2,
     size.intercept.cor.district = 0.2,
@@ -716,7 +732,7 @@ if (FALSE) {
     variable.n = T,
     
     # correlation params at individual level
-    size.ratio.school = 0.6,
+    cv.school = 0.6,
     size.impact.cor.school = 0.75
   )
   df

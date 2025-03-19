@@ -45,3 +45,4 @@ test_that("running sim from fingerprint", {
   expect_equal( bb[1,2:8], bb[2,2:8] )
 
 })
+

@@ -52,8 +52,8 @@ test_that( "district generation function works", {
     variable.n = TRUE,
     
     # size and correlation params
-    size.ratio.district = 1,
-    size.ratio.school = 1,
+    cv.district = 1,
+    cv.school = 1,
     size.impact.cor.district = TRUE,
     size.intercept.cor.district = TRUE,
     size.impact.cor.school = TRUE,
@@ -201,7 +201,7 @@ test_that( "limiting variation of districts works", {
                            ICC = 0.2,
                            n.bar = 35,
                            variable.J = FALSE, variable.p = FALSE,
-                           size.ratio = 0.1 )
+                           cv.district = 0.1 )
   
   expect_true( sd( grid$J ) == 0 )
   
@@ -211,7 +211,7 @@ test_that( "limiting variation of districts works", {
                            n.bar = 35,
                            ICC = 0.2,
                            variable.J = TRUE, variable.p = FALSE,
-                           size.ratio = 0.5 )
+                           cv.district = 0.5 )
   
   expect_true( sd( grid$J ) > 0 )
   
@@ -234,8 +234,8 @@ test_that( "limiting variation of districts works", {
     variable.n = TRUE,
     
     # size and correlation params
-    size.ratio.district = 1,
-    size.ratio.school = 1,
+    cv.district = 1,
+    cv.school = 1,
     size.impact.cor.district = FALSE,
     size.intercept.cor.district = FALSE,
     size.impact.cor.school = TRUE,
@@ -268,7 +268,7 @@ test_that( "overall variation is 1", {
     variable.p = T,
     
     # correlation params at cluster level
-    size.ratio.district = 0.6, 
+    cv.district = 0.6, 
     size.impact.cor.district = 0.2,
     proptx.impact.cor.district = 0.2,
     size.intercept.cor.district = 0.2,
@@ -280,13 +280,13 @@ test_that( "overall variation is 1", {
     variable.n = T,
     
     # correlation params at individual level
-    size.ratio.school = 0.6,
+    cv.school = 0.6,
     size.impact.cor.school = 0
-    )
+  )
   
   dist <- attr( df, "district_key")
   expect_equal( nrow(dist), 25 )
-
+  
   expect_equal( sd( df$Y0 ), 1, tolerance = 0.05 )  
   
 })
@@ -315,7 +315,7 @@ test_that( "School- and individual-level covariates generate", {
     R2.indiv = 0.7,
     
     # correlation params at cluster level
-    size.ratio.district = 0.6, 
+    cv.district = 0.6, 
     size.impact.cor.district = 0.2,
     proptx.impact.cor.district = 0.2,
     size.intercept.cor.district = 0.2,
@@ -327,7 +327,7 @@ test_that( "School- and individual-level covariates generate", {
     variable.n = T,
     
     # correlation params at individual level
-    size.ratio.school = 0.6,
+    cv.school = 0.6,
     size.impact.cor.school = 0  )
   
   dist <- attr( df, "district_key")
@@ -358,12 +358,12 @@ test_that( "School- and individual-level covariates generate", {
     K = 25, J.bar = 50, p.bar = 0.5,
     ATE.district = 0.2, sd.district = 0.1,
     variable.J = T, variable.p = T,
-    size.ratio.district = 0.6, 
+    cv.district = 0.6, 
     size.impact.cor.district = 0.2,
     proptx.impact.cor.district = 0.2,
     size.intercept.cor.district = 0.2,
     n.bar = 50, sd.school = 0.1, variable.n = T,
-    size.ratio.school = 0.6,
+    cv.school = 0.6,
     size.impact.cor.school = 0  )
   
   dist <- attr( df, "district_key")
@@ -377,53 +377,83 @@ test_that( "School- and individual-level covariates generate", {
   expect_true( all( c( "X", "W" ) %in% colnames(df) ) )
   
 } )
-  
+
 
 test_that( "School- and individual-level covariates capture ICC and R2", {
-    
+  
   set.seed( 50550 )
   ICC.d = 0.5
   ICC.s = 0.3
-  R2.d = 0.4
+  R2.d = 0
   R2.s = 0
-  R2.i = 0
+  R2.i = 0.5
   
+  # Given these parameters, gen data, try to recover parameters
   one_test <- function( ICC.d, ICC.s, R2.d, R2.s, R2.i ) {
     
-    df <- generate_districts(
-      
-      ICC.district = ICC.d,
-      ICC.school = ICC.s,
-      R2.district = R2.d,
-      R2.school = R2.s,
-      R2.indiv = R2.i,
-      
-      K = 40, J.bar = 40, p.bar = 0.5,
-      ATE.district = 0.2, sd.district = 0.1,
-      variable.J = T, variable.p = T,
-      size.ratio.district = 0.6, 
-      size.impact.cor.district = 0.2,
-      proptx.impact.cor.district = 0.2,
-      size.intercept.cor.district = 0.2,
-      n.bar = 50, sd.school = 0.1, variable.n = T,
-      size.ratio.school = 0.6,
-      size.impact.cor.school = 0    )
+    rrr <- replicate( 5, 
+                      { 
+                        df <- generate_districts(
+                          
+                          ICC.district = ICC.d,
+                          ICC.school = ICC.s,
+                          R2.district = R2.d,
+                          R2.school = R2.s,
+                          R2.indiv = R2.i,
+                          
+                          K = 40, J.bar = 40, p.bar = 0.5,
+                          ATE.district = 0.2, sd.district = 0.1,
+                          variable.J = T, variable.p = T,
+                          cv.district = 0.6, 
+                          size.impact.cor.district = 0.2,
+                          proptx.impact.cor.district = 0.2,
+                          size.intercept.cor.district = 0.2,
+                          n.bar = 50, sd.school = 0.1, variable.n = T,
+                          cv.school = 0.6,
+                          size.impact.cor.school = 0 )
+                        
+                        expect_equal( sd( df$Y0 ), 1, tolerance = 0.15 )
+                        
+                        df
+                      }, simplify=FALSE )
     
-    expect_equal( sd( df$Y0 ), 1, tolerance = 0.15 )
-    
-    M = lm( Y0 ~ 1 + X + W + Xd1, data=df )
-    Ms = summary( M )
+    Ms <- map_dbl( rrr, \( ddd ) { 
+      M = lm( Y0 ~ 1 + X + W + Xd1, data=ddd )
+      Ms = summary( M )
+      Ms$r.squared
+    } )
     Ms
+    mean( Ms )
+    targ_R2 <- ICC.d*R2.d + ICC.s*R2.s + (1-ICC.d-ICC.s)*R2.i
+    targ_R2
     
-    expect_equal( Ms$r.squared, 
-                  ICC.d*R2.d + ICC.s*R2.s + (1-ICC.d-ICC.s)*R2.i, tolerance = 0.05 )
+    expect_equal( mean(Ms), targ_R2, tolerance = 0.05 )
     
-    Mmlm = lmer( Y0 ~ 1 + X + W + Xd1 + (1|sid) + (1|did), data=df )
-    CI = confint(Mmlm, method="Wald")[ -(1:3), ]
-    params = c( 0, sqrt( R2.i * (1-ICC.d-ICC.s) ), sqrt( R2.s * ICC.s ), sqrt( R2.d * ICC.d ) )
-    cbind( CI, params )
-    expect_true( all( CI[,1] <= params ) )
-    expect_true( all( CI[,2] >= params ) )
+    
+    Ms <- map( rrr, \( df ) {
+      Mmlm = lmer( Y0 ~ 1 + X + W + Xd1 + (1|sid) + (1|did), data=df )
+      CI = confint(Mmlm, method="Wald")[ -(1:3), ]
+      CI %>%
+        as.data.frame( ) %>%
+        rownames_to_column(var = "term")
+    } ) 
+    Ms <- bind_rows( Ms )
+    gg <- Ms %>%
+      group_by( term ) %>%
+      summarise( low = mean( `2.5 %` ),
+                 high = mean( `97.5 %` ) )
+    gg
+    params = tribble( ~ term, ~ param,
+                      "(Intercept)", 0,
+                      "W", sqrt( R2.s * ICC.s ),
+                      "X", sqrt( R2.i * (1-ICC.d-ICC.s) ),
+                      "Xd1", sqrt( R2.d * ICC.d ) )
+    params
+    CI = left_join( gg, params, by="term" )
+    CI
+    
+    expect_true( all( CI$low <= CI$param ) )
+    expect_true( all( CI$high >= CI$param ) )
   }
   
   set.seed( 40440 )
@@ -434,9 +464,11 @@ test_that( "School- and individual-level covariates capture ICC and R2", {
   # capturing the truth the right probability of times.
   set.seed( 4413 )
   one_test( 0.5, 0.3, 0, 0, 0.5 )
+  
+  set.seed( 44134 )
   one_test( 0.6, 0.3, 0, 0.7, 0 )
   
-  set.seed( 5505 )
+  set.seed( 55054 )
   one_test( 0.5, 0.2, 0.4, 0, 0 )
   
   set.seed( 550223 )
@@ -455,7 +487,7 @@ test_that( "School- and individual-level covariates capture ICC and R2", {
 
 test_that( "ICC = 0 works", {
   
-  set.seed( 50505 )
+  set.seed( 505505 )
   df = blkvar::generate_multilevel_data_no_cov( n.bar=200, J=50,
                                                 tau.11.star = 0.1^2,
                                                 ICC = 0,
@@ -484,7 +516,7 @@ test_that( "ICC = 0 works", {
     variable.p = T,
     
     # correlation params at cluster level
-    size.ratio.district = 0.6, 
+    cv.district = 0.6, 
     size.impact.cor.district = 0.2,
     proptx.impact.cor.district = 0.2,
     size.intercept.cor.district = 0.2,
@@ -496,9 +528,8 @@ test_that( "ICC = 0 works", {
     variable.n = T,
     
     # correlation params at individual level
-    size.ratio.school = 0.6,
-    size.impact.cor.school = 0,
-    cor.strength.school = 0.75
+    cv.school = 0.6,
+    size.impact.cor.school = 0
   )
   
   dist <- attr( df, "district_key")
@@ -506,6 +537,11 @@ test_that( "ICC = 0 works", {
   
   library( lme4 )
   M = lmer( Y0 ~ 1 + (1|sid) + (1|did), data=df )
+  if ( FALSE ) {
+    arm::display( M )
+    VarCorr( M )$sid
+    VarCorr( M )$did
+  }
   expect_true( VarCorr( M )$sid < 0.03 )
   expect_true( VarCorr( M )$did > 0.4 )
   

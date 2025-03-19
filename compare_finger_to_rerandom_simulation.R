@@ -100,12 +100,18 @@ ratios <- all_sims %>%
   mutate( ESE_rat = ESEhat_f / ESEhat_r,
           SE_rat = SE_f / SE_r,
           delta_ATE = EATE_f - EATE_r,
+          cov_SEhat = sdSEhat_f / SE_f,
           sdSE_rat = sdSEhat_f / sdSEhat_r ) %>%
-  dplyr::select( method, delta_ATE, SE_rat, ESE_rat, sdSE_rat )
+  dplyr::select( method, delta_ATE, SE_rat, ESE_rat, cov_SEhat, sdSE_rat )
 ratios
 
 # TAKE AWAY: It seems like fingerprint has more randomness in it, due
 # to the regenerating the block effects each iteration.
 # Rerandomization keeps those fixed as we permute within block.
+
+# Interestingly, this makes the sd of the SE MUCH higher for the
+# fingerprint vs. the rerandomization.  (Only 6% of the true SE).  Why
+# is that?  I have no idea? (That said, the sd of SE-hat is small?)
+
 
 

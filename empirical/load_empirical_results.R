@@ -89,13 +89,12 @@ if ( TRUE ) {
   # All original datasets are blocked
   combined$blocked = 1
   
-  
   combined = bind_rows( `Curated` = combined, `Public` = josh, .id="Collection" )
   names(combined)
   rm( josh )
-  
-
 }
+
+
 
 # Check all estimators have same estimand for all estimates
 table( combined$Estimator, combined$Estimand )

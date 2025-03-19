@@ -131,8 +131,10 @@ studies %>%
   summarise( mean = mean(value),
              median = median( value ),
              sd = sd(value),
+             min = min( value ),
              Q10 = quantile(value, 0.1),
-             Q90 = quantile(value, 0.9) ) %>%
+             Q90 = quantile(value, 0.9),
+             max = max( value ) ) %>%
   knitr::kable(digits = 2)
 
 ```

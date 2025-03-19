@@ -23,10 +23,15 @@ studies
 stud = filter( studies, UniqueID == "CARES_TR_BPI_Incred" )
 clusterRCT:::print.clusterRCTstats( stud )
 
+dat = generate_data_from_fingerprint( structure = NULL,
+                                      parameters = stud )  
 
-run_fingerprint_simulation( structure = NULL, parameters = stud, R = 10,
-                            include_MLM = FALSE )
-
+res <- run_fingerprint_simulation( structure = NULL,
+                            parameters = stud, 
+                            R = 100,
+                            include_MLM = FALSE,
+                            summarize_results = "cross", parallel = FALSE )
+res
 
 
 # Second simulation (simulation code check) ----

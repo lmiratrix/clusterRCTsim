@@ -7,12 +7,14 @@
 library( tidyverse )
 library( clusterRCT )
 
+
+# Calculate the coefficient of variation of block sizes
 gen_cv <- function( n.bar, size.ratio ) {
   ns <- blkvar::block_distn( 100,
-                                      n.bar = n.bar,
-                                      size.ratio = size.ratio,
-                                      min.size = 4 )
-
+                             n.bar = n.bar,
+                             size.ratio = size.ratio,
+                             min.size = 4 )
+  
   sd( ns ) / mean( ns )  
 }
 
@@ -32,10 +34,10 @@ ggplot( sr, aes( cv, size.ratio, color = factor( n.bar ) ) ) +
 head( sr )
 # fit a loess curve to predict cv from size ratio
 loess_mod <- loess( size.ratio ~ n.bar + cv, data = sr ) #filter( sr, n.bar > 10 ) ),
-                    
+
 sr$size.ratio.loess = predict( loess_mod,
-                       newdata = sr )
-                       
+                               newdata = sr )
+
 ggplot( sr, aes( size.ratio.loess, size.ratio, color = factor( n.bar ) ) ) +
   geom_smooth( se = FALSE ) +
   theme_minimal() +
@@ -49,13 +51,35 @@ ggplot( sr, aes( size.ratio.loess, size.ratio, color = factor( n.bar ) ) ) +
 
 dt <- readRDS( "empirical/results/master240528_combined.RDS" )
 # View( dt )
-ggplot( dt, aes(Jcv ) ) +
+
+names(dt)
+dt <- dt %>%
+  dplyr::select( nbar, J, Jcv, ncv ) %>%
+  as_tibble()
+dt
+
+# Variation in block sizes (number of clusters per block)
+ggplot( dt, aes( Jcv ) ) +
   geom_histogram()
 
-tb = tibble( cv = c( 0, 0.5, 1.0 ),
-             n.bar = 20 )
-tb$size.ratio = predict( loess_mod, newdata=tb )
+# Variation in cluster sizes
+ggplot( dt, aes( ncv ) ) +
+  geom_histogram()
+
+dt <- mutate( dt, 
+              n.bar = nbar,
+              cv = ncv )
+dt$n.size.ratio = predict( loess_mod, newdata=dt )
+summary( dt$n.size.ratio / dt$ncv )
+
+
+tb = expand_grid( cv = c( 0, 0.5, 1.0 ),
+             n.bar = c( 20, 40 ) )
+tb <- tb %>%
+  mutate( size.ratio = predict( loess_mod, newdata=tb ),
+          rat = size.ratio / cv )
 tb
+
 
 # The above are our levels of size.ratio we will use for our
 # simulation.

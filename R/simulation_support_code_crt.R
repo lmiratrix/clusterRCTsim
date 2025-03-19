@@ -38,7 +38,7 @@ single.CRT = function( # district-level params
   variable.p = FALSE,
   
   # correlation params at cluster level
-  size.ratio.district = 0.6, 
+  cv..district = 0.6, 
   size.impact.cor.district = 0,
   proptx.impact.cor.district = 0,
   size.intercept.cor.district = 0,
@@ -48,7 +48,7 @@ single.CRT = function( # district-level params
   variable.n = FALSE,
   
   # correlation params at individual level
-  size.ratio.school = 0.6,
+  cv.school = 0.6,
   size.impact.cor.school = 0,
   cor.strength.school = 0.75,
   
@@ -75,8 +75,8 @@ single.CRT = function( # district-level params
     variable.n = variable.n,
     
     # size and correlation params
-    size.ratio.district = size.ratio.district, 
-    size.ratio.school = size.ratio.school,
+    cv.district = cv.district, 
+    cv.school = cv.school,
     size.impact.cor.district = size.impact.cor.district,
     size.intercept.cor.district = size.intercept.cor.district,
     size.impact.cor.school = size.impact.cor.school,
@@ -197,7 +197,7 @@ run.scenario = function(
   variable.p,
   
   # correlation params at cluster level
-  size.ratio.district = 0.6,
+  cv.district = 0.6,
   size.impact.cor.district,
   size.intercept.cor.district = 0,
   proptx.impact.cor.district,
@@ -207,7 +207,7 @@ run.scenario = function(
   variable.n,
   
   # correlation params at individual level
-  size.ratio.school = 0.6,
+  cv.school = 0.6,
   size.impact.cor.school,
   cor.strength.school = 0.75,
   
@@ -269,8 +269,8 @@ run.scenario = function(
     variable.n = variable.n,
     
     # size and correlation params
-    size.ratio.district = size.ratio.district, 
-    size.ratio.school = size.ratio.school,
+    cv.district = cv.district, 
+    cv.school = cv.school,
     size.impact.cor.district = size.impact.cor.district,
     size.intercept.cor.district = size.intercept.cor.district,
     size.impact.cor.school = size.impact.cor.school,

@@ -40,22 +40,36 @@ generate_data_from_fingerprint <- function( structure = NULL, parameters = NULL,
     stopifnot( !is.null( parameters ) )
     stopifnot( all( c("K", "n", "n.25", "J", "J.25", "nbar", "Jcv") %in% names(parameters) ) )
     K = parameters$K
-    min.size = parameters$J.25
-    if ( parameters$Jbar - 1 < min.size ) {
-      min.size = 2
-    }
-    num_clusters <- cluster_distn(K, parameters$Jbar, 
-                                  size.ratio=parameters$Jcv,
-                                  min.size = min.size )
-    structure = tibble( blockID = rep( paste0( "B", 1:K ), num_clusters ),
-                        clusterID = rep( paste0( "C", 1:sum(num_clusters) ) ) )
-    structure$n <- blkvar::block_distn( nrow(structure), 
-                                        n.bar = parameters$nbar, 
-                                        size.ratio = parameters$ncv, 
-                                        min.size = 1 )
+    min.size = 2
     
-    structure$Z = randomizr::block_ra( structure$blockID,
-                                      prob = parameters$p.tx )
+    num_clusters <- cluster_distn(K, 
+                                  J.bar = parameters$Jbar, 
+                                  cv = parameters$Jcv,
+                                  min.size = min.size )
+    
+
+    # This should allow variation in treatment
+    probs <- generate_treatment_probabilities( K, 
+                                               parameters$tx.avg,
+                                               parameters$tx.cv * parameters$tx.avg )
+    num_Z = round( num_clusters * probs )
+    num_Z = ifelse( num_Z == 0, 1, ifelse( num_Z == num_clusters, num_clusters-1, num_Z  ) )
+    
+    Z = rep( rep( c(0,1), K ),
+             as.numeric( t( cbind( num_Z, num_clusters - num_Z ) ) ) )
+    stopifnot( length(Z) == sum(num_clusters) )
+    structure = tibble( blockID = rep( paste0( "B", 1:K ), num_clusters ),
+                        clusterID = rep( paste0( "C", 1:sum(num_clusters) ) ),
+                        Z = Z )
+    
+    structure$n <- cluster_distn( nrow(structure), 
+                                  J.bar = parameters$nbar, 
+                                  cv = parameters$ncv, 
+                                  min.size = 1 )
+    
+    # Check we have valid random assignment
+    tt = table( structure$blockID, structure$Z )
+    stopifnot( all( tt > 0 ) )
   } 
   
   if ( !all( c("blockID", "clusterID", "Z") %in% colnames( structure ) ) ) {
@@ -154,7 +168,7 @@ make_skeleton <- function( structure ) {
   
   stopifnot( is.data.frame( structure ) )
   stopifnot( all( c("blockID", "clusterID", "Z", "n") %in% colnames( structure ) ) )
-             
+  
   #K = length( unique( structure$blockID ) )
   #J = length( unique( structure$clusterID ) )
   

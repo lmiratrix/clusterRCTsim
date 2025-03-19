@@ -1,5 +1,6 @@
 
 
+library( tidyverse )
 source( "R/calibrated_simulation_code.R" )
 
 data( fakeCRT )
@@ -8,13 +9,20 @@ head( fakeCRT )
 #formula = Yobs ~ T.x | S.id | D.id
 #data = fakeCRT
 
-
+debug( run_rerandomize_simulation )
 
 sim_res <- run_rerandomize_simulation( Yobs ~ T.x | S.id | D.id, 
                                        data=fakeCRT,
-                                       R = 100,
+                                       R = 3,
+                                       summarize_results = FALSE,
                                        include_MLM = FALSE )
+
+# Raw results
 sim_res
+
+# Aggregate results if desired
+# sum_res <- process_results( sim_res )
+sum_res
 
 ggplot( sim_res, aes( method, SE ) ) +
   geom_point( aes( y = ESEhat, color = "SE_hat") ) +

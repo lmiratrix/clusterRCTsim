@@ -21,89 +21,26 @@ if ( FALSE ) {
 }
 
 
-
-
-
-# Summarize results for aggregate plots  ----
-
-## Summarize ATE estimates to calculate ranges ----
-# summarize ATE by study-outcome
-ate_summary <- combined %>%
-  group_by(UniqueID, class, low_df, has_single, Collection, Project, Trt_arm, Outcome, Outcome_desc, Covariates) %>%
-  summarize(N     = sum(!is.na(ATE_hat_std)),
-            Nmiss = sum(is.na(ATE_hat_std)),
-            Min   = min(ATE_hat_std, na.rm = T),
-            Max   = max(ATE_hat_std, na.rm = T),
-            .groups = "drop") %>%
-  mutate(Range = Max - Min)
-
-# summarize ATE by study-outcome-estimand
-ate_summary_estimand <- combined %>%
-  group_by(UniqueID, Collection, class, low_df, has_single, Project, Trt_arm, Outcome, Covariates, Estimand) %>%
-  summarize(N     = n(),
-            Nmiss = sum(is.na(ATE_hat_std)),
-            Min   = min(ATE_hat_std, na.rm = T),
-            Max   = max(ATE_hat_std, na.rm = T),
-            .groups = 'drop') %>%
-  mutate(Range = Max - Min)
-
-## Summarize SEhat estimates to calculate ranges ----
-
-se_summary <- combined %>%
-  group_by(UniqueID,Collection, class, low_df, has_single, Project, Trt_arm, Outcome, Outcome_desc, Covariates) %>%
-  summarize(N     = sum(!is.na(SE_hat_std)),
-            Nmiss = sum(is.na(SE_hat_std)),
-            Min   = min(SE_hat_std, na.rm = T),
-            Max   = max(SE_hat_std, na.rm = T)) %>%
-  mutate(Ratio = pmin( 5, Max / Min) )
-
-se_summary_estimand <- combined %>%
-  group_by(UniqueID,Collection, class, low_df, has_single, Project, Trt_arm, Outcome, Outcome_desc, Covariates, Estimand) %>%
-  summarize(N     = sum(!is.na(SE_hat_std)),
-            Nmiss = sum(is.na(SE_hat_std)),
-            Min   = min(SE_hat_std, na.rm = T),
-            Max   = max(SE_hat_std, na.rm = T)) %>%
-  mutate(Ratio = pmin( 5, Max / Min) )
-
-## SE ranges (excluding fully interacted models) ----
-
-se_summary_exclFI <- combined %>%
-  filter(!grepl('-FI', Estimator)) %>%
-  group_by(UniqueID,Collection, class, low_df, has_single, Project, Trt_arm, Outcome, Outcome_desc, Covariates) %>%
-  summarize(N     = sum(!is.na(SE_hat_std)),
-            Nmiss = sum(is.na(SE_hat_std)),
-            Min   = min(SE_hat_std, na.rm = T),
-            Max   = max(SE_hat_std, na.rm = T)) %>%
-  mutate(Ratio = pmin( 5, Max / Min) )
-
-se_summary_estimand_exclFI <- combined %>%
-  filter(!grepl('-FI', Estimator)) %>%
-  group_by(UniqueID,Collection, class, low_df, has_single, Project, Trt_arm, Outcome, Outcome_desc, Covariates, Estimand) %>%
-  summarize(N     = sum(!is.na(SE_hat_std)),
-            Nmiss = sum(is.na(SE_hat_std)),
-            Min   = min(SE_hat_std, na.rm = T),
-            Max   = max(SE_hat_std, na.rm = T)) %>%
-  mutate(Ratio = pmin( 5, Max / Min) )
-
+source( here::here( "empirical/calculate_all_ranges.R" ) )
 
 
 
 
 # Make Paper Figures ----
 ## Figure 1: The Range (across 11 Estimators) of Estimates of β for {n_outcomes} Outcomes ----
-table( ate_summary$class )
-nrow( ate_summary )
+table( summary_stats$class )
+nrow( summary_stats )
 
-range( ate_summary$Range )
-n_outcomes <- n_distinct( ate_summary$UniqueID )
+range( summary_stats$Range )
+n_outcomes <- n_distinct( summary_stats$UniqueID )
 n_estimators <- n_distinct( combined$Estimator )
 n_estimators
-nrow( ate_summary )
-table( table( ate_summary$UniqueID ) )
+nrow( summary_stats )
+table( table( summary_stats$UniqueID ) )
 
 range_x_range <- 0.30
 
-ate_summary %>%
+summary_stats %>%
   filter(Covariates == "best") %>%
   makeDotplot(var      = 'Range',
               xlab     = 'Range of Point Estimates of β', 
@@ -119,7 +56,7 @@ ate_summary %>%
 
 
 ## Figure 2: The Range of Estimates of β for all Estimators Targeting a Given Estimand  ----
-ate_summary_estimand %>%
+summary_stats_estimand %>%
   filter(Covariates == "best") %>%
   makeDotplot(var      = 'Range',
               xlab     = 'Range of Point Estimates of β',
@@ -136,7 +73,7 @@ ate_summary_estimand %>%
 
 
 ## Figure 3: The Ratio (across 19 estimators) of the Largest to Smallest Estimates of SE(β) for {n_outcomes} outcomes. ----
-se_summary %>%
+summary_stats %>%
   filter(Covariates == "best") %>%
   makeDotplot(var      = 'Ratio',
               xlab     = 'Ratio of Largest to Smallest SE across Point Estimates',
@@ -153,7 +90,7 @@ se_summary %>%
 
 
 ## Figure 4: The Ratio (across 19 estimators) of the Largest to Smallest Estimates of SE(β) among all estimators targeting a given estimand for {n_outcomes} outcomes ----
-se_summary_estimand %>%
+summary_stats_estimand %>%
   filter(Covariates == "best") %>%
   makeDotplot(var      = 'Ratio',
               xlab     = 'Ratio of Largest to Smallest SE across Point Estimates',
@@ -176,7 +113,7 @@ n_est_noFI = combined %>%
   n_distinct()
 n_est_noFI
 
-se_summary_exclFI %>%
+summary_stats_exclFI %>%
   filter(Covariates == "best") %>%
   makeDotplot(var      = 'Ratio',
               xlab     = 'Ratio of Largest to Smallest SE across Point Estimates',
@@ -188,7 +125,7 @@ se_summary_exclFI %>%
               binw     = 0.05,
               coordratio = 0.8)
 
-se_summary_estimand_exclFI %>%
+summary_stats_estimand_exclFI %>%
   filter(Covariates == "best") %>%
   makeDotplot(var      = 'Ratio',
               xlab     = 'Ratio of Largest to Smallest SE across Point Estimates',
@@ -205,11 +142,11 @@ se_summary_estimand_exclFI %>%
 
 # Which studies are troublemakers? ----
 
-se_summary_estimand
-se_summary_estimand %>% 
+summary_stats_estimand
+summary_stats_estimand %>% 
   ungroup() %>%
   filter( Ratio > 4.5 ) %>%
-  dplyr::select( Estimand, Collection, Project, low_df, has_single, Ratio ) %>%
+  dplyr::select( Estimand, Collection, low_df, has_single, Ratio ) %>%
   arrange( Estimand, Ratio ) %>%
   knitr::kable( digits = 1 )
 
