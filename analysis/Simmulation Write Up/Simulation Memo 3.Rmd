@@ -18,10 +18,16 @@ geometry:
 ```{r todo, include=FALSE, echo=FALSE}
 
 #To-Do Notes:
+#Clean up all the graphs 
+#Write more models 
+#What drives bias and is it different for different models 
+#Move extra stuff to the end of this memo
 
-#figure out which estimators produce the same ATE estimates and use that to simplify all the bias results
-#finish running the bias models by method, I mostly ran all the models but I need to combine it all
-#into one table 
+#hunt down where the confidence intervals come from 
+#add true standard deviation of the estimate in the estimate diagnostics   
+#standard deviation of se hat across replications
+#coverage 
+
 
 ```
 
@@ -94,20 +100,87 @@ Number of School-Level Covariates: 0, 1, 5
 
 [School Level Covariate R Squared is always .5]
 
-## When are Each of the Estimands Different From Each Other
-
-**When there is a correlation between number of schools per district and treatment effects, then the district weighted estimands are different from the school weighted estimands.**
-
 
 ```{r dataprep, echo=FALSE, include=FALSE, fig.width=7, fig.height=6}
-sruns.graph<- sruns.full_factor %>% mutate(method = reorder(method, -biased), bias.ratio.sch=(round(bias.f.sch/bias.s.sch,4)),
-bias.ratio.stu=(round(bias.f.stu/bias.s.stu,4)),
-RMSE.ratio.sch=(round(RMSE.f.sch/RMSE.s.sch,4)),
-RMSE.ratio.stu=(round(RMSE.f.stu/RMSE.s.stu,4)),
-cover.ratio.stu=(round(cover.f.stu/cover.s.stu,4)),
-cover.ratio.sch=(round(cover.f.sch/cover.s.sch,4)),    
-true.se.ratio=(round(SE.f/SE.s,4)))
 
+# Function to create labeled factors with zero as base level
+create_labeled_factor <- function(x) {
+  unique_values <- sort(unique(x))
+  num_levels <- length(unique_values)
+  
+  if (num_levels == 1) {
+    # If only one level, just return as is
+    return(factor(x))
+  } else if (num_levels == 2) {
+    # For two levels: 0 (base) and "L" (for larger value)
+    labels <- c("0", "L")
+    return(factor(x, levels = unique_values, labels = labels))
+  } else if (num_levels == 3) {
+    # For three levels: 0 (base), "S" (small/middle), and "L" (large)
+    labels <- c("0", "S", "L")
+    return(factor(x, levels = unique_values, labels = labels))
+  } else {
+    # For more than three levels, label by position
+    # Zero is always the base (first level), and others are numbered
+    zero_pos <- which(unique_values == 0)
+    if (length(zero_pos) > 0) {
+      # Reorder so 0 is first
+      ordered_levels <- c(0, unique_values[unique_values != 0])
+      labels <- c("0", paste0("L", 1:(num_levels-1)))
+      return(factor(x, levels = ordered_levels, labels = labels))
+    } else {
+      # If no zero value exists, just use ordered values
+      warning("No zero value found in variable. Using smallest value as base.")
+      labels <- c("0", paste0("L", 1:(num_levels-1)))
+      return(factor(x, levels = unique_values, labels = labels))
+    }
+  }
+}
+
+sruns.clean <- sruns.full_factor %>%  
+   mutate(block_type = case_when(
+   variable.J == FALSE & sd.ATE == 0 & 
+   size.impact.cor == 0 & 
+   proptx.impact.cor == 0 & size.intercept.cor == 0 ~ "Blocks all same",
+   
+   variable.J == TRUE & sd.ATE == 0.6 & 
+   size.impact.cor == 0.8 & 
+   proptx.impact.cor == 0.8 & size.intercept.cor == 0.8 ~ "Blocks all messy",
+   
+   variable.J == TRUE & sd.ATE == 0.1 & 
+   size.impact.cor == 0.2 & 
+   proptx.impact.cor == 0 & size.intercept.cor == 0.1 ~ "Blocks all reasonable",
+   
+   TRUE ~ "Other"  # Catch any other combinations
+ ) ) %>% mutate(
+   bias.s.estimand = case_when(
+     weight == "Cluster" ~ bias.s.sch,
+     weight == "Person" ~ bias.s.stu
+   ))%>% 
+mutate(
+  sd.ATE = create_labeled_factor(sd.ATE),
+  size.impact.cor = create_labeled_factor(size.impact.cor),
+  J.bar = create_labeled_factor(J.bar),
+  sd.school = create_labeled_factor(sd.school),
+  ICC.school = create_labeled_factor(ICC.school),
+  size.ratio.school = create_labeled_factor(size.ratio.school),
+  num.cov.school = create_labeled_factor(num.cov.school),
+  proptx.impact.cor = create_labeled_factor(proptx.impact.cor),
+  size.intercept.cor = create_labeled_factor(size.intercept.cor),
+  size.impact.cor.school = create_labeled_factor(size.impact.cor.school),
+  bias.s.estimand.mag=abs(bias.s.estimand),
+  method = reorder(method, -biased),
+  bias.ratio.sch=(round(bias.f.sch/bias.s.sch,4)),
+  bias.ratio.stu=(round(bias.f.stu/bias.s.stu,4)),
+  RMSE.ratio.sch=(round(RMSE.f.sch/RMSE.s.sch,4)),
+  RMSE.ratio.stu=(round(RMSE.f.stu/RMSE.s.stu,4)),
+  cover.ratio.stu=(round(cover.f.stu/cover.s.stu,4)),
+  cover.ratio.sch=(round(cover.f.sch/cover.s.sch,4)),    
+  true.se.ratio=(round(SE.f/SE.s,4))
+)
+
+# Check the levels of one of the variables
+levels(sruns.model$sd.ATE)
 
 
 #figure out which estimators produce the same ATE results 
@@ -178,7 +251,7 @@ core.methods <- c("LRa-FE-db", "LRa-FIcw-db", "LRapw-FE-db", "LRapw-FIpw-db", "M
 MLM.methods<-c( "MLM-FE", "MLM-FIcw", "MLM-RE" )
 
 #this is the list of methods that don't produce the same se estimates
-all.methods<-all_methods <- c("LRa-FE-db", "LRa-FE-het", "LRicw-FE-crve", "LRicw-FE-db","LRa-FIcw-db","LRa-FIcw-het", "LRicw-FIcw-crve", "LRicw-FIcw-db", "LRapw-FE-db", "LRapw-FE-het", "LRi-FE-crve", "LRi-FE-db","LRapw-FIpw-db", "LRapw-FIpw-het", "LRi-FIpw-crve", "LRi-FIpw-db", "MLM-FE", "MLM-FIcw","MLM-RE")
+all.methods<-c("LRa-FE-db", "LRa-FE-het", "LRicw-FE-crve", "LRicw-FE-db","LRa-FIcw-db","LRa-FIcw-het", "LRicw-FIcw-crve", "LRicw-FIcw-db", "LRapw-FE-db", "LRapw-FE-het", "LRi-FE-crve", "LRi-FE-db","LRapw-FIpw-db", "LRapw-FIpw-het", "LRi-FIpw-crve", "LRi-FIpw-db", "MLM-FE", "MLM-FIcw","MLM-RE")
 
 groups<-group_estimators(sruns.full_factor, var= "mean.SE.hat")
 
@@ -194,10 +267,6 @@ map_chr( groups, paste, collapse = ", " ) %>%
 core.methods.se <- c("LRa-FE-db", "LRa-FE-het", "LRa-FIcw-db", "LRapw-FE-db", "LRapw-FE-het", "LRapw-FIpw-db", "LRapw-FIpw-het", "LRicw-FE-crve", "LRicw-FIcw-crve", "MLM-FE", "MLM-FIcw", "MLM-RE")
 
 
-
-
-
-
 ```
 
 
@@ -207,144 +276,50 @@ The estimators that theory says should be biased are in fact much more biased ac
 
 There are tables showing how the different simulation facets predict bias. The regression model is how each facet of the data generating process predicts mean bias against a methods targeted estimand. The facets are binary indicators and are fully interacted with each other. I ran three models: just the cluster targeted methods, just the person targeted methods, and all methods. I don't know what to make of the results. 
 
+
+To-Do:
+Clean up the graphs
+Clean up the model table 
+Re-write the summary section 
+
+
 ```{r bias, include=TRUE, echo=FALSE}
 
-   
+sruns.graph.bias<-sruns.clean  %>% filter(method %in% core.methods) 
 
 #split the plots by weight
-
-ggplot(sruns.graph %>% filter(weight=="Cluster"), aes(x = method, y = bias.s.sch, color = biased)) +
+cluster.bias<-ggplot(sruns.graph.bias %>% filter(weight=="Cluster"), aes(x = method, y = bias.s.sch, color = biased)) +
   geom_boxplot() +
 labs(
     title = "Bias by Method, Cluster Weighted",
     x = "Method",
-    y = "Cluster Weighed Finite Sample Bias"
+    y = "Cluster Weighed Super Population Bias"
   ) +
   theme_minimal() +
-  theme(legend.position = "none", axis.text.x = element_text(size = 8))+
-  coord_flip()
+  theme(legend.position = "none", axis.text.x = element_text(size = 8))
 
-#ggplot(sruns.graph %>% filter(weight=="Cluster"), aes(y = method, x = bias.ratio.sch, color = biased)) +
- # geom_boxplot() +
-#labs(
- #   title = "Ratio of Finite Bias to Super Bias by Method, Cluster Weighted",
-#    x = "Method",
- #   y = "Bias Ratio"
-#  ) +
- # theme_minimal() +
-  #theme(legend.position = "none", axis.text.x = element_text(size = 8))
-
-
-ggplot(sruns.graph %>% filter(weight=="Person"), aes(x = method, y = bias.s.stu, color = biased)) +
+person.bias<-ggplot(sruns.graph.bias %>% filter(weight=="Person"), aes(x = method, y = bias.s.stu, color = biased)) +
   geom_boxplot() +
   labs(
     title = "Bias Method, Person Weight",
     x = "Method",
-    y = "Person Weight Finite Sample Bias"
+    y = "Person Weight Super Population Bias"
   ) +
   theme_minimal() +
-  theme(legend.position = "none", axis.text.x = element_text(size = 8))+
-    coord_flip()
+  theme(legend.position = "none", axis.text.x = element_text(size = 8))
 
-#ggplot(sruns.graph %>% filter(weight=="Person"), aes(x = method, y =bias.ratio.stu, color = biased)) +
- # geom_boxplot() +
-#labs(
- #   title = "Ratio of Finite Bias to Super Bias by Method, Person Weighted",
-  #  x = "Method",
-   # y = "Bias Ratio"
-#  ) +
- # theme_minimal() +
-  #theme(legend.position = "none", axis.text.x = element_text(size = 8))+
-  #coord_flip()
-
+gridExtra::grid.arrange(cluster.bias, person.bias, ncol = 2)
 
 ```
 
 ```{r biasmodel, include=TRUE, echo=FALSE, results='asis'}
-
-# Function to create labeled factors with zero as base level
-create_labeled_factor <- function(x) {
-  unique_values <- sort(unique(x))
-  num_levels <- length(unique_values)
-  
-  if (num_levels == 1) {
-    # If only one level, just return as is
-    return(factor(x))
-  } else if (num_levels == 2) {
-    # For two levels: 0 (base) and "L" (for larger value)
-    labels <- c("0", "L")
-    return(factor(x, levels = unique_values, labels = labels))
-  } else if (num_levels == 3) {
-    # For three levels: 0 (base), "S" (small/middle), and "L" (large)
-    labels <- c("0", "S", "L")
-    return(factor(x, levels = unique_values, labels = labels))
-  } else {
-    # For more than three levels, label by position
-    # Zero is always the base (first level), and others are numbered
-    zero_pos <- which(unique_values == 0)
-    if (length(zero_pos) > 0) {
-      # Reorder so 0 is first
-      ordered_levels <- c(0, unique_values[unique_values != 0])
-      labels <- c("0", paste0("L", 1:(num_levels-1)))
-      return(factor(x, levels = ordered_levels, labels = labels))
-    } else {
-      # If no zero value exists, just use ordered values
-      warning("No zero value found in variable. Using smallest value as base.")
-      labels <- c("0", paste0("L", 1:(num_levels-1)))
-      return(factor(x, levels = unique_values, labels = labels))
-    }
-  }
-}
-
-
-
-sruns.model <- sruns.full_factor %>%  
-   mutate(block_type = case_when(
-   variable.J == FALSE & sd.ATE == 0 & 
-   size.impact.cor == 0 & 
-   proptx.impact.cor == 0 & size.intercept.cor == 0 ~ "Blocks all same",
-   
-   variable.J == TRUE & sd.ATE == 0.6 & 
-   size.impact.cor == 0.8 & 
-   proptx.impact.cor == 0.8 & size.intercept.cor == 0.8 ~ "Blocks all messy",
-   
-   variable.J == TRUE & sd.ATE == 0.1 & 
-   size.impact.cor == 0.2 & 
-   proptx.impact.cor == 0 & size.intercept.cor == 0.1 ~ "Blocks all reasonable",
-   
-   TRUE ~ "Other"  # Catch any other combinations
- ) ) %>% mutate(
-   bias.s.estimand = case_when(
-     weight == "Cluster" ~ bias.s.sch,
-     weight == "Person" ~ bias.s.stu
-   ))%>% 
-mutate(
-  sd.ATE = create_labeled_factor(sd.ATE),
-  size.impact.cor = create_labeled_factor(size.impact.cor),
-  J.bar = create_labeled_factor(J.bar),
-  sd.school = create_labeled_factor(sd.school),
-  ICC.school = create_labeled_factor(ICC.school),
-  size.ratio.school = create_labeled_factor(size.ratio.school),
-  num.cov.school = create_labeled_factor(num.cov.school),
-  proptx.impact.cor = create_labeled_factor(proptx.impact.cor),
-  size.intercept.cor = create_labeled_factor(size.intercept.cor),
-  size.impact.cor.school = create_labeled_factor(size.impact.cor.school),
-  bias.s.estimand.mag=abs(bias.s.estimand)
-)
-
-# Check the levels of one of the variables
-levels(sruns.model$sd.ATE)
-
-
-# Get unique methods
-methods <- unique(sruns.model$method)
 
 # Create a list to store models
 models_by_method <- list()
 model_summaries <- list()
 
 # Run separate models for each method
-for (m in methods) {
+for (m in core.methods) {
   # Subset data for this method
   method_data <- sruns.model %>% filter(method == m)
   
@@ -367,58 +342,68 @@ for (m in methods) {
   cat("=======================================\n\n")
 }
 
-# Function to extract important coefficients from each model
-# You can customize this based on what you want to compare
-extract_key_coefficients <- function(model_list) {
-  result <- data.frame()
+# Helper function to add significance stars
+  add_stars <- function(p_value) {
+    if (is.na(p_value)) return("")
+    if (p_value < 0.001) return("***")
+    if (p_value < 0.01) return("**") 
+    if (p_value < 0.05) return("*")
+    if (p_value < 0.1) return(".")
+    return("")
+  }
   
+# Create comparison table with significance stars
+create_star_comparison_table <- function(model_list) {
+
+  # Initialize a list to store tidy model outputs
+  tidy_models <- list()
+  
+  # Process each model
   for (m in names(model_list)) {
-    # Get top coefficients by absolute t-value
-    top_coefs <- broom::tidy(model_list[[m]]) %>%
-      filter(!is.na(p.value)) %>%
-      arrange(p.value) %>%
-      head(5)
+    # Get model coefficients and p-values
+    model_stats <- tidy(model_list[[m]]) %>%
+      # Create a column with coefficient and stars without parentheses
+      mutate(
+        stars = sapply(p.value, add_stars),
+        coef_stars = sprintf("%.3f%s", estimate, stars)
+      )
     
-    # Add method column
-    top_coefs$method <- m
+    # Add to our list
+    tidy_models[[m]] <- model_stats
+  }
+  
+  # Combine all models into a single data frame
+  all_terms <- unique(unlist(lapply(tidy_models, function(x) x$term)))
+  
+  # Initialize result dataframe
+  result <- data.frame(term = all_terms)
+  
+  # Add each method's coefficients as a column
+  for (m in names(model_list)) {
+    temp_df <- tidy_models[[m]] %>% 
+      select(term, coef_stars)
     
-    # Append to results
-    result <- rbind(result, top_coefs)
+    # Rename to method name
+    names(temp_df)[2] <- m
+    
+    # Join to result
+    result <- result %>% 
+      left_join(temp_df, by = "term")
   }
   
   return(result)
 }
 
-# Get key coefficients from all models
-key_coefficients <- extract_key_coefficients(models_by_method)
 
-# Example of how to access individual models
-# summary(models_by_method[["your_method_name"]])
-
-# Print top significant coefficients across all methods
-print(key_coefficients, n=100)
-
-###### this is where I started with the unedited code I got from Claude starts 
-
-# Get unique methods
-methods <- unique(sruns.model$method)
-
-# Create a list to store models
-models_by_method <- list()
-
-# Run separate models for each method
-for (m in methods) {
-  # Subset data for this method
-  method_data <- sruns.model %>% filter(method == m)
-  
-  # Run the model for this method
-  models_by_method[[m]] <- lm(bias.s.estimand ~ (block_type + J.bar + size.impact.cor.school + 
-                                                  sd.school + ICC.school + variable.n + 
-                                                  size.ratio.school + num.cov.school)^2, 
-                              data = method_data)
+# Add a footnote explaining significance levels
+add_significance_footnote <- function(table_object) {
+  footnote(table_object,
+    general = "Significance codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1",
+    general_title = "Note: "
+  )
 }
 
-# Create comparison table
+# Function to create comparison table
 create_comparison_table <- function(model_list) {
   # Initialize a list to store tidy model outputs
   tidy_models <- list()
@@ -455,6 +440,56 @@ create_comparison_table <- function(model_list) {
   
   return(result)
 }
+
+
+
+# Generate comparison table
+full_comparison <- create_comparison_table(models_by_method)
+full_comparison <- create_star_comparison_table (models_by_method)
+
+print(full_comparison)
+
+if (requireNamespace("kableExtra", quietly = TRUE)) {
+   formatted_table <- kable(full_comparison, format = "html") %>%
+     kable_styling(bootstrap_options = c("striped", "hover", "condensed"), 
+                 full_width = FALSE) %>%
+     row_spec(0, bold = TRUE, background = "#f7f7f7") %>%
+     add_significance_footnote()
+   
+   print(formatted_table)
+ }
+
+
+###### this is where I started with the unedited code I got from Claude starts 
+
+# Example usage:
+# star_table <- create_star_comparison_table(models_by_method)
+# 
+
+
+
+
+
+
+
+# Get unique methods
+methods <- unique(sruns.model$method)
+
+# Create a list to store models
+models_by_method <- list()
+
+# Run separate models for each method
+for (m in methods) {
+  # Subset data for this method
+  method_data <- sruns.model %>% filter(method == m)
+  
+  # Run the model for this method
+  models_by_method[[m]] <- lm(bias.s.estimand ~ (block_type + J.bar + size.impact.cor.school + 
+                                                  sd.school + ICC.school + variable.n + 
+                                                  size.ratio.school + num.cov.school)^2, 
+                              data = method_data)
+}
+
 
 # Create simplified version with main effects only
 create_main_effects_table <- function(model_list) {
@@ -624,6 +659,10 @@ View( mlm_baddies )
 As far as I can tell the RMSE actually looks pretty similar across estimators, which is consistent with the idea of there being a bias variance trade off. Unlike with the bias, the finite population RMSEs are fairly different from the super population RMSEs. 
 
 Like above, the boxplots are across the different data generating processes, each dot is a mean across simulation replications. The methods in light blue are those classified to be biased by theory. The ratio of finite RMSE to super RMSE plots show the ratio of RMSE from the finite population models over the super population models, and are designed to show that these are different.  
+
+To-Do:
+Fix the graph to only include the core methods
+Re-Run the models here 
 
 
 ```{r rmse, include=TRUE, echo=FALSE}

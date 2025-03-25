@@ -14,3 +14,5 @@
 R CMD BATCH estimator_performance_simulation.R logs/R_output_${INDEX_VAR}.txt --no-save
 
 
+
+
