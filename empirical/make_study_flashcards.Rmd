@@ -48,26 +48,42 @@ studies <- left_join( studies, n_defined, by="UniqueID" )
 
 source( here::here( "empirical/final_paper_figures.R" ) )
 
-setdiff( ate_summary$UniqueID, ate_summary$UniqueID  )
+setdiff( summary_stats$UniqueID, summary_stats$UniqueID  )
 
-ranges = bind_rows( ate = ate_summary, 
-                    ate_est = ate_summary_estimand,
-                    se = se_summary,
-                    se_est = se_summary_estimand,
-                    se_noFI = se_summary_exclFI,
-                    se_noFI_est = se_summary_estimand_exclFI,
-                    .id = "measure" ) %>%
-  filter( Covariates == "best" ) %>%
-  mutate( Range = ifelse( is.na( Range ), Ratio, Range ) ) %>%
-  dplyr::select( UniqueID, measure, Estimand, Range )
-ranges$Estimand[ is.na( ranges$Estimand ) ] = ""
+summary_stats$Estimand = "Overall"
+summary_stats_exclFI$Estimand = "Overall"
+summary_stats_exclFI$Estimand = paste0( summary_stats_exclFI$Estimand, "_noFI" )
+summary_stats_estimand_exclFI$Estimand = paste0( summary_stats_estimand_exclFI$Estimand, "_noFI" )
+
+ranges = bind_rows( all = summary_stats, 
+                    estimand = summary_stats_estimand,
+                    noFI = summary_stats_exclFI,
+                    noFI_estimand = summary_stats_estimand_exclFI,
+                    .id = "group" )
+
+table( ranges$group )
+
+ranges <- ranges %>%
+  dplyr::select( group, UniqueID, Covariates, Estimand, Range, Ratio ) %>%
+  pivot_longer( cols=c( Range, Ratio ),
+                names_to = "measure", values_to = "Range" ) %>%
+  mutate( measure = fct_recode( measure,
+                                ate = "Range",
+                                se = "Ratio" ) ) %>%
+  filter( Covariates == "best" ) 
+
+
 table( ranges$Estimand, ranges$measure )
 
-filter( ate_summary,  UniqueID == "TRIAD_rema2" )
+filter( summary_stats,  UniqueID == "TRIAD_rema2" )
 print( filter( ranges, UniqueID == "TRIAD_rema2" ), n = 30 )
 
+rm( summary_stats, summary_stats_estimand, summary_stats_estimand_exclFI, summary_stats_exclFI )
+
 ranges <- mutate( ranges,
-                  measure = str_replace( paste0( measure, Estimand ), "_est", "_" ) )
+                  measure = paste0( measure, "_", Estimand ),
+                  measure = str_replace( measure, "_est", "" ),
+                  measure = str_replace( measure, "_Overall", "" ) )
 table( ranges$measure )
 
 ranges <- mutate( ranges,
@@ -76,12 +92,19 @@ ranges <- mutate( ranges,
 
 table( ranges$UniqueID )
 table( ranges$measure )
+
 rW <- ranges %>%
   dplyr::select( UniqueID, measure, Range, big ) %>%
   pivot_wider( names_from = measure, values_from = c(Range, big), names_vary = "slowest" )
 rW
 
-studies
+ranges <- left_join( ranges, studies, by="UniqueID" )
+
+# We only have blocked studies
+table( ranges$blocked )
+setdiff( studies$UniqueID, ranges$UniqueID )
+setdiff( ranges$UniqueID, studies$UniqueID )
+
 
 studies <- left_join( studies, rW, by="UniqueID" )
 
@@ -139,7 +162,114 @@ studies %>%
 
 ```
 
+# Some statistics on our results
+
+
+**The 10th and 90th percentile number of individuals, clusters and blocks are around: 850 to 17,500 (individuals), 30 to 495 (clusters), and 5 to 85 (blocks).**
+
+```{r}
+blocked = filter( studies, blocked =="Blocked" )
+
+n = quantile( blocked$n, c(0.1, 0.9) )
+J = quantile( blocked$J, c(0.1, 0.9) )
+K = quantile( blocked$K, c(0.1, 0.9) )
+bind_rows( n=n, J=J, K=K, .id = "unit" ) %>%
+  knitr::kable()
+```
+
+**Cut-off for "low" degrees of freedom**
+
+Low is strictly less than 10
+
+**The range of ATE estimates greater than 0.10 and 0.05**
+
+```{r}
+ranges %>%
+  group_by( group, measure ) %>%
+  filter( str_detect( measure, "ate") ) %>%
+  summarise( n = n(),
+             n_10 = sum( Range >= 0.10 ),
+             big_10 = n_10 / n,
+             big_5 = mean( Range >= 0.05 ) ) %>%
+  knitr::kable( digits = 2 )
+
+```
+
+**How often Standard errors being large**
+
+```{r}
+ranges %>%
+  group_by( group, measure ) %>%
+  filter( !str_detect( measure, "ate") ) %>%
+  summarise( n = n(),
+             n_1.5 = sum( Range >= 1.5 ),
+             big_1.5 = n_1.5 / n,
+             n_2 = sum( Range >= 2 ),
+             big_2 = n_2 / n,
+             max = max( Range ) ) %>%
+  knitr::kable( digits = 2 )
+
+```
+
+**When DF are low, the ratio of the largest to smallest standard error is always greater than 1.5x. When DF are high, only 6 out of 34 outcomes have a ratio above 1.5.**
+
+```{r}
+ranges %>%
+  group_by( low_df, group, measure ) %>%
+  filter( !str_detect( measure, "ate") ) %>%
+  summarise( n = n(),
+             n_1.5 = sum( Range >= 1.5 ),
+             big_1.5 = n_1.5 / n,
+             n_2 = sum( Range >= 2 ),
+             big_2 = n_2 / n ) %>%
+  knitr::kable( digits = 2 )
+
+```
+
+**To consider how much trouble the fully interacted models are causing, we exclude them and recalculate the ratios (see Figure 5). Doing so dramatically changes the story. For example, the largest estimated standard error is 1.5x the smallest estimated standard error in only 10 percent of cases without the fully-interacted models, down from 48 percent when considering all estimators. The ratio never exceeds 1.7 once the fully-interacted models are excluded.**
+
+See above tables.
+
+
+**Even in Figure 3 we see estimated standard errors that are 20 percent different across estimators in over 20 percent of the cases we examined.**
+
+See above tables
+
+**While this model-free approach is appealing in theory, in practice this means design-based standard errors can only be estimated if every block X experimental arm has at least two or more clusters. Only three studies in our sample meet this condition; consequently, the design-based standard errors do not exist for XX out of 50 outcomes when the fully-interacted model (for individual or aggregate data) is implemented. The same limitation applies to heteroskedastic robust standard errors. For most outcomes, there are only 13 estimated standard errors, rather than 19 (See Supplemental Excel Spreadsheet 1).**
+
+This table counts the number of undefined estimators within each group given the set of covariates included.
+
+```{r}
+#cc <- combined %>%
+#  dplyr::select( UniqueID, Covariates, Estimator, ATE_hat_std, SE_hat_std )
+#skimr::skim( cc )
+combined %>%
+  group_by( Covariates, Estimator ) %>%
+  summarise( n = n(),
+             n_ATE = sum( is.na( ATE_hat_std ) ),
+             n_SE = sum( is.na( SE_hat_std ) ) ) %>%
+  pivot_wider( names_from=Covariates, values_from=c(n_ATE, n_SE) ) %>%
+  knitr::kable()
+```
+
+This table counts the number of estimates for each outcome that are undefined
+
+```{r}
+combined %>%
+  group_by( UniqueID, Covariates ) %>%
+  summarise( n = n(),
+             n_ATE = sum( is.na( ATE_hat_std ) ),
+             n_SE = sum( is.na( SE_hat_std ) ) ) %>%
+  pivot_wider( names_from=Covariates, values_from=c(n_ATE, n_SE) ) %>%
+  knitr::kable()
+```
+
+
+\newpage
+
 # The troublesome studies
+
+This section looks at studies with very big ranges and tries to identify what makes them odd.
 
 ## High range of ATE estimates
 
@@ -232,7 +362,9 @@ ggplot( jg_crt_6, aes( Estimator, SE_hat_std, col = Covariates ) ) +
 
 
 ```{r, results="asis"}
+
 studies <- arrange( studies, blocked, Collection, Project, Outcome)
+
 walk( 1:nrow(studies), \(rn) {
   cat( "\\newpage\n\n" )
   if ( rn %% 2 == 1 ) {
@@ -246,7 +378,7 @@ walk( 1:nrow(studies), \(rn) {
   if ( study$blocked == "Blocked" ) {
     cat( "\n\nRanges of estimates:\n\n" )
     ss <- study %>%
-      dplyr::select( R_ate:big_se_noFI_Per )
+      dplyr::select( R_ate:big_se_Per_noFI )
     ss <-    ss %>%
       pivot_longer(
         cols = everything(),
