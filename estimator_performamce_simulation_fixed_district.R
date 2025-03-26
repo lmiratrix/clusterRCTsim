@@ -112,8 +112,6 @@ ptm = proc.time()
 
 
 #load in the simulations
-
-
 # What simulation are we running?
 # 'scenarios.rds' is generated via 'generate_grid'
 scenarios = readRDS( "scenarios.rds" )

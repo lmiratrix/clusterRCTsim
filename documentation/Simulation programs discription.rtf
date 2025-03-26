@@ -7,6 +7,19 @@
 
 \f0\fs24 \cf0 Cluster RCT Simulation Process:\
 \
+Cluster RCT Simulation Process:\
+\
+1) use \'93generate_grids.R\'94 to generate all the grids for the simulations\
+	*this produces the scenarios.rds that feeds into the simulations\
+\
+2) pull ClusterRCTsim repository into the Odyssey folder\
+\
+3) On the Odyssey Cluster run the following script execute_runfullsim.sh this will run sbatch_runScript.slurm which in turn runs estimator_performamce_simulation_fixed_district.R\
+\
+\
+\
+\
+\
 1) Upload the following programs to the Odyssey Cluster:\
 Programs with Functions:\
 	*data_generation_code.R\

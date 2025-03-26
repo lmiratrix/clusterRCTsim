@@ -33,7 +33,7 @@ source( "R/simulation_support_code_fixed_district.R" )
 
 #Blocks all the same: 
 btype1<-data.frame( variable.J=FALSE, 
-                    size.ratio=0,
+                    cv.district=0,
                     sd.ATE=0,
                     size.impact.cor = 0, 
                     nbar.J.cor = 0,   
@@ -45,7 +45,7 @@ btype1<-data.frame( variable.J=FALSE,
 #Blocks all messy: 
 #blocktype=c("messy","same","reasonable")
 btype2<-data.frame( variable.J=TRUE,
-                    size.ratio=1.3, 
+                    cv.district=.85, 
                     sd.ATE=.6, 
                     size.impact.cor = .8, 
                     nbar.J.cor = .8,   
@@ -56,7 +56,7 @@ btype2<-data.frame( variable.J=TRUE,
 
 #variable.nbar=T, variable.p=F
 btype3<-data.frame( variable.J=TRUE, 
-                    size.ratio=.4,
+                    cv.district=.33,
                     sd.ATE=.1, 
                     size.impact.cor = .2, 
                     nbar.J.cor = .1,   
@@ -77,7 +77,8 @@ scenarios = expand.grid(
   p.bar=0.5,
   ATE = .2,
   ICC = .2,
-  num.cov.district = 0, 
+  num.cov.district = 0,
+  cv.nbar =0,
   blocktype=c("messy","same","reasonable"),
   
   # school-level params
@@ -88,7 +89,7 @@ scenarios = expand.grid(
   num.cov.school = c(0,1,5),
   
   # correlation params at school level
-  size.ratio.school =  c(0,.4,1.3),
+  cv.school =  c(0,.33,.6),
   size.impact.cor.school = c(0,.8),
   
   # Individual-level params

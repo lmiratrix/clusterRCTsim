@@ -10,7 +10,7 @@ module load R/4.2.2-fasrc01
 unset R_LIBS_SITE
 export R_LIBS_USER=$HOME/apps/R-4.2.2:$R_LIBS_USER
 
-for INDEX_VAR in $(seq 101 1000); do
+for INDEX_VAR in $(seq 2 1000); do
 
   #print out indexes
   echo "${INDEX_VAR}"
@@ -22,7 +22,7 @@ for INDEX_VAR in $(seq 101 1000); do
   sbatch -o logs/sbout_p${INDEX_VAR}.stdout.txt \
 	 -e out_p${INDEX_VAR1}_.stderr.txt \
          --job-name=runScr_p${INDEX_VAR} \
-        sbatch_runScript.slurm
+        cloud/sbatch_runScript.slurm
   
   sleep 1 # pause to be kind to the scheduler
 
