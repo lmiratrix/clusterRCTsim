@@ -21,7 +21,7 @@ simdata <- scenarios %>%
 #library( tidyverse )
 #load("results_sav/processed_simulation_results_estimators_estimand_2024-09-30.RData")
 #load("results_sav/processed_simulation_results_sim_base_1_2024-09-30.RData")
-load("results_sav/processed_simulation_results_estimators_estimand_2_2024-09-30.RData")
+#load("results_sav/processed_simulation_results_estimators_estimand_2_2024-09-30.RData")
 
 # Drop simulations from the scenarios frame
 scenarios$run = NULL
@@ -44,20 +44,32 @@ if ( nrow( failed ) > 0 ) {
 
 ##### Calculate coverage ######
 
-cover.vector = function( ATE.hat, SE.hat, estimand ) {
-  (ATE.hat - 1.96*SE.hat <= estimand) & (estimand <= ATE.hat + 1.96*SE.hat)
+cover.vector = function( ATE.hat, SE.hat, df, estimand ) {
+  t=qt(0.975,df)
+  (ATE.hat - t*SE.hat <= estimand) & (estimand <= ATE.hat + t*SE.hat)
 }
 
-simdata = mutate( simdata, 
-                  cov.f.stu = cover.vector( ATE.hat, SE.hat, ATE.finite.student ),
-                  cov.f.sch = cover.vector( ATE.hat, SE.hat, ATE.finite.school),
-                  cov.f.dstu = cover.vector( ATE.hat, SE.hat, ATE.finite.dist.student ),
-                  cov.f.dsch = cover.vector( ATE.hat, SE.hat, ATE.finite.dist.school),
-                  
-                  cov.s.stu = cover.vector( ATE.hat, SE.hat, ATE.super.student ),
-                  cov.s.sch = cover.vector( ATE.hat, SE.hat, ATE.super.school ),
-                  cov.s.dstu = cover.vector( ATE.hat, SE.hat, ATE.super.dist.student ),
-                  cov.s.dsch = cover.vector( ATE.hat, SE.hat, ATE.super.dist.school ))
+CI.length = function( ATE.hat, SE.hat, df, estimand ) {
+  t=qt(0.975,df)
+  2*t*SE.hat
+}
+
+simdata = mutate(simdata, 
+                 # Coverage for finite populations
+                 cov.f.stu = cover.vector(ATE.hat, SE.hat, df, ATE.finite.student),
+                 cov.f.sch = cover.vector(ATE.hat, SE.hat, df, ATE.finite.school),
+                 cov.f.dstu = cover.vector(ATE.hat, SE.hat, df, ATE.finite.dist.student),
+                 cov.f.dsch = cover.vector(ATE.hat, SE.hat, df, ATE.finite.dist.school),
+                 
+                 # Coverage for super populations
+                 cov.s.stu = cover.vector(ATE.hat, SE.hat, df, ATE.super.student),
+                 cov.s.sch = cover.vector(ATE.hat, SE.hat, df, ATE.super.school),
+                 cov.s.dstu = cover.vector(ATE.hat, SE.hat, df, ATE.super.dist.student),
+                 cov.s.dsch = cover.vector(ATE.hat, SE.hat, df, ATE.super.dist.school),
+                 
+                 # CI length
+                 CI.length = CI.length(ATE.hat, SE.hat, df))
+
 
 #add in ranges across methods 
 range.dat <-simdata %>% 
@@ -117,14 +129,13 @@ sruns = simdata %>%
              cover.s.sch = mean( cov.s.sch ),
              cover.s.dstu = mean( cov.s.dstu ),
              cover.s.dsch = mean( cov.s.dsch ),
-             
+             CI.length=mean(CI.length))
              
              
              # var.err2.s.stu = var( ATE.hat - ATE.super.student ),
              # var.err2.s.sch = var( ATE.hat - ATE.super.school ),
              # var.err2.s.dstu = var( ATE.hat - ATE.super.dist.student ),
              # var.err2.s.dsch = var( ATE.hat - ATE.super.dist.school )
-             )
 
 # Add in the info on the scenario to the results.
 sruns = merge( scenarios, sruns, by="ID" )
@@ -224,16 +235,23 @@ group=unique(sruns$group)
 #group=unique(simdata$group)
 
 #save the results 
-  file_name=paste("results_sav/processed_simulation_results_",group,"_",Sys.Date(),".RData",sep="")
+#for now just save the aggregate results in an agg folder
+
+file_name=paste("results_agg/processed_simulation_results_agg_",group,"_",Sys.Date(),".RData",sep="")
+save(scenarios,sruns, file=file_name )
+
+
+#old save code 
+  #file_name=paste("results/processed_simulation_results_",group,"_",Sys.Date(),".RData",sep="")
   #file_name=paste("processed_simulation_results_",group,"_",Sys.Date(),".RData",sep="")
   #rename sruns so that it can be combined with other sruns data 
-  sruns.name<-paste("sruns",group,sep=".")
-  assign(sruns.name,sruns)
+  #sruns.name<-paste("sruns",group,sep=".")
+  #assign(sruns.name,sruns)
   #rename the range data 
-  range.dat.name<-paste("range.dat",group,sep=".")
-  assign(range.dat.name,range.dat)
+  #range.dat.name<-paste("range.dat",group,sep=".")
+  #assign(range.dat.name,range.dat)
   
-  save(scenarios, simdata, list=c(sruns.name,range.dat.name), file=file_name )
+  #save(scenarios, simdata, list=c(sruns.name,range.dat.name), file=file_name )
   
     
 

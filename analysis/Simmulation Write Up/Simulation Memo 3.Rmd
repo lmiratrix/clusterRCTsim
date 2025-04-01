@@ -24,6 +24,7 @@ geometry:
 #Move extra stuff to the end of this memo
 
 #hunt down where the confidence intervals come from 
+  #it's just 1.96 times the standard error 
 #add true standard deviation of the estimate in the estimate diagnostics   
 #standard deviation of se hat across replications
 #coverage 
