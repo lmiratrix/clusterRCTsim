@@ -23,11 +23,13 @@ geometry:
 #What drives bias and is it different for different models 
 #Move extra stuff to the end of this memo
 
-#hunt down where the confidence intervals come from 
-  #it's just 1.96 times the standard error 
 #add true standard deviation of the estimate in the estimate diagnostics   
+#it's SE.s
 #standard deviation of se hat across replications
+#it's sd.SE.hat.s
 #coverage 
+#fix the description of the data generating process 
+#go read Mike's latest comments in the draft 
 
 
 ```
@@ -36,7 +38,7 @@ geometry:
 ```{r setup, include=FALSE, echo=FALSE}
 
 knitr::opts_chunk$set(echo = TRUE)
-load( "/Users/sophielitschwartz/Dropbox/clusterRCTsim/results_agg/processed_simulation_results_agg_full_factor_2025-01-20.RData" )
+load( "/Users/sophielitschwartz/Dropbox/clusterRCTsim/results_agg/processed_simulation_results_agg_full_factor_2025-04-01.RData" )
 
 require(tidyverse)
 require(rlang)
@@ -53,11 +55,14 @@ my_t = theme_tufte() + theme( legend.position="bottom",
                               panel.border = element_blank(), axis.title=element_text(size=12))
 theme_set( my_t )
  
-DGP_vars <- c( "K", "J.bar", "p.bar", "sd.ATE", "ICC", "variable.J", "variable.p", 
-               "n.bar", "sd.school", "ICC.school", "variable.n", "size.impact.cor",
-               "size.impact.cor.school", "proptx.impact.cor","ATE.super.district", 
-               "num.cov.district", "R2.school", "num.cov.school", 
-               "size.ratio.school","size.intercept.cor") 
+
+
+DGP_vars <- c("K", "J.bar", "p.bar", "sd.ATE", "ICC", "variable.J", 
+                 "variable.p", "n.bar", "sd.school", "ICC.school", "variable.n", 
+                 "size.impact.cor", "num.cov.district","cv.nbar", "R2.school", 
+                 "num.cov.school", "cv.school", "num.cov.indiv", 
+                 "empirical", "cv.district", "nbar.J.cor", "size.intercept.cor", 
+                 "variable.nbar")
 ```
 ## Introduction and Overview
 
@@ -138,7 +143,7 @@ create_labeled_factor <- function(x) {
   }
 }
 
-sruns.clean <- sruns.full_factor %>%  
+sruns.clean <- sruns %>%  
    mutate(block_type = case_when(
    variable.J == FALSE & sd.ATE == 0 & 
    size.impact.cor == 0 & 
@@ -164,7 +169,7 @@ mutate(
   J.bar = create_labeled_factor(J.bar),
   sd.school = create_labeled_factor(sd.school),
   ICC.school = create_labeled_factor(ICC.school),
-  size.ratio.school = create_labeled_factor(size.ratio.school),
+  cv.school = create_labeled_factor(cv.school),
   num.cov.school = create_labeled_factor(num.cov.school),
   proptx.impact.cor = create_labeled_factor(proptx.impact.cor),
   size.intercept.cor = create_labeled_factor(size.intercept.cor),

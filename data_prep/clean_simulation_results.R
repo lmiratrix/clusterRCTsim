@@ -72,22 +72,49 @@ simdata = mutate(simdata,
 
 
 #add in ranges across methods 
-range.dat <-simdata %>% 
-                  filter(!(weight %in% c("cluster/block","person/block")) & !(method %in% c("DB_HT","DB_Raj"))) %>% 
-                  group_by(ID,subrun ) %>% 
-                  mutate(range=diff(range(ATE.hat))) %>%
-                  ungroup() %>%
-                 group_by(ID,subrun,weight,population) %>%  
-                summarise(range_bygroup=diff(range(ATE.hat)),range=first(range))
+#range.dat <-simdata %>% 
+ #                 filter(!(weight %in% c("cluster/block","person/block")) & !(method %in% c("DB_HT","DB_Raj"))) %>% 
+  #                group_by(ID,subrun ) %>% 
+   #               mutate(range=diff(range(ATE.hat))) %>%
+    #              ungroup() %>%
+     #            group_by(ID,subrun,weight,population) %>%  
+#                summarise(range_bygroup=diff(range(ATE.hat)),range=first(range))
 
-range.dat = merge( scenarios, range.dat, by="ID" )
+#range.dat = merge( scenarios, range.dat, by="ID" )
 
 ##### Aggegate by scenario and calculate summary stats for these scenarios.  #####
+
+#confirm weight, bias and disfavored are unique by method
+
+
+library(tidyverse)
+
+# Check if variables are unique by ID and method
+
+duplicates <- simdata %>%
+  group_by(method) %>%
+  summarize(
+    unique_biased_values = n_distinct(biased),
+    unique_disfavored_values = n_distinct(disfavored),
+    unique_weight_values = n_distinct(weight),
+    .groups = "drop"
+  ) %>%
+  filter(unique_biased_values > 1 | unique_disfavored_values > 1 | unique_weight_values > 1)
+
+
+# If empty, variables are unique by ID and method
+if(nrow(duplicates) == 0) {
+  print("Variables are unique by ID and method")
+} else {
+  print(paste("Found", nrow(duplicates), "non-unique combinations"))
+  print(duplicates)
+}
 
 sruns = simdata %>% 
   group_by( ID, method ) %>%   # per scenario and method... (aggregate over batch, run, subrun)
   summarise( mean.SE.hat = mean( SE.hat ),
              mean.ATE.hat=mean(ATE.hat),
+             mean.df=mean(df),
              # bias of estimators for each estimand
              bias.f.stu = mean( ATE.hat - ATE.finite.student ),
              bias.f.sch = mean( ATE.hat - ATE.finite.school ),
@@ -108,11 +135,11 @@ sruns = simdata %>%
              RMSE.s.dstu = sqrt( mean( ( ATE.hat - ATE.super.dist.student  )^2 ) ),
              RMSE.s.dsch = sqrt( mean( ( ATE.hat - ATE.super.dist.school )^2 ) ),
              
-             # # SD of finite-sample estimands (?)
-             # sd.ATE.f.stu = sd( ATE.finite.student ),
-             # sd.ATE.f.sch = sd( ATE.finite.school ),
-             # sd.ATE.f.dstu = sd( ATE.finite.dist.student ),
-             # sd.ATE.f.dsch = sd( ATE.finite.dist.school ),
+             # # SD of finite-sample estimands
+              #sd.ATE.f.stu = sd( ATE.finite.student ),
+              #sd.ATE.f.sch = sd( ATE.finite.school ),
+              #sd.ATE.f.dstu = sd( ATE.finite.dist.student ),
+              #sd.ATE.f.dsch = sd( ATE.finite.dist.school ),
              
              # true superpopulation sd of estimate
              SE.s = sd( ATE.hat ),
