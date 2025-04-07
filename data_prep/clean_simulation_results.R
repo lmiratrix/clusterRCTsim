@@ -21,7 +21,7 @@ simdata <- scenarios %>%
 #library( tidyverse )
 #load("results_sav/processed_simulation_results_estimators_estimand_2024-09-30.RData")
 #load("results_sav/processed_simulation_results_sim_base_1_2024-09-30.RData")
-load("results_sav/processed_simulation_results_estimators_estimand_2_2024-09-30.RData")
+#load("results_sav/processed_simulation_results_estimators_estimand_2_2024-09-30.RData")
 
 # Drop simulations from the scenarios frame
 scenarios$run = NULL
@@ -44,38 +44,77 @@ if ( nrow( failed ) > 0 ) {
 
 ##### Calculate coverage ######
 
-cover.vector = function( ATE.hat, SE.hat, estimand ) {
-  (ATE.hat - 1.96*SE.hat <= estimand) & (estimand <= ATE.hat + 1.96*SE.hat)
+cover.vector = function( ATE.hat, SE.hat, df, estimand ) {
+  t=qt(0.975,df)
+  (ATE.hat - t*SE.hat <= estimand) & (estimand <= ATE.hat + t*SE.hat)
 }
 
-simdata = mutate( simdata, 
-                  cov.f.stu = cover.vector( ATE.hat, SE.hat, ATE.finite.student ),
-                  cov.f.sch = cover.vector( ATE.hat, SE.hat, ATE.finite.school),
-                  cov.f.dstu = cover.vector( ATE.hat, SE.hat, ATE.finite.dist.student ),
-                  cov.f.dsch = cover.vector( ATE.hat, SE.hat, ATE.finite.dist.school),
-                  
-                  cov.s.stu = cover.vector( ATE.hat, SE.hat, ATE.super.student ),
-                  cov.s.sch = cover.vector( ATE.hat, SE.hat, ATE.super.school ),
-                  cov.s.dstu = cover.vector( ATE.hat, SE.hat, ATE.super.dist.student ),
-                  cov.s.dsch = cover.vector( ATE.hat, SE.hat, ATE.super.dist.school ))
+CI.length = function( ATE.hat, SE.hat, df, estimand ) {
+  t=qt(0.975,df)
+  2*t*SE.hat
+}
+
+simdata = mutate(simdata, 
+                 # Coverage for finite populations
+                 cov.f.stu = cover.vector(ATE.hat, SE.hat, df, ATE.finite.student),
+                 cov.f.sch = cover.vector(ATE.hat, SE.hat, df, ATE.finite.school),
+                 cov.f.dstu = cover.vector(ATE.hat, SE.hat, df, ATE.finite.dist.student),
+                 cov.f.dsch = cover.vector(ATE.hat, SE.hat, df, ATE.finite.dist.school),
+                 
+                 # Coverage for super populations
+                 cov.s.stu = cover.vector(ATE.hat, SE.hat, df, ATE.super.student),
+                 cov.s.sch = cover.vector(ATE.hat, SE.hat, df, ATE.super.school),
+                 cov.s.dstu = cover.vector(ATE.hat, SE.hat, df, ATE.super.dist.student),
+                 cov.s.dsch = cover.vector(ATE.hat, SE.hat, df, ATE.super.dist.school),
+                 
+                 # CI length
+                 CI.length = CI.length(ATE.hat, SE.hat, df))
+
 
 #add in ranges across methods 
-range.dat <-simdata %>% 
-                  filter(!(weight %in% c("cluster/block","person/block")) & !(method %in% c("DB_HT","DB_Raj"))) %>% 
-                  group_by(ID,subrun ) %>% 
-                  mutate(range=diff(range(ATE.hat))) %>%
-                  ungroup() %>%
-                 group_by(ID,subrun,weight,population) %>%  
-                summarise(range_bygroup=diff(range(ATE.hat)),range=first(range))
+#range.dat <-simdata %>% 
+ #                 filter(!(weight %in% c("cluster/block","person/block")) & !(method %in% c("DB_HT","DB_Raj"))) %>% 
+  #                group_by(ID,subrun ) %>% 
+   #               mutate(range=diff(range(ATE.hat))) %>%
+    #              ungroup() %>%
+     #            group_by(ID,subrun,weight,population) %>%  
+#                summarise(range_bygroup=diff(range(ATE.hat)),range=first(range))
 
-range.dat = merge( scenarios, range.dat, by="ID" )
+#range.dat = merge( scenarios, range.dat, by="ID" )
 
 ##### Aggegate by scenario and calculate summary stats for these scenarios.  #####
+
+#confirm weight, bias and disfavored are unique by method
+
+
+library(tidyverse)
+
+# Check if variables are unique by ID and method
+
+duplicates <- simdata %>%
+  group_by(method) %>%
+  summarize(
+    unique_biased_values = n_distinct(biased),
+    unique_disfavored_values = n_distinct(disfavored),
+    unique_weight_values = n_distinct(weight),
+    .groups = "drop"
+  ) %>%
+  filter(unique_biased_values > 1 | unique_disfavored_values > 1 | unique_weight_values > 1)
+
+
+# If empty, variables are unique by ID and method
+if(nrow(duplicates) == 0) {
+  print("Variables are unique by ID and method")
+} else {
+  print(paste("Found", nrow(duplicates), "non-unique combinations"))
+  print(duplicates)
+}
 
 sruns = simdata %>% 
   group_by( ID, method ) %>%   # per scenario and method... (aggregate over batch, run, subrun)
   summarise( mean.SE.hat = mean( SE.hat ),
              mean.ATE.hat=mean(ATE.hat),
+             mean.df=mean(df),
              # bias of estimators for each estimand
              bias.f.stu = mean( ATE.hat - ATE.finite.student ),
              bias.f.sch = mean( ATE.hat - ATE.finite.school ),
@@ -96,11 +135,11 @@ sruns = simdata %>%
              RMSE.s.dstu = sqrt( mean( ( ATE.hat - ATE.super.dist.student  )^2 ) ),
              RMSE.s.dsch = sqrt( mean( ( ATE.hat - ATE.super.dist.school )^2 ) ),
              
-             # # SD of finite-sample estimands (?)
-             # sd.ATE.f.stu = sd( ATE.finite.student ),
-             # sd.ATE.f.sch = sd( ATE.finite.school ),
-             # sd.ATE.f.dstu = sd( ATE.finite.dist.student ),
-             # sd.ATE.f.dsch = sd( ATE.finite.dist.school ),
+             # # SD of finite-sample estimands
+              #sd.ATE.f.stu = sd( ATE.finite.student ),
+              #sd.ATE.f.sch = sd( ATE.finite.school ),
+              #sd.ATE.f.dstu = sd( ATE.finite.dist.student ),
+              #sd.ATE.f.dsch = sd( ATE.finite.dist.school ),
              
              # true superpopulation sd of estimate
              SE.s = sd( ATE.hat ),
@@ -117,14 +156,13 @@ sruns = simdata %>%
              cover.s.sch = mean( cov.s.sch ),
              cover.s.dstu = mean( cov.s.dstu ),
              cover.s.dsch = mean( cov.s.dsch ),
-             
+             CI.length=mean(CI.length))
              
              
              # var.err2.s.stu = var( ATE.hat - ATE.super.student ),
              # var.err2.s.sch = var( ATE.hat - ATE.super.school ),
              # var.err2.s.dstu = var( ATE.hat - ATE.super.dist.student ),
              # var.err2.s.dsch = var( ATE.hat - ATE.super.dist.school )
-             )
 
 # Add in the info on the scenario to the results.
 sruns = merge( scenarios, sruns, by="ID" )
@@ -224,16 +262,23 @@ group=unique(sruns$group)
 #group=unique(simdata$group)
 
 #save the results 
-  file_name=paste("results_sav/processed_simulation_results_",group,"_",Sys.Date(),".RData",sep="")
+#for now just save the aggregate results in an agg folder
+
+file_name=paste("results_agg/processed_simulation_results_agg_",group,"_",Sys.Date(),".RData",sep="")
+save(scenarios,sruns, file=file_name )
+
+
+#old save code 
+  #file_name=paste("results/processed_simulation_results_",group,"_",Sys.Date(),".RData",sep="")
   #file_name=paste("processed_simulation_results_",group,"_",Sys.Date(),".RData",sep="")
   #rename sruns so that it can be combined with other sruns data 
-  sruns.name<-paste("sruns",group,sep=".")
-  assign(sruns.name,sruns)
+  #sruns.name<-paste("sruns",group,sep=".")
+  #assign(sruns.name,sruns)
   #rename the range data 
-  range.dat.name<-paste("range.dat",group,sep=".")
-  assign(range.dat.name,range.dat)
+  #range.dat.name<-paste("range.dat",group,sep=".")
+  #assign(range.dat.name,range.dat)
   
-  save(scenarios, simdata, list=c(sruns.name,range.dat.name), file=file_name )
+  #save(scenarios, simdata, list=c(sruns.name,range.dat.name), file=file_name )
   
     
 
