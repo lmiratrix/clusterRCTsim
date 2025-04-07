@@ -28,6 +28,8 @@ NUM_SIMULATIONS = 20
 # What configuration to we run our simulation over?
 COVAR_SETS = c('none', 'best', 'all')
 
+# Run in parallel?
+RUN_PARALLEL = TRUE
 
 # Make place for results, if needed
 dir.create( RESULT_DIR, showWarnings = FALSE )
@@ -79,6 +81,7 @@ run_sim <- function(proj, outcome, covars, covars_list, data, trt, clust, blk, p
                          include_method_characteristics = FALSE,
                          warn_missing = FALSE,
                          R = R,
+                         parallel = RUN_PARALLEL,
                          ... )
   
   res$Outcome_desc = NULL
@@ -94,6 +97,13 @@ run_sim <- function(proj, outcome, covars, covars_list, data, trt, clust, blk, p
 }
 
 
+
+# OPTIONAL: Set up parallel code
+
+if ( RUN_PARALLEL ) {
+  library( furrr )
+  oplan = plan(multisession, workers = parallel::detectCores() - 1 )
+}
 
 
 
@@ -131,7 +141,7 @@ if ( FALSE ) {
                        .progress   = TRUE) %>%
     reduce(bind_rows)
 
-  
+  table( compare_fake$runID, compare_fake$Outcome )
 }
 
 
@@ -321,4 +331,9 @@ compare_powerteaching <- pmap(grid_powerteaching, run_sim,
   reduce(bind_rows)
 
 
+# Close parallel processing ----
+
+if ( RUN_PARALLEL ) {
+  plan(oplan)
+}
 
