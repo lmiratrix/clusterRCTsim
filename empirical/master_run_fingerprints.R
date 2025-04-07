@@ -14,12 +14,19 @@ library(writexl)
 
 source( here::here( "empirical/data_processing_functions.R" ) )
 
-
+# Where the prepped data is
 DATA_DIR = '/data/share/pse/IES CRT/sd7/clean study datasets'
 
-RESULT_DIR = here::here( "rerand_sim_result" )
 
+# Where to save result files (one file per outcome will be generated)
+RESULT_DIR = here::here( "rerand_sim_results" )
+
+
+# How many iterations for each outcome?
 NUM_SIMULATIONS = 20
+
+# What configuration to we run our simulation over?
+COVAR_SETS = c('none', 'best', 'all')
 
 
 # Make place for results, if needed
@@ -62,22 +69,26 @@ for (f in list.files(DATA_DIR, full.names = T)) {
 #' @param ptest Existence of pretest (0/1).  Note, this is just passed
 #'   to the final result.  We select the highest correlated covariate,
 #'   and do not record whether it was the pretest or not.
-run_sim <- function(proj, outcome, covars, covars_list, data, trt, clust, blk, ptest, ... ) {
+run_sim <- function(proj, outcome, covars, covars_list, data, trt, clust, blk, ptest, 
+                    R = NUM_SIMULATIONS,
+                    ... ) {
   
   res <- data_processor( proj=proj, outcome=outcome, covars=covars, covars_list=covars_list, 
                          data=data, trt=trt, clust=clust, blk=blk, ptest=ptest, 
                          processor = run_rerandomize_simulation, 
                          include_method_characteristics = FALSE,
                          warn_missing = FALSE,
-                         R = NUM_SIMULATIONS,
+                         R = R,
                          ... )
   
   res$Outcome_desc = NULL
   res$Pretest = NULL
   
-  nm = glue::glue( "{proj}_{outcome}" )
+  # This is the same ID as built in the bottom of 'master_analyze_all_data.R'
+  UniqueID     = str_remove_all(paste(proj, outcome, trt, sep = '_'), '_NA')
+  
   write_rds( res, 
-             here::here( glue::glue( "rerand_sim_result/{nm}.rds" ) ) )
+             here::here( glue::glue( "rerand_sim_result/{UniqueID}.rds" ) ) )
   res
   
 }
@@ -102,26 +113,28 @@ if ( FALSE ) {
   covars_fake <- c('X.jk', 'C.ijk', "XX" )
   
   
-  # Direct call (for testing)
-  run_sim( proj = "FakeCRT",
-           outcome = "Yobs",
-           covars = "best",
-           covars_list = covars_fake,
-           data = fakeCRT,
-           trt = "T.x",
-           clust = "S.id",
-           blk = "D.id",
-           ptest = 0,
-           R = 2,
-           include_MLM = FALSE )
-  
+  if (FALSE) {
+    # Direct call (for testing)
+    rc <- run_sim( proj = "FakeCRT",
+             outcome = "Yobs",
+             covars = "best",
+             covars_list = covars_fake,
+             data = fakeCRT,
+             trt = "T.x",
+             clust = "S.id",
+             blk = "D.id",
+             ptest = 0,
+             R = 2,
+             include_MLM = FALSE )
+    head( rc )
+  }
   
   
   # grid for each outcome/covar combo
   grid_fake <- expand_grid(outcome = outcomes_fake,
-                           covars  = c('none', 'best', 'all'))
+                           covars  = COVAR_SETS)
   
-  # compile results
+  # Run sim across all scenarios
   compare_fake <- pmap(grid_fake, run_sim, 
                        proj        = 'fakeCRT',
                        covars_list = covars_fake,
@@ -130,12 +143,24 @@ if ( FALSE ) {
                        clust       = 'S.id',
                        blk         = 'D.id', 
                        ptest       = 0,
-                      # R = 2, include_MLM = FALSE,
+                       # R = 2, include_MLM = FALSE,
                        .progress   = TRUE) %>%
     reduce(bind_rows)
   
+
+    
+  # Just checking what our results look like (unneeded code):
+  compare_fake <- as_tibble( compare_fake )
+  compare_fake
   
-  
+  compare_fake$weight = get_estimand( compare_fake$method, simple = TRUE )
+  agg <- summarize_simulation_results( compare_fake, 
+                                       summarize_results = "cross" )
+  agg$real = agg$runID == "empirical"
+  ggplot( agg, aes( rangeATE, fill=real ) ) +
+    facet_wrap( ~ weight ) +
+    geom_dotplot()
+
 }
 
 
@@ -150,7 +175,7 @@ covars_mpc <- c('age1')
 
 # grid for each outcome/covar combo
 grid_mpc <- expand_grid(outcome = outcomes_mpc,
-                        covars  = c('none', 'best', 'all'))
+                        covars  = COVAR_SETS)
 
 # compile results
 compare_mpc <- pmap(grid_mpc, run_sim, 
@@ -174,9 +199,9 @@ covars_emerge <- c('age1', 'dfemale')
 # EMERGE grid also includes treatment arm
 grid_emerge <- expand_grid(trt = c('T_BB', 'T_BBSSR'),
                            outcome = outcomes_emerge,
-                           covars  = c('none', 'best', 'all'))
+                           covars  = COVAR_SETS)
 
-compare_emerge <- pmap(grid_emerge, cm,
+compare_emerge <- pmap(grid_emerge, run_sim,
                        proj        = 'EMERGE',
                        covars_list = covars_emerge,
                        data        = emerge,
@@ -198,10 +223,10 @@ outcomes_triad <- c('rema2')
 covars_triad <- c('rema1', 'dblack')
 
 grid_triad <- expand_grid(outcome = outcomes_triad,
-                          covars  = c('none', 'best', 'all'))
+                          covars  = COVAR_SETS)
 
 
-compare_triad <- pmap(grid_triad, cm,
+compare_triad <- pmap(grid_triad, run_sim,
                       proj        = 'TRIAD',
                       covars_list = covars_triad,
                       data        = triad,
@@ -223,10 +248,10 @@ outcomes_triadsu <- c('rema2')
 covars_triadsu <- c('rema1', 'dblack')
 
 grid_triadsu <- expand_grid(outcome = outcomes_triadsu,
-                            covars  = c('none', 'best', 'all'))
+                            covars  = COVAR_SETS)
 
 
-compare_triadsu <- pmap(grid_triadsu, cm, 
+compare_triadsu <- pmap(grid_triadsu, run_sim, 
                         proj        = 'TRIAD Scale-up',
                         covars_list = covars_triadsu,
                         data        = triadsu,
@@ -243,10 +268,10 @@ outcomes_sfa <- 'S14WJLWI_SCORE'
 covars_sfa <- c('SPECIAL_ED', 'MALE', 'ELL', 'AGE', 'F11PPVT_SCORE', 'F11WJLWI_SCORE')
 
 grid_sfa <- expand_grid(outcome = outcomes_sfa,
-                        covars  = c('none', 'best', 'all'))
+                        covars  = COVAR_SETS)
 
 
-compare_sfa <- pmap(grid_sfa, cm, 
+compare_sfa <- pmap(grid_sfa, run_sim, 
                     proj        = 'Success for All',
                     covars_list = covars_sfa,
                     data        = sfa,
@@ -266,10 +291,10 @@ covars_tnstar <- c('gender_na', 'female', 'male',
                    'gkfreelunch', 'K_SPECIAL_ED')
 
 grid_tnstar <- expand_grid(outcome = outcomes_tnstar,
-                           covars  = c('none', 'best', 'all'))
+                           covars  = COVAR_SETS)
 
 
-compare_tnstar <- pmap(grid_tnstar, cm, 
+compare_tnstar <- pmap(grid_tnstar, run_sim, 
                        proj        = 'Tennessee STAR',
                        covars_list = covars_tnstar,
                        data        = tnstar,
@@ -286,10 +311,10 @@ outcomes_beaconmentor <- c('S8TGPA', 'S8TOTCR', 'SRPRST2')
 covars_beaconmentor <- c('RADEV', 'S8TEACHID', 'S8FULTMEC', 'ZFemale', 'RATIME', 'ZAGELT24', 'PTTOP75C', 'PTBTM25C')
 
 grid_beaconmentor <- expand_grid(outcome = outcomes_beaconmentor,
-                                 covars  = c('none', 'best', 'all'))
+                                 covars  = COVAR_SETS)
 
 
-compare_beaconmentor <- pmap(grid_beaconmentor, cm, 
+compare_beaconmentor <- pmap(grid_beaconmentor, run_sim, 
                              proj        = 'Beacon Mentor',
                              covars_list = covars_beaconmentor,
                              data        = beaconmentor,
@@ -310,10 +335,10 @@ covars_powerteaching <- c('COHORT1', 'COHORT2', 'MALE_BL',
                           'TSTSSTAND_BL', 'TSTSS_BL', 'TSTPLVL_BL')
 
 grid_powerteaching <- expand_grid(outcome = outcomes_powerteaching,
-                                  covars  = c('none', 'best', 'all'))
+                                  covars  = COVAR_SETS)
 
 
-compare_powerteaching <- pmap(grid_powerteaching, cm, 
+compare_powerteaching <- pmap(grid_powerteaching, run_sim, 
                               proj        = 'PowerTeaching',
                               covars_list = covars_powerteaching,
                               data        = powerteaching,

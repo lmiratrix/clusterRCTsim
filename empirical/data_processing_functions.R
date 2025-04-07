@@ -13,7 +13,10 @@ library(writexl)
 library(clusterRCT)
 
 
-
+#' Get the highest correlated covariate to a given outcome.
+#'
+#' @return List of two items, the name of the best covariate and the
+#'   correlation of that covariate to the outcome.
 get_best_covariate <- function( covars_list, outcome, data ) {
   
   # Calculate correlations of covariate to outcome

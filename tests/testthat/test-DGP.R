@@ -472,7 +472,7 @@ test_that( "School- and individual-level covariates capture ICC and R2", {
   one_test( 0.5, 0.2, 0.4, 0, 0 )
   
   set.seed( 550223 )
-  one_test( 0.4, 0.3, 0.9, 0.9, 0.9 )
+  expect_warning( one_test( 0.4, 0.3, 0.9, 0.9, 0.9 ) )
   
   set.seed( 4333 )
   one_test( 0.3, 0.2, 0.99, 0.99, 0.99 )
