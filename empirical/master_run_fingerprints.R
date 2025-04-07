@@ -1,0 +1,328 @@
+
+# This is a version of master_analyze_all_data.R except it loads the
+# data and runs a fingerprint simulation on each dataset.
+
+
+# load libraries ----
+# devtools::install_github("lmiratrix/clusterRCT")
+library(tidyverse)
+library(haven)
+library(clusterRCT)
+library(tools)
+library(writexl)
+
+
+source( here::here( "empirical/data_processing_functions.R" ) )
+
+
+DATA_DIR = '/data/share/pse/IES CRT/sd7/clean study datasets'
+
+RESULT_DIR = here::here( "rerand_sim_result" )
+
+NUM_SIMULATIONS = 20
+
+
+# Make place for results, if needed
+dir.create( RESULT_DIR, showWarnings = FALSE )
+
+
+
+# load cleaned data ----
+
+# these are individual datasets for each non-clean room study, already
+# filtered to analytic sample
+#
+# This code sets a bunch of environment variables to the given
+# filenames
+for (f in list.files(DATA_DIR, full.names = T)) {
+  assign(file_path_sans_ext(basename(f)),
+         readRDS(f))
+}
+
+
+
+
+
+# Wrapper function to run the simulations ----
+
+#'
+#' Call compare_methods after doing some selection of variables and
+#' whatnot given some overall info on the dataset.
+#'
+#' @param proj project name -- used to ID different datasets
+#' @param outcome outcome variable as string
+#' @param covars character string indicating which set to include.
+#'   none is no covariate adjustment.  all is all in the covars_list.
+#'   "best" selects the highest correlated covariate.
+#' @param covars_list list of covariates to include in the model
+#' @param data dataset to use (data frame)
+#' @param trt treatment indicator as string
+#' @param clust cluster variable as string
+#' @param blk block variable as string
+#' @param ptest Existence of pretest (0/1).  Note, this is just passed
+#'   to the final result.  We select the highest correlated covariate,
+#'   and do not record whether it was the pretest or not.
+run_sim <- function(proj, outcome, covars, covars_list, data, trt, clust, blk, ptest, ... ) {
+  
+  res <- data_processor( proj=proj, outcome=outcome, covars=covars, covars_list=covars_list, 
+                         data=data, trt=trt, clust=clust, blk=blk, ptest=ptest, 
+                         processor = run_rerandomize_simulation, 
+                         include_method_characteristics = FALSE,
+                         warn_missing = FALSE,
+                         R = NUM_SIMULATIONS,
+                         ... )
+  
+  res$Outcome_desc = NULL
+  res$Pretest = NULL
+  
+  nm = glue::glue( "{proj}_{outcome}" )
+  write_rds( res, 
+             here::here( glue::glue( "rerand_sim_result/{nm}.rds" ) ) )
+  res
+  
+}
+
+
+
+
+
+# Run the simulations ----
+
+
+
+## Fake CRT (demo) ----
+
+if ( FALSE ) {
+  data( fakeCRT )
+  fakeCRT$Y2 = fakeCRT$Yobs
+  fakeCRT$XX = rnorm( nrow(fakeCRT) )
+  
+  outcomes_fake <- c('Yobs', 'Y2')
+  
+  covars_fake <- c('X.jk', 'C.ijk', "XX" )
+  
+  
+  # Direct call (for testing)
+  run_sim( proj = "FakeCRT",
+           outcome = "Yobs",
+           covars = "best",
+           covars_list = covars_fake,
+           data = fakeCRT,
+           trt = "T.x",
+           clust = "S.id",
+           blk = "D.id",
+           ptest = 0,
+           R = 2,
+           include_MLM = FALSE )
+  
+  
+  
+  # grid for each outcome/covar combo
+  grid_fake <- expand_grid(outcome = outcomes_fake,
+                           covars  = c('none', 'best', 'all'))
+  
+  # compile results
+  compare_fake <- pmap(grid_fake, run_sim, 
+                       proj        = 'fakeCRT',
+                       covars_list = covars_fake,
+                       data        = fakeCRT,
+                       trt         = 'T.x',
+                       clust       = 'S.id',
+                       blk         = 'D.id', 
+                       ptest       = 0,
+                      # R = 2, include_MLM = FALSE,
+                       .progress   = TRUE) %>%
+    reduce(bind_rows)
+  
+  
+  
+}
+
+
+## Making Pre-K Count ----
+
+# using W score for WJ-AP outcome - not age-normalized to mean 100/SD 15 used in paper, but best we have
+outcomes_mpc <- c('eclsb2_scale', 'wj_ap2')
+
+# no pre-tests for math outcomes (see footnote 1, pg. 85)
+# other demographic covars not in data 
+covars_mpc <- c('age1')
+
+# grid for each outcome/covar combo
+grid_mpc <- expand_grid(outcome = outcomes_mpc,
+                        covars  = c('none', 'best', 'all'))
+
+# compile results
+compare_mpc <- pmap(grid_mpc, run_sim, 
+                    proj        = 'MPC',
+                    covars_list = covars_mpc,
+                    data        = mpc,
+                    trt         = 'dtx',
+                    clust       = 'school1',
+                    blk         = 'block', 
+                    ptest       = 0,
+                    .progress   = T) %>%
+  reduce(bind_rows)
+
+
+## EMERGE ----
+
+outcomes_emerge <- c('team2_scaled', 'eclsb2')
+
+covars_emerge <- c('age1', 'dfemale')
+
+# EMERGE grid also includes treatment arm
+grid_emerge <- expand_grid(trt = c('T_BB', 'T_BBSSR'),
+                           outcome = outcomes_emerge,
+                           covars  = c('none', 'best', 'all'))
+
+compare_emerge <- pmap(grid_emerge, cm,
+                       proj        = 'EMERGE',
+                       covars_list = covars_emerge,
+                       data        = emerge,
+                       clust       = 'teachid',
+                       blk         = 'block',
+                       ptest       = 0,
+                       .progress   = T) %>%
+  reduce(bind_rows)
+
+## TRIAD ----
+
+# REMA seems to be on a very different scale than report (see table 3 in report)
+# They were converted to a "T score", which is explained on pg. 71 of the 2018 report:
+# https://www.mdrc.org/sites/default/files/MPC-High_5s_Impact_FR_0.pdf
+# I attempted to recreate the T score and am close to the averages in Table 3, but not quite exact.
+outcomes_triad <- c('rema2')
+
+# just pretest and af-am based on table 4 in report
+covars_triad <- c('rema1', 'dblack')
+
+grid_triad <- expand_grid(outcome = outcomes_triad,
+                          covars  = c('none', 'best', 'all'))
+
+
+compare_triad <- pmap(grid_triad, cm,
+                      proj        = 'TRIAD',
+                      covars_list = covars_triad,
+                      data        = triad,
+                      trt         = 'dtx',
+                      clust       = 'school1',
+                      blk         = 'block',
+                      ptest       = 1,
+                      .progress   = T) %>%
+  reduce(bind_rows)
+
+## TRIAD Scale-up ----
+
+
+# REMA seems to be on a very different scale than report (see table 2 in report)
+# maybe T-scores?
+outcomes_triadsu <- c('rema2')
+
+# just pretest and af-am based on table 4 in report
+covars_triadsu <- c('rema1', 'dblack')
+
+grid_triadsu <- expand_grid(outcome = outcomes_triadsu,
+                            covars  = c('none', 'best', 'all'))
+
+
+compare_triadsu <- pmap(grid_triadsu, cm, 
+                        proj        = 'TRIAD Scale-up',
+                        covars_list = covars_triadsu,
+                        data        = triadsu,
+                        trt         = 'dtx',
+                        clust       = 'school1',
+                        blk         = 'block',
+                        ptest       = 1,
+                        .progress   = T) %>%
+  reduce(bind_rows)
+
+## Success for All ----
+
+outcomes_sfa <- 'S14WJLWI_SCORE'
+covars_sfa <- c('SPECIAL_ED', 'MALE', 'ELL', 'AGE', 'F11PPVT_SCORE', 'F11WJLWI_SCORE')
+
+grid_sfa <- expand_grid(outcome = outcomes_sfa,
+                        covars  = c('none', 'best', 'all'))
+
+
+compare_sfa <- pmap(grid_sfa, cm, 
+                    proj        = 'Success for All',
+                    covars_list = covars_sfa,
+                    data        = sfa,
+                    trt         = 'RA_CODE',
+                    clust       = 'SCHOOL_ID',
+                    blk         = 'DISTRICT',
+                    ptest       = 1,
+                    .progress   = T) %>%
+  reduce(bind_rows)
+
+## TN Star ----
+
+outcomes_tnstar <- c('gktmathss', 'gktreadss')
+covars_tnstar <- c('gender_na', 'female', 'male', 
+                   'race_ai', 'race_as_pi', 'race_o', 'race_hi', 
+                   'race_na', 'race_b', 'race_w', 
+                   'gkfreelunch', 'K_SPECIAL_ED')
+
+grid_tnstar <- expand_grid(outcome = outcomes_tnstar,
+                           covars  = c('none', 'best', 'all'))
+
+
+compare_tnstar <- pmap(grid_tnstar, cm, 
+                       proj        = 'Tennessee STAR',
+                       covars_list = covars_tnstar,
+                       data        = tnstar,
+                       trt         = 'adj_racode',
+                       clust       = 'K_TEACHER_ID',
+                       blk         = 'K_SCHOOL_ID',
+                       ptest       = 0,
+                       .progress   = T) %>%
+  reduce(bind_rows)
+
+## Beacon Mentor ----
+
+outcomes_beaconmentor <- c('S8TGPA', 'S8TOTCR', 'SRPRST2')
+covars_beaconmentor <- c('RADEV', 'S8TEACHID', 'S8FULTMEC', 'ZFemale', 'RATIME', 'ZAGELT24', 'PTTOP75C', 'PTBTM25C')
+
+grid_beaconmentor <- expand_grid(outcome = outcomes_beaconmentor,
+                                 covars  = c('none', 'best', 'all'))
+
+
+compare_beaconmentor <- pmap(grid_beaconmentor, cm, 
+                             proj        = 'Beacon Mentor',
+                             covars_list = covars_beaconmentor,
+                             data        = beaconmentor,
+                             trt         = 'racode_b',
+                             clust       = 'S8CLUSTE',
+                             blk         = 'RABLOCK',
+                             ptest       = 0,
+                             .progress   = T) %>%
+  reduce(bind_rows)
+
+
+## PowerTeaching ----
+
+outcomes_powerteaching <- c('TSTSSTAND')
+covars_powerteaching <- c('COHORT1', 'COHORT2', 'MALE_BL',
+                          'HISPANIC_BL', 'WHITE_BL', 'BLACK_BL',
+                          'FRLUNCH_BL', 'ELL_BL', 'SPECIAL_ED_BL', 
+                          'TSTSSTAND_BL', 'TSTSS_BL', 'TSTPLVL_BL')
+
+grid_powerteaching <- expand_grid(outcome = outcomes_powerteaching,
+                                  covars  = c('none', 'best', 'all'))
+
+
+compare_powerteaching <- pmap(grid_powerteaching, cm, 
+                              proj        = 'PowerTeaching',
+                              covars_list = covars_powerteaching,
+                              data        = powerteaching,
+                              trt         = 'RA_CODE',
+                              clust       = 'SCHOOL_ID',
+                              blk         = 'DIST',
+                              ptest       = 1,
+                              .progress   = T) %>%
+  reduce(bind_rows)
+
+
+

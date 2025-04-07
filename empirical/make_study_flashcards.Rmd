@@ -190,7 +190,8 @@ ranges %>%
   summarise( n = n(),
              n_10 = sum( Range >= 0.10 ),
              big_10 = n_10 / n,
-             big_5 = mean( Range >= 0.05 ) ) %>%
+             n_05 = sum( Range >= 0.05 ),
+             big_5 = n_05 / n ) %>%
   knitr::kable( digits = 2 )
 
 ```
@@ -202,7 +203,9 @@ ranges %>%
   group_by( group, measure ) %>%
   filter( !str_detect( measure, "ate") ) %>%
   summarise( n = n(),
-             n_1.5 = sum( Range >= 1.5 ),
+              n_1.2 = sum( Range >= 1.2 ),
+             big_1.2 = n_1.2 / n,
+            n_1.5 = sum( Range >= 1.5 ),
              big_1.5 = n_1.5 / n,
              n_2 = sum( Range >= 2 ),
              big_2 = n_2 / n,
@@ -218,6 +221,8 @@ ranges %>%
   group_by( low_df, group, measure ) %>%
   filter( !str_detect( measure, "ate") ) %>%
   summarise( n = n(),
+             n_1.2 = sum( Range >= 1.2 ),
+             big_1.2 = n_1.2 / n,
              n_1.5 = sum( Range >= 1.5 ),
              big_1.5 = n_1.5 / n,
              n_2 = sum( Range >= 2 ),
@@ -252,7 +257,7 @@ combined %>%
   knitr::kable()
 ```
 
-This table counts the number of estimates for each outcome that are undefined
+This table counts the number of estimates for each outcome that are undefined 
 
 ```{r}
 combined %>%
@@ -262,6 +267,26 @@ combined %>%
              n_SE = sum( is.na( SE_hat_std ) ) ) %>%
   pivot_wider( names_from=Covariates, values_from=c(n_ATE, n_SE) ) %>%
   knitr::kable()
+```
+
+
+## Which studies have singletons and doubletons?
+
+This table lists the number of singletons and doubletons for the Blocked experiments
+```{r}
+studies %>% 
+  dplyr::filter( blocked == "Blocked" ) %>%
+  dplyr::select( UniqueID, study_id, num_singletons, num_doubletons ) %>% 
+  knitr::kable(  )
+```
+
+So the number of outcomes that had no singletons is
+```{r}
+studies %>% 
+  group_by( blocked, Collection ) %>%
+  summarise( n = n(),
+             n_no_singletons = sum( num_singletons == 0 ),
+             n_no_doubletons = sum( num_doubletons == 0 ) )
 ```
 
 

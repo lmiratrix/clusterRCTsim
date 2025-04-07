@@ -24,6 +24,7 @@ library(clusterRCT)
 library(tools)
 library(writexl)
 
+source( here::here( "empirical/data_processing_functions.R" ) )
 
 
 # load cleaned data ----
@@ -32,128 +33,6 @@ library(writexl)
 for (f in list.files('/data/share/pse/IES CRT/sd7/clean study datasets', full.names = T)) {
   assign(file_path_sans_ext(basename(f)),
          readRDS(f))
-}
-
-# Helper functions for compiling results ----
-# the functions below run compare_methods() and describe_clusterRCT() for a given outcome and set of covariates.
-# writing the functions in this generalized way allows the code below to be streamlined and avoid repetition
-
-# compare_methods() helper function
-cm <- function(proj, outcome, covars, covars_list, data, trt, clust, blk, ptest) {
-  
-  # rename outcome and treatment indicator
-  data <- data %>%
-    mutate(Y = !!sym(outcome),
-           Tx = !!sym(trt))
-  
-  # EMERGE had multiple treatment arms, so we need to filter appropriately
-  if (proj == 'EMERGE') {
-    data <- data %>%
-      filter(experimentalgroup_desc %in% c(str_remove(trt, 'T_'), 'Control'))
-  }
-  
-  # build control formula
-  form <- as.formula(paste0('Y ~ ', paste(c('Tx', clust, blk), collapse = ' | ')))
-  
-  # run compare_methods() three times: no covars, "best" covar, and all covars
-  if (covars == 'none') {
-    results <- data %>%
-      compare_methods(form,
-                      data = .,
-                      include_method_characteristics = F)
-  } else if (covars == 'all') {
-    cf <- as.formula(paste('~', paste(covars_list, collapse = ' + ')))
-    
-    results <- data %>%
-      compare_methods(form,
-                      data = .,
-                      control_formula = cf,
-                      include_method_characteristics = F)
-  } else if (covars == 'best') {
-    # Calculate correlations
-    correlations <- sapply(covars_list, function(covariate) {
-      cor(data[[outcome]], data[[covariate]], use = "complete.obs")
-    })
-    
-    # Find the covariate with the highest correlation
-    best_covariate <- names(which.max(abs(correlations)))
-    
-    cf <- as.formula(paste('~', paste(best_covariate, collapse = ' + ')))
-    
-    results <- data %>%
-      compare_methods(form,
-                      data = .,
-                      control_formula = cf,
-                      include_method_characteristics = F)
-  }
-  
-  # spit out results with project and outcome information
-  results <- results %>%
-    mutate(Project      = proj,
-           Pretest      = ptest,
-           Covariates   = covars,
-           Trt_arm      = ifelse(proj == 'EMERGE', str_remove(trt, 'T_'), NA),
-           Outcome      = outcome,
-           Outcome_desc = attr(data[[outcome]], 'label'))
-  
-  return(results)
-}
-
-# describe_clusterRCT helper function
-dc <- function(proj, outcome, covars, covars_list, data, trt, clust, blk, ptest) {
-  
-  # rename outcome and treatment indicator
-  data <- data %>%
-    mutate(Y = !!sym(outcome),
-           Tx = !!sym(trt))
-  
-  # EMERGE had multiple treatment arms, so we need to filter appropriately
-  if (proj == 'EMERGE') {
-    data <- data %>%
-      filter(experimentalgroup_desc %in% c(str_remove(trt, 'T_'), 'Control'))
-  }
-   # build control formula
-  form <- as.formula(paste0('Y ~ ', paste(c('Tx', clust, blk), collapse = ' | ')))
-  
-  # run describe_clusterRCT() three times: no covars, "best" covar, and all covars
-  if (covars == 'none') {
-    results <- data %>%
-      describe_clusterRCT(form,
-                          data = .)
-  } else if (covars == 'all') {
-    cf <- as.formula(paste('~', paste(covars_list, collapse = ' + ')))
-    
-    results <- data %>%
-      describe_clusterRCT(form,
-                          data = .,
-                          control_formula = cf)
-  } else if (covars == 'best') {
-    # Calculate correlations
-    correlations <- sapply(covars_list, function(covariate) {
-      cor(data[[outcome]], data[[covariate]], use = "complete.obs")
-    })
-    
-    # Find the covariate with the highest correlation
-    best_covariate <- names(which.max(abs(correlations)))
-    
-    cf <- as.formula(paste('~', paste(best_covariate, collapse = ' + ')))
-    
-    results <- data %>%
-      describe_clusterRCT(form,
-                          data = .,
-                          control_formula = cf)
-  }
-  
-  # spit out results with project and outcome info
-  results <- results %>%
-    mutate(Project      = proj,
-           Pretest      = ptest,
-           Covariates   = covars,
-           Trt_arm      = ifelse(proj == 'EMERGE', str_remove(trt, 'T_'), NA),
-           Outcome      = outcome,
-           Outcome_desc = attr(data[[outcome]], 'label'))
-  
-  return(results)
 }
 
 
