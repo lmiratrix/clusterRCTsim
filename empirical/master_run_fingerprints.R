@@ -88,7 +88,7 @@ run_sim <- function(proj, outcome, covars, covars_list, data, trt, clust, blk, p
   UniqueID     = str_remove_all(paste(proj, outcome, trt, sep = '_'), '_NA')
   
   write_rds( res, 
-             here::here( glue::glue( "rerand_sim_result/{UniqueID}.rds" ) ) )
+             here::here( glue::glue( "{RESULT_DIR}/{UniqueID}.rds" ) ) )
   res
   
 }
@@ -105,29 +105,13 @@ run_sim <- function(proj, outcome, covars, covars_list, data, trt, clust, blk, p
 
 if ( FALSE ) {
   data( fakeCRT )
-  fakeCRT$Y2 = fakeCRT$Yobs
+  fakeCRT$Xg = rnorm( nrow(fakeCRT), mean=0, sd=1 )
+  fakeCRT$Y2 = fakeCRT$Xg + rnorm( nrow(fakeCRT), sd=1 )
   fakeCRT$XX = rnorm( nrow(fakeCRT) )
   
   outcomes_fake <- c('Yobs', 'Y2')
   
-  covars_fake <- c('X.jk', 'C.ijk', "XX" )
-  
-  
-  if (FALSE) {
-    # Direct call (for testing)
-    rc <- run_sim( proj = "FakeCRT",
-             outcome = "Yobs",
-             covars = "best",
-             covars_list = covars_fake,
-             data = fakeCRT,
-             trt = "T.x",
-             clust = "S.id",
-             blk = "D.id",
-             ptest = 0,
-             R = 2,
-             include_MLM = FALSE )
-    head( rc )
-  }
+  covars_fake <- c('X.jk', 'C.ijk', "XX", "Xg" )
   
   
   # grid for each outcome/covar combo
@@ -146,21 +130,8 @@ if ( FALSE ) {
                        # R = 2, include_MLM = FALSE,
                        .progress   = TRUE) %>%
     reduce(bind_rows)
-  
 
-    
-  # Just checking what our results look like (unneeded code):
-  compare_fake <- as_tibble( compare_fake )
-  compare_fake
   
-  compare_fake$weight = get_estimand( compare_fake$method, simple = TRUE )
-  agg <- summarize_simulation_results( compare_fake, 
-                                       summarize_results = "cross" )
-  agg$real = agg$runID == "empirical"
-  ggplot( agg, aes( rangeATE, fill=real ) ) +
-    facet_wrap( ~ weight ) +
-    geom_dotplot()
-
 }
 
 
