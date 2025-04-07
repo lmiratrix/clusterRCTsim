@@ -87,7 +87,6 @@ simdata = mutate(simdata,
 #confirm weight, bias and disfavored are unique by method
 
 
-library(tidyverse)
 
 # Check if variables are unique by ID and method
 
@@ -111,7 +110,7 @@ if(nrow(duplicates) == 0) {
 }
 
 sruns = simdata %>% 
-  group_by( ID, method ) %>%   # per scenario and method... (aggregate over batch, run, subrun)
+  group_by( ID, method, weight, disfavored, biased) %>%   # per scenario and method... (aggregate over batch, run, subrun)
   summarise( mean.SE.hat = mean( SE.hat ),
              mean.ATE.hat=mean(ATE.hat),
              mean.df=mean(df),
