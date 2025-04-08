@@ -66,7 +66,7 @@ summary_stats_estimand %>%
               filename = 'final paper figures/fig2_ATErange_byestimand',
               title = 'Figure 2',
               subtitle = glue::glue( 'The Range of Estimates of β for all Estimators\nTargeting a Given Estimand for {n_outcomes} Outcomes' ),
-              coordratio = .10,
+              coordratio = .15,
               binw = 0.01,
               rmlegend = F,
               byest    = TRUE ) +
@@ -127,18 +127,19 @@ summary_stats_exclFI %>%
               binw     = 0.05,
               coordratio = 0.8)
 
+### Figure 5: Figure 4 without fully-interactive models ----
 summary_stats_estimand_exclFI %>%
   filter(Covariates == "best") %>%
   makeDotplot(var      = 'Ratio',
               xlab     = 'Ratio of Largest to Smallest SE across Point Estimates',
               ylab     = 'Count',
-              title    = 'Figure 4a',
+              title    = 'Figure 5',
               subtitle = glue::glue( 'The Ratio (across {n_est_noFI} estimators) of the Largest to Smallest Estimates of SE(β)\namong all estimators targeting a given estimand for {n_outcomes} outcomes\n(excluding fully interacted models)' ),
-              filename = 'final paper figures/fig4a_SEratio_byestimand_exclFI',
+              filename = 'final paper figures/fig5_SEratio_byestimand_exclFI',
               byest = T,
               rmlegend = T,
-              binw     = 0.05,
-              coordratio = 0.78,
+              binw     = 0.1,
+              coordratio = 2.2,
               tcratio  = T,
               tcbreaks = c(1:5))
 

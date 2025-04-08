@@ -44,11 +44,6 @@ makeDotplot <- function(df, var,
           panel.border = element_rect(colour = "black", fill=NA)) +
     scale_color_manual(values = c("white", "black")) 
   
-  if (!is.null(coordratio)) {
-    p <- p +
-      coord_fixed(ratio = coordratio)
-  }
-  
   if (byest == T) {
     p <- p +
       facet_grid(~ Estimand) +
@@ -76,11 +71,13 @@ makeDotplot <- function(df, var,
   if (!is.null(tcbreaks)) {
     if (tcratio) {
       p <- p +
+        # coord_cartesian(xlim = c(min(tcbreaks), max(tcbreaks))) +
         scale_x_continuous(breaks = tcbreaks, 
                            labels = c(paste0(tcbreaks[1:(length(tcbreaks) - 1)], 'X'), paste0(tcbreaks[length(tcbreaks)], 'X+')))
       
     } else {
       p <- p +
+        # coord_cartesian(xlim = c(min(tcbreaks), max(tcbreaks))) +
         scale_x_continuous(breaks = tcbreaks, 
                            labels = c(tcbreaks[1:(length(tcbreaks) - 1)], paste0(tcbreaks[length(tcbreaks)], '+')))
     }
@@ -91,6 +88,17 @@ makeDotplot <- function(df, var,
       theme(axis.text  = element_text(size = axisfs * 0.8),
             axis.title = element_text(size = axisfs),
             strip.text = element_text(size = axisfs))
+  }
+  
+  if (!is.null(coordratio)) {
+    if (!is.null(tcbreaks)) {
+      p <- p +
+        coord_fixed(xlim = c(min(tcbreaks), max(tcbreaks)),
+                    ratio = coordratio)
+    } else {
+      p <- p +
+        coord_fixed(ratio = coordratio)
+    }
   }
   
   if (!is.null(filename)) {
