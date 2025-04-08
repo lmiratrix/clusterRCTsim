@@ -138,7 +138,9 @@ summary_stats_estimand_exclFI %>%
               byest = T,
               rmlegend = T,
               binw     = 0.05,
-              coordratio = 0.8)
+              coordratio = 0.78,
+              tcratio  = T,
+              tcbreaks = c(1:5))
 
 
 
