@@ -69,8 +69,9 @@ summary_stats_estimand %>%
               coordratio = .15,
               binw = 0.01,
               rmlegend = F,
-              byest    = TRUE ) +
-  scale_x_continuous( limits=c(0, range_x_range ) )
+              byest    = TRUE,
+              xscale = c(0, 0.3)) 
+  # scale_x_continuous( limits=c(0, range_x_range ) )
 
 
 
