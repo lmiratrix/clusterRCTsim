@@ -30,15 +30,22 @@ geometry:
 #coverage 
 #fix the description of the data generating process 
 #go read Mike's latest comments in the draft 
-
+#what is the next round of simulations 
 
 ```
 
 
 ```{r setup, include=FALSE, echo=FALSE}
 
-knitr::opts_chunk$set(echo = TRUE)
-load( "/Users/sophielitschwartz/Dropbox/clusterRCTsim/results_agg/processed_simulation_results_agg_full_factor_2025-04-01.RData" )
+knitr::opts_chunk$set(
+  echo = FALSE,          # Don't show code in output by default
+  message = FALSE,       # Suppress messages
+  warning = FALSE,       # Suppress warnings
+  fig.width = 8,         # Default figure width
+  fig.height = 6,        # Default figure height
+  fig.align = "center"   # Center figures
+)
+load( "/Users/sophielitschwartz/Dropbox/clusterRCTsim/results_agg/processed_simulation_results_agg_full_factor_2025-04-03.RData" )
 
 require(tidyverse)
 require(rlang)
@@ -47,8 +54,13 @@ require( ggthemes )
 require(broom)
 require(knitr)
 require(kableExtra)
+require(patchwork)
+require(gridExtra)
+require(pander)
 
 
+
+select <- dplyr::select
 
 my_t = theme_tufte() + theme( legend.position="bottom", 
                               legend.direction="horizontal", legend.key.width=unit(1,"cm"),
@@ -147,22 +159,32 @@ sruns.clean <- sruns %>%
    mutate(block_type = case_when(
    variable.J == FALSE & sd.ATE == 0 & 
    size.impact.cor == 0 & 
-   proptx.impact.cor == 0 & size.intercept.cor == 0 ~ "Blocks all same",
+   proptx.impact.cor == 0 & size.intercept.cor == 0 ~ 1,
    
    variable.J == TRUE & sd.ATE == 0.6 & 
    size.impact.cor == 0.8 & 
-   proptx.impact.cor == 0.8 & size.intercept.cor == 0.8 ~ "Blocks all messy",
+   proptx.impact.cor == 0.8 & size.intercept.cor == 0.8 ~ 3,
    
    variable.J == TRUE & sd.ATE == 0.1 & 
    size.impact.cor == 0.2 & 
-   proptx.impact.cor == 0 & size.intercept.cor == 0.1 ~ "Blocks all reasonable",
+   proptx.impact.cor == 0 & size.intercept.cor == 0.1 ~ 2,
    
-   TRUE ~ "Other"  # Catch any other combinations
+   TRUE ~ NA  # Catch any other combinations
  ) ) %>% mutate(
    bias.s.estimand = case_when(
      weight == "Cluster" ~ bias.s.sch,
      weight == "Person" ~ bias.s.stu
    ))%>% 
+  mutate(
+   cover.s.estimand = case_when(
+     weight == "Cluster" ~ cover.s.sch,
+     weight == "Person" ~ cover.s.stu
+   ))%>%
+   mutate(
+   RMSE.s.estimand = case_when(
+     weight == "Cluster" ~ RMSE.s.sch,
+     weight == "Person" ~ RMSE.s.stu
+   ))%>%
 mutate(
   sd.ATE = create_labeled_factor(sd.ATE),
   size.impact.cor = create_labeled_factor(size.impact.cor),
@@ -174,6 +196,7 @@ mutate(
   proptx.impact.cor = create_labeled_factor(proptx.impact.cor),
   size.intercept.cor = create_labeled_factor(size.intercept.cor),
   size.impact.cor.school = create_labeled_factor(size.impact.cor.school),
+  block_type = create_labeled_factor(block_type),
   bias.s.estimand.mag=abs(bias.s.estimand),
   method = reorder(method, -biased),
   bias.ratio.sch=(round(bias.f.sch/bias.s.sch,4)),
@@ -186,7 +209,28 @@ mutate(
 )
 
 # Check the levels of one of the variables
-levels(sruns.model$sd.ATE)
+levels(sruns.clean$block_type)
+
+
+# Create ordered factor levels
+ordered_methods <- sruns.clean %>%
+  # First get Cluster unbiased methods
+  filter(weight == "Cluster" & biased == 0) %>% pull(method) %>% unique() %>%
+  c(
+    # Then Cluster biased methods
+    sruns.clean %>% filter(weight == "Cluster" & biased == 1) %>% pull(method) %>% unique(),
+    # Then Person unbiased methods
+    sruns.clean %>% filter(weight == "Person" & biased == 0) %>% pull(method) %>% unique(),
+    # Finally Person biased methods
+    sruns.clean %>% filter(weight == "Person" & biased == 1) %>% pull(method) %>% unique()
+  )
+
+# Create the plot data with ordered methods
+plot_data <- sruns.clean %>%
+  mutate(
+    weight_biased = paste(weight, biased, sep = "_"),
+    method_ordered = factor(method, levels = ordered_methods)
+  )
 
 
 #figure out which estimators produce the same ATE results 
@@ -238,16 +282,17 @@ group_estimators <- function( rps,var ) {
   groups
 }
 
-groups<-group_estimators(sruns.full_factor, var= "mean.ATE.hat")
+groups<-group_estimators(sruns, var= "mean.ATE.hat")
 
 
 # List the groups
-map_chr( groups, paste, collapse = ", " ) %>%
-  as.data.frame() %>%
-  mutate( grp = 1:n() ) %>%
-  relocate( grp ) %>%
+map_chr(groups, paste, collapse = ", ") %>%
+  # Convert to a data frame with a proper column name
+  data.frame(group_values = .) %>%
+  # Now n() will work inside mutate()
+  mutate(grp = 1:nrow(.)) %>%
+  relocate(grp) %>%
   knitr::kable()
-
 
 #this is the list of methods that don't produce the same ATE estimates
 core.methods <- c("LRa-FE-db", "LRa-FIcw-db", "LRapw-FE-db", "LRapw-FIpw-db", "MLM-FE", "MLM-FIcw", "MLM-RE")
@@ -259,16 +304,17 @@ MLM.methods<-c( "MLM-FE", "MLM-FIcw", "MLM-RE" )
 #this is the list of methods that don't produce the same se estimates
 all.methods<-c("LRa-FE-db", "LRa-FE-het", "LRicw-FE-crve", "LRicw-FE-db","LRa-FIcw-db","LRa-FIcw-het", "LRicw-FIcw-crve", "LRicw-FIcw-db", "LRapw-FE-db", "LRapw-FE-het", "LRi-FE-crve", "LRi-FE-db","LRapw-FIpw-db", "LRapw-FIpw-het", "LRi-FIpw-crve", "LRi-FIpw-db", "MLM-FE", "MLM-FIcw","MLM-RE")
 
-groups<-group_estimators(sruns.full_factor, var= "mean.SE.hat")
+groups<-group_estimators(sruns, var= "mean.SE.hat")
 
 
 # List the groups
-map_chr( groups, paste, collapse = ", " ) %>%
-  as.data.frame() %>%
-  mutate( grp = 1:n() ) %>%
-  relocate( grp ) %>%
+map_chr(groups, paste, collapse = ", ") %>%
+  # Convert to a data frame with a proper column name
+  data.frame(group_values = .) %>%
+  # Now n() will work inside mutate()
+  mutate(grp = 1:nrow(.)) %>%
+  relocate(grp) %>%
   knitr::kable()
-
 
 core.methods.se <- c("LRa-FE-db", "LRa-FE-het", "LRa-FIcw-db", "LRapw-FE-db", "LRapw-FE-het", "LRapw-FIpw-db", "LRapw-FIpw-het", "LRicw-FE-crve", "LRicw-FIcw-crve", "MLM-FE", "MLM-FIcw", "MLM-RE")
 
@@ -278,43 +324,53 @@ core.methods.se <- c("LRa-FE-db", "LRa-FE-het", "LRa-FIcw-db", "LRapw-FE-db", "L
 
 ## What does the bias look like for each estimator 
 
-The estimators that theory says should be biased are in fact much more biased across the simulations. These boxplots are across the different data generating processes, each dot is the mean bias across simulation replications. The methods in light blue are the ones theory says should be biased. I only show the finite population numbers because they are the same as the super population results. 
+Main Bullet Points:
+*The estimators theory says are unbiased are indeed consistently unbiased (or have very low bias across the full range of simulations)
 
-There are tables showing how the different simulation facets predict bias. The regression model is how each facet of the data generating process predicts mean bias against a methods targeted estimand. The facets are binary indicators and are fully interacted with each other. I ran three models: just the cluster targeted methods, just the person targeted methods, and all methods. I don't know what to make of the results. 
+*The LRapw−FIpw−db has bias as large as -.025, which seems from the statistical model to be driven by the interactions of a large treatment effect standard deviation across clusters, high variability in cluster size, and correlations between treatment effect and cluster size. This is consitent with theory. 
+
+*For the various estimators that are biased, the mean bias is mostly driven by the different blocks being different from each other  
 
 
-To-Do:
-Clean up the graphs
-Clean up the model table 
-Re-write the summary section 
+Description of Analysis
+*The graph is a boxplot of mean bias across the different scenarios by method
+
+*The first table contains the regression coefficients from a regression that predicts the magnitude of the mean bias using different data generating parameters. Each regression is run separately by estimator and mean bias is the mean bias against the targeted estimator. 
+
+*The second table contains the DGPs that produce that largest magnitude of mean bias for each method, conditional on the magnitude of the mean bias being at least .1 . Where again mean bias is the mean bias against the targeted estimator. 
+
 
 
 ```{r bias, include=TRUE, echo=FALSE}
 
-sruns.graph.bias<-sruns.clean  %>% filter(method %in% core.methods) 
+sruns.graph.bias<-plot_data  %>% filter(method %in% core.methods) 
 
-#split the plots by weight
-cluster.bias<-ggplot(sruns.graph.bias %>% filter(weight=="Cluster"), aes(x = method, y = bias.s.sch, color = biased)) +
-  geom_boxplot() +
-labs(
-    title = "Bias by Method, Cluster Weighted",
-    x = "Method",
-    y = "Cluster Weighed Super Population Bias"
-  ) +
-  theme_minimal() +
-  theme(legend.position = "none", axis.text.x = element_text(size = 8))
-
-person.bias<-ggplot(sruns.graph.bias %>% filter(weight=="Person"), aes(x = method, y = bias.s.stu, color = biased)) +
+ggplot(sruns.graph.bias , aes(x = method_ordered, y = bias.s.estimand, color = weight_biased)) +
   geom_boxplot() +
   labs(
-    title = "Bias Method, Person Weight",
-    x = "Method",
-    y = "Person Weight Super Population Bias"
+    title = "Super Population Mean Bias by Method",
+    x = "",
+    y = "Mean Bias"
   ) +
   theme_minimal() +
-  theme(legend.position = "none", axis.text.x = element_text(size = 8))
-
-gridExtra::grid.arrange(cluster.bias, person.bias, ncol = 2)
+  theme(axis.text.x = element_text(size = 8)) +
+  coord_flip() +
+  scale_color_manual(
+    values = c(
+      "Cluster_0" = "darkblue", 
+      "Cluster_1" = "lightblue",
+      "Person_0" = "darkred", 
+      "Person_1" = "lightcoral"
+    ),
+    name = "Weight and Bias",
+    labels = c(
+      "Cluster_0" = "Cluster (Unbiased)",
+      "Cluster_1" = "Cluster (Biased)",
+      "Person_0" = "Person (Unbiased)",
+      "Person_1" = "Person (Biased)"
+    )
+    
+  )
 
 ```
 
@@ -327,26 +383,21 @@ model_summaries <- list()
 # Run separate models for each method
 for (m in core.methods) {
   # Subset data for this method
-  method_data <- sruns.model %>% filter(method == m)
+  method_data <- sruns.clean %>% filter(method == m)
   
   # Run the model for this method
   # Note: I'm using bias.s.estimand as you specified in your formula
   # Make sure this column exists or replace with the correct one
-  models_by_method[[m]] <- lm(bias.s.estimand.mag ~ (block_type + J.bar + size.impact.cor.school + 
+  models_by_method[[m]] <- lm(bias.s.estimand.mag~ (block_type + J.bar + size.impact.cor.school + 
                                                  sd.school + ICC.school + variable.n + 
-                                                 size.ratio.school + num.cov.school)^2, 
+                                                 cv.school + num.cov.school)^2, 
                               data = method_data)
   
   # Store summary statistics
   model_summaries[[m]] <- broom::tidy(models_by_method[[m]])
   
-  # Print basic information about the model
-  cat("\n\n=======================================\n")
-  cat("Model for method:", m, "\n")
-  cat("Number of observations:", nrow(method_data), "\n")
-  cat("R-squared:", summary(models_by_method[[m]])$r.squared, "\n")
-  cat("=======================================\n\n")
 }
+
 
 # Helper function to add significance stars
   add_stars <- function(p_value) {
@@ -357,10 +408,149 @@ for (m in core.methods) {
     if (p_value < 0.1) return(".")
     return("")
   }
-  
-# Create comparison table with significance stars
-create_star_comparison_table <- function(model_list) {
 
+
+# Function to create a coefficient table with wrapped term names
+create_coefficient_table <- function(model_list) {
+  # Get all unique terms across all models
+  all_terms <- unique(unlist(lapply(model_list, function(m) {
+    coef_names <- names(coef(m))
+    return(coef_names)
+  })))
+  
+  # Create extraction functions
+  extract_coef <- function(model, term) {
+    if(term %in% names(coef(model))) {
+      return(coef(model)[term])
+    } else {
+      return(NA)
+    }
+  }
+  
+  extract_p <- function(model, term) {
+    if(term %in% rownames(summary(model)$coefficients)) {
+      return(summary(model)$coefficients[term, "Pr(>|t|)"])
+    } else {
+      return(NA)
+    }
+  }
+  
+  # Function to wrap long term names
+  wrap_term <- function(term, width = 25) {
+    if (nchar(term) <= width) {
+      return(term)
+    }
+    
+    # For interaction terms (with :), try to break at the colon
+    if (grepl(":", term)) {
+      # Replace ":" with newline character
+      wrapped <- gsub(":", ":\n", term)
+      return(wrapped)
+    }
+    
+    # Otherwise, use general text wrapping logic
+    # Find a good breaking point
+    break_point <- width
+    while (break_point > 0 && substr(term, break_point, break_point) != " " && 
+           substr(term, break_point, break_point) != "_") {
+      break_point <- break_point - 1
+    }
+    
+    if (break_point == 0) {
+      # If no good breaking point, just break at width
+      break_point <- width
+    }
+    
+    # Insert newline character
+    wrapped <- paste0(
+      substr(term, 1, break_point),
+      "\n",
+      substr(term, break_point + 1, nchar(term))
+    )
+    
+    return(wrapped)
+  }
+  
+  # Create result dataframe
+  result <- data.frame(Term = sapply(all_terms, wrap_term), 
+                       stringsAsFactors = FALSE)
+
+  # Add coefficients for each method with shorter formatting
+
+  for(m in names(model_list)) {
+
+    coefs <- sapply(all_terms, function(t) extract_coef(model_list[[m]], t))
+    p_vals <- sapply(all_terms, function(t) extract_p(model_list[[m]], t))
+    stars <- sapply(p_vals, add_stars)
+coef_strings <- ifelse(
+  !is.na(coefs),
+  ifelse(
+    round(coefs,3) == 0,
+    paste0("<.001", stars),  # Just "0" for zero values
+    paste0(
+      # Drop leading zero for values between -1 and 1
+      sub("^(-?)0\\.", "\\1.", sprintf("%.3f", coefs)),
+      stars
+    )
+  ),
+  "")
+    
+    
+    # Use abbreviated method names if they're too long
+   method_name <- ifelse(nchar(m) > 15, 
+                          paste0(substr(m, 1, 14), "."), 
+                        m)
+    
+    # Add to result
+    result[[method_name]] <- coef_strings
+  }
+  
+  return(result)
+}
+
+# Generate the coefficient table
+coef_table <- create_coefficient_table(models_by_method)
+
+# Set row names to NULL
+row.names(coef_table) <- NULL
+
+# Set pander options
+panderOptions('table.split.table', Inf)  # Allow table to split across pages
+panderOptions('table.style', 'multiline')  # More compact style
+panderOptions('p.wrap', TRUE)  # Enable text wrapping - CHANGED FROM FALSE TO TRUE
+panderOptions('keep.trailing.zeros', FALSE)
+panderOptions('digits', 3)
+
+# Create header for the table
+cat("\\pagebreak")
+cat("### The Effect of Different Data Generating Parameters on the Magnitude of Mean Bias \n\n")
+
+# Create a custom alignment vector - LEFT justify the first column, RIGHT justify all others
+justify <- c('left', rep('center', ncol(coef_table)-1))
+
+# For PDF output - wrap pander table in font size commands
+cat("\\begingroup\n")
+cat("\\footnotesize\n")  # This will make the font smaller
+
+pander(coef_table, 
+       justify = justify,
+       style = 'multiline',
+       split.tables = Inf)
+# Add significance note
+cat("\n*Significance: '\\*\\*\\*' 0.001 '\\*\\*' 0.01 '\\*' 0.05 '.' 0.1*\n")
+cat("\\endgroup\n")  # This restores the previous font size
+
+
+# Add a footnote explaining significance levels
+add_significance_footnote <- function(table_object) {
+  footnote(table_object,
+    general = "Significance codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1",
+    general_title = "Note: "
+  )
+}
+
+# Create comparison table with significance stars - MODIFIED to make narrower output
+create_star_comparison_table <- function(model_list) {
   # Initialize a list to store tidy model outputs
   tidy_models <- list()
   
@@ -368,10 +558,13 @@ create_star_comparison_table <- function(model_list) {
   for (m in names(model_list)) {
     # Get model coefficients and p-values
     model_stats <- tidy(model_list[[m]]) %>%
-      # Create a column with coefficient and stars without parentheses
+      # Create a column with coefficient and stars - USING SHORTER FORMAT
       mutate(
         stars = sapply(p.value, add_stars),
-        coef_stars = sprintf("%.3f%s", estimate, stars)
+        # Reduce number of decimal places from 3 to 2 to save space
+        coef_stars = ifelse(!is.na(estimate),
+                            sprintf("%.2f%s", estimate, stars),
+                            "")
       )
     
     # Add to our list
@@ -389,7 +582,9 @@ create_star_comparison_table <- function(model_list) {
     temp_df <- tidy_models[[m]] %>% 
       select(term, coef_stars)
     
-    # Rename to method name
+    # Rename to method name - USING SHORTER METHOD NAMES if needed
+    # If method names are long, you could abbreviate them here
+    # For example: names(temp_df)[2] <- substr(m, 1, 3)  # First 3 chars only
     names(temp_df)[2] <- m
     
     # Join to result
@@ -400,260 +595,68 @@ create_star_comparison_table <- function(model_list) {
   return(result)
 }
 
+bias_column <- "bias.s.estimand.mag"
 
-# Add a footnote explaining significance levels
-add_significance_footnote <- function(table_object) {
-  footnote(table_object,
-    general = "Significance codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1",
-    general_title = "Note: "
-  )
-}
-
-# Function to create comparison table
-create_comparison_table <- function(model_list) {
-  # Initialize a list to store tidy model outputs
-  tidy_models <- list()
-  
-  # Process each model
-  for (m in names(model_list)) {
-    # Get model coefficients and p-values
-    model_stats <- tidy(model_list[[m]]) %>%
-      # Create a column with coefficient and p-value together
-      mutate(coef_pval = sprintf("%.3f (p=%.3f)", estimate, p.value))
-    
-    # Add to our list
-    tidy_models[[m]] <- model_stats
-  }
-  
-  # Combine all models into a single data frame
-  all_terms <- unique(unlist(lapply(tidy_models, function(x) x$term)))
-  
-  # Initialize result dataframe
-  result <- data.frame(term = all_terms)
-  
-  # Add each method's coefficients as a column
-  for (m in names(model_list)) {
-    temp_df <- tidy_models[[m]] %>% 
-      select(term, coef_pval)
-    
-    # Rename to method name
-    names(temp_df)[2] <- m
-    
-    # Join to result
-    result <- result %>% 
-      left_join(temp_df, by = "term")
-  }
-  
-  return(result)
-}
-
-
-
-# Generate comparison table
-full_comparison <- create_comparison_table(models_by_method)
-full_comparison <- create_star_comparison_table (models_by_method)
-
-print(full_comparison)
-
-if (requireNamespace("kableExtra", quietly = TRUE)) {
-   formatted_table <- kable(full_comparison, format = "html") %>%
-     kable_styling(bootstrap_options = c("striped", "hover", "condensed"), 
-                 full_width = FALSE) %>%
-     row_spec(0, bold = TRUE, background = "#f7f7f7") %>%
-     add_significance_footnote()
-   
-   print(formatted_table)
- }
-
-
-###### this is where I started with the unedited code I got from Claude starts 
-
-# Example usage:
-# star_table <- create_star_comparison_table(models_by_method)
-# 
-
-
-
-
-
-
-
-# Get unique methods
-methods <- unique(sruns.model$method)
-
-# Create a list to store models
-models_by_method <- list()
-
-# Run separate models for each method
-for (m in methods) {
-  # Subset data for this method
-  method_data <- sruns.model %>% filter(method == m)
-  
-  # Run the model for this method
-  models_by_method[[m]] <- lm(bias.s.estimand ~ (block_type + J.bar + size.impact.cor.school + 
-                                                  sd.school + ICC.school + variable.n + 
-                                                  size.ratio.school + num.cov.school)^2, 
-                              data = method_data)
-}
-
-
-# Create simplified version with main effects only
-create_main_effects_table <- function(model_list) {
-  # Initialize a list to store tidy model outputs
-  tidy_models <- list()
-  
-  # Process each model
-  for (m in names(model_list)) {
-    # Get model coefficients and p-values
-    model_stats <- tidy(model_list[[m]]) %>%
-      # Filter for main effects only (terms without ":")
-      filter(!grepl(":", term)) %>%
-      # Create a column with coefficient and p-value together
-      mutate(coef_pval = sprintf("%.3f (p=%.3f)", estimate, p.value))
-    
-    # Add to our list
-    tidy_models[[m]] <- model_stats
-  }
-  
-  # Combine all models into a single data frame
-  all_terms <- unique(unlist(lapply(tidy_models, function(x) x$term)))
-  
-  # Initialize result dataframe
-  result <- data.frame(term = all_terms)
-  
-  # Add each method's coefficients as a column
-  for (m in names(model_list)) {
-    temp_df <- tidy_models[[m]] %>% 
-      select(term, coef_pval)
-    
-    # Rename to method name
-    names(temp_df)[2] <- m
-    
-    # Join to result
-    result <- result %>% 
-      left_join(temp_df, by = "term")
-  }
-  
-  return(result)
-}
-
-# Generate both tables
-full_comparison <- create_comparison_table(models_by_method)
-main_effects_only <- create_main_effects_table(models_by_method)
-
-# Print main effects table (which is more manageable)
-print(main_effects_only)
-
-# If you want to save this to a CSV file:
-# write.csv(full_comparison, "full_model_comparison.csv", row.names = FALSE)
-# write.csv(main_effects_only, "main_effects_comparison.csv", row.names = FALSE)
-
-# Create a nice HTML table for RMarkdown output
-if (requireNamespace("kableExtra", quietly = TRUE)) {
-  main_effects_kable <- kable(main_effects_only, format = "html") %>%
-    kable_styling(bootstrap_options = c("striped", "hover", "condensed"), 
-                  full_width = FALSE) %>%
-    row_spec(0, bold = TRUE, background = "#f7f7f7")
-  
-  # Print the table
-  print(main_effects_kable)
-}
-
-
-
-
-
-
-
-
-
-model.sch <- lm(bias.s.sch ~ (block_type+J.bar +  size.impact.cor.school +  sd.school + ICC.school +  variable.n + size.ratio.school + num.cov.school)^2, data = sruns.model %>% filter(weight=="Cluster"))
-
-model.stu <- lm(bias.s.stu ~ (block_type+J.bar +  size.impact.cor.school +  sd.school + ICC.school +  variable.n + size.ratio.school + num.cov.school)^2, data = sruns.model %>% filter(weight=="Person"))
-
-model.full <- lm(bias.s.estimand ~ (block_type+J.bar +  size.impact.cor.school +  sd.school + ICC.school +  variable.n + size.ratio.school + num.cov.school)^2, data = sruns.model %>% filter( method == "MLM-FIcw"))
-
-
-# Get coefficients
-coef1 <- length(coef(model.sch))
-cutpoint <- ceiling(coef1/3)
-
-# First part of the table
-
-stargazer(model.sch, model.stu, model.full,
-          type = "latex",
-          title = "How do simulation facets predict bias? (Part 1)",
-          digits = 2,
-          dep.var.labels = c("Bias, Cluster", "Bias, Person", "Bias, Targeted"),  # Shorter labels
-          star.cutoffs = c(0.05, 0.01, 0.001),
-          header = FALSE,
-          table.placement = "H",
-          font.size = "small",    # Even smaller font
-          no.space = TRUE,
-          float = T,
-          column.sep.width = "1pt",    # Minimal column separation
-          keep = 1:cutpoint,  omit.stat = "f")
-
-# Second part of the table
-stargazer(model.sch, model.stu,model.full,
-          type = "latex",
-          title = "How do simulation facets predict bias? (Part 2)",
-          digits = 2,
-          dep.var.labels = c("Bias, Cluster", "Bias, Person","Bias, Targeted"),
-          star.cutoffs = c(0.05, 0.01, 0.001),
-          header = FALSE,
-          table.placement = "H",
-          float = T,
-          font.size = "small",
-          no.space = TRUE,
-           column.sep.width = "1pt", 
-          keep = (cutpoint+1):(2*cutpoint),
-           omit.stat = "f")
-
-# Third part of the table
-stargazer(model.sch, model.stu,model.full,
-          type = "latex",
-          title = "How do simulation facets predict bias? (Part 3)",
-          digits = 2,
-          dep.var.labels = c("Bias, Cluster", "Bias, Person","Bias, Targeted"),
-          star.cutoffs = c(0.05, 0.01, 0.001),
-          header = FALSE,
-          table.placement = "H",
-          float = T,
-          font.size = "small",
-          no.space = TRUE,
-           column.sep.width = "1pt", 
-          keep = (2*cutpoint+1):(coef1),
-           omit.stat = "f")
-
-bias_column<-"bias.s.estimand"
-
-#just show the cases with the top bias for each model 
-top_five_bias_by_method <- sruns.model %>%
+top_five_bias_by_method <- sruns.clean %>% 
+  filter(method %in% core.methods) %>%
   # Group by method
   group_by(method) %>%
   # Arrange by absolute bias value in descending order
-  arrange(desc(abs(!!sym(bias_column))), .by_group = TRUE) %>%
+  # Use the actual column name directly with arrange_
+  arrange_at(vars(bias_column), list(~desc(abs(.)))) %>%
   # Take the top 5 rows for each method
   slice_head(n = 5) %>%
   # Keep the grouping but sort methods alphabetically
   arrange(method) %>% 
-  select(sd.ATE, size.impact.cor, J.bar, sd.school, ICC.school, size.ratio.school, num.cov.school, proptx.impact.cor, size.intercept.cor, size.impact.cor.school,block_type,method,bias.s.estimand) %>%
-  filter( abs( bias.s.estimand ) > 0.10 )
-
-rr <- top_five_bias_by_method %>%  arrange(method)%>% as.data.frame()
-View( rr )
+  select(method,bias.s.estimand, J.bar, sd.school, ICC.school, cv.school, 
+         num.cov.school, size.impact.cor.school, block_type, method, bias.s.estimand) %>%
+  filter(abs(bias.s.estimand) > 0.10) %>%  arrange(method)%>% as.data.frame()
+   
 # View results
-print(top_five_bias_by_method %>%  arrange(method)%>% as.data.frame())
+#print(top_five_bias_by_method %>%  arrange(method)%>% as.data.frame())
 
-View( )
+justify <- c('left', rep('center', ncol(top_five_bias_by_method)-1))
 
-mlm_baddies <- sruns.model %>%
-  dplyr::filter( method == "MLM-FIcw", abs( bias.s.estimand ) > 0.05 ) %>%
-  arrange( -abs( bias.s.estimand ) ) %>%
-  select(sd.ATE, size.impact.cor, J.bar, sd.school, ICC.school, size.ratio.school, num.cov.school, proptx.impact.cor, size.intercept.cor, size.impact.cor.school,block_type,method,bias.s.estimand)
-  
-View( mlm_baddies )
+# Get the current column names
+current_names <- names(top_five_bias_by_method)
+
+# Modify column names to include newline characters where you want them to wrap
+# For example, to wrap a long column name like "Very Long Column Name":
+names(top_five_bias_by_method) <- gsub("Very Long Column Name", "Very Long\nColumn Name", current_names)
+
+# You can do this for specific columns:
+for (i in 1:length(current_names)) {
+  if (nchar(current_names[i]) > 5) {  # If name is longer than 6 characters
+    # Find a good breaking point (space, underscore, etc.)
+    mid_point <- ceiling(nchar(current_names[i]) / 2)
+    
+    # Look for a space near the middle
+    space_pos <- as.numeric(regexpr("[ \\._]", substr(current_names[i], mid_point-2, mid_point+2)))
+    
+    if (space_pos > 0) {
+      # Break at the space
+      break_point <- mid_point - 3 + space_pos
+      names(top_five_bias_by_method)[i] <- paste0(
+        substr(current_names[i], 1, break_point-1),
+        "\n",
+        substr(current_names[i], break_point+1, nchar(current_names[i]))
+      )
+    } else {
+      # No space found, just break in the middle
+      names(top_five_bias_by_method)[i] <- paste0(
+        substr(current_names[i], 1, mid_point),
+        "\n",
+        substr(current_names[i], mid_point+1, nchar(current_names[i]))
+      )
+    }
+  }
+}
+
+# Then use pander normally
+pander(top_five_bias_by_method, 
+       justify = justify,
+       style = 'multiline',
+       split.tables = Inf)
 
 
 
@@ -673,79 +676,64 @@ Re-Run the models here
 
 ```{r rmse, include=TRUE, echo=FALSE}
 
-ggplot(sruns.graph %>% filter(weight=="Cluster"), aes(x = method, y = RMSE.f.sch, color = biased,out.width="120%")) +
-  geom_boxplot() +
-  labs(
-    title = "RMSE by Method, Cluster Weighted Finite Population" ,
-    x = "Method",
-    y = "RMSE, Cluster Weighted Finite Population") +
-  theme_minimal() +
-  theme(legend.position = "none", axis.text.x = element_text(size = 8))+
-  coord_flip()
-  
-ggplot(sruns.graph %>% filter(weight=="Cluster"), aes(x = method, y = RMSE.s.sch, color = biased)) +
-  geom_boxplot() +
-  labs(
-    title = "RMSE by Method, Cluster Weighted Super Population" ,
-    x = "Method",
-    y = "RMSE, Cluster Weighted Super Population") +
-  theme_minimal() +
-  theme(legend.position = "none", axis.text.x = element_text(size = 8))+
-  coord_flip()
-  
 
-ggplot(sruns.graph %>% filter(weight=="Cluster"), aes(x = method, y = RMSE.ratio.sch, color = biased)) +
+ggplot(sruns.graph.bias , aes(x = method_ordered, y = RMSE.s.estimand, color = weight_biased)) +
   geom_boxplot() +
   labs(
-    title = "Ratio of Finite RMSE to Super RMSE by Method, Cluster Weighted",
-    x = "Method",
-    y = "RMSE Ratio"
+    title = "Super Population RMSE by Method",
+    x = "",
+    y = "RMSE"
   ) +
   theme_minimal() +
-  theme(
-    legend.position = "none", 
-    axis.text.x = element_text(size = 8),
-    plot.title = element_text(hjust = 5),  # Move title to left (0) 
-    plot.margin = margin(t = 1, r = 1, b = 1, l = 1)  # Adjust margins
-  ) +
-  coord_flip()
+  theme(axis.text.x = element_text(size = 8)) +
+  coord_flip() +
+  scale_color_manual(
+    values = c(
+      "Cluster_0" = "darkblue", 
+      "Cluster_1" = "lightblue",
+      "Person_0" = "darkred", 
+      "Person_1" = "lightcoral"
+    ),
+    name = "Weight and Bias",
+    labels = c(
+      "Cluster_0" = "Cluster (Unbiased)",
+      "Cluster_1" = "Cluster (Biased)",
+      "Person_0" = "Person (Unbiased)",
+      "Person_1" = "Person (Biased)"
+    )
+    
+  )
 
-ggplot(sruns.graph %>% filter(weight=="Person"), aes(x = method, y = RMSE.f.stu, color = biased)) +
+
+ggplot(sruns.graph.bias , aes(x = method_ordered, y = SE.s, color = weight_biased)) +
   geom_boxplot() +
   labs(
-    title = "RMSE by Method, Person Weighted Finite Population" ,
-    x = "Method",
-    y = "RMSE, Person Weighetd Finite Population") +
-  theme_minimal() +
-  theme(legend.position = "none", axis.text.x = element_text(size = 8))+
-  coord_flip()
-
-ggplot(sruns.graph %>% filter(weight=="Person"), aes(x = method, y = RMSE.s.stu, color = biased)) +
-  geom_boxplot() +
-  labs(
-    title = "RMSE by Method, Person Weighted Super Population" ,
-    x = "Method",
-    y = "RMSE, Person Weighted Super Population") +
-  theme_minimal() +
-  theme(legend.position = "none", axis.text.x = element_text(size = 8))+
-  coord_flip()
-  
-
-ggplot(sruns.graph %>% filter(weight=="Person"), aes(x = method, y = RMSE.ratio.stu, color = biased)) +
-  geom_boxplot() +
-labs(
-    title = "Ratio of Finite RMSE to Super RMSE by Method, Person Weighted",
-    x = "Method",
-    y = "RMSE Ratio"
+    title = "Estimate Stability by Method",
+    x = "True Standard Deviation of the Estimate",
+    y = ""
   ) +
   theme_minimal() +
-  theme(
-    legend.position = "none", 
-    axis.text.x = element_text(size = 8),
-    plot.title = element_text(hjust = 5),  # Move title to left (0) 
-    plot.margin = margin(t = 1, r = 1, b = 1, l = 1)  # Adjust margins
-  )+ 
-  coord_flip()
+  theme(axis.text.x = element_text(size = 8)) +
+  coord_flip() +
+  scale_color_manual(
+    values = c(
+      "Cluster_0" = "darkblue", 
+      "Cluster_1" = "lightblue",
+      "Person_0" = "darkred", 
+      "Person_1" = "lightcoral"
+    ),
+    name = "Weight and Bias",
+    labels = c(
+      "Cluster_0" = "Cluster (Unbiased)",
+      "Cluster_1" = "Cluster (Biased)",
+      "Person_0" = "Person (Unbiased)",
+      "Person_1" = "Person (Biased)"
+    )
+    
+  )
+
+
+
 
 
 ```
@@ -759,86 +747,64 @@ Coverage is the percentage of simulation replications where the estimator is wit
 
 ```{r cov, include=TRUE, echo=FALSE}
 
-ggplot(sruns.full_factor %>% filter(weight=="Cluster"), aes(x = method, y = cover.f.sch*100, color = biased)) +
-  geom_boxplot() +
-  geom_hline(yintercept = 95, color="red", linewidth=.75)+
-  labs(
-    title = "Coverage by Method, Cluster Weighted Finite Population",
-    x = "Method",
-    y = "Coverage, Cluster Weighted Finite Population"
-  ) +
-  theme_minimal() +
-  theme(legend.position = "none", axis.text.x = element_text(size = 8)) +
-    coord_flip()
-
-ggplot(sruns.full_factor %>% filter(weight=="Cluster"), aes(x = method, y = cover.s.sch*100, color = biased)) +
-  geom_boxplot() +
-    geom_hline(yintercept = 95, color="red", linewidth=.75)+
-  labs(
-    title = "Coverage by Method, Cluster Weighted Super Population",
-    x = "Method",
-    y = "Coverage, Cluster Weighted Super Population"
-  ) +
-  theme_minimal() +
-  theme(legend.position = "none", axis.text.x = element_text(size = 8))+
-  coord_flip()
-
-ggplot(sruns.graph %>% filter(weight=="Cluster"), aes(x = method, y = cover.ratio.sch, color = biased)) +
+# Create the plot
+ggplot(plot_data, aes(x = method_ordered, y = cover.s.estimand, color = weight_biased)) +
   geom_boxplot() +
   labs(
-    title = "Ratio of Finite Coverage to Super Coverage by Method, Cluster Weighted",
-    x = "Method",
-    y = "Coverage Ratio"
+    title = "",
+    x = "",
+    y = "Super Population Coverage"
   ) +
   theme_minimal() +
-  theme(
-    legend.position = "none", 
-    axis.text.x = element_text(size = 8),
-    plot.title = element_text(hjust = 3),  # Move title to left (0) 
-    plot.margin = margin(t = 1, r = 1, b = 1, l = 1)  # Adjust margins
-  ) +
-  coord_flip()
+  theme(axis.text.x = element_text(size = 8)) +
+  geom_hline(yintercept=.95,color="black")+
+  coord_flip() +
+  scale_color_manual(
+    values = c(
+      "Cluster_0" = "darkblue", 
+      "Cluster_1" = "lightblue",
+      "Person_0" = "darkred", 
+      "Person_1" = "lightcoral"
+    ),
+    name = "Weight and Bias",
+    labels = c(
+      "Cluster_0" = "Cluster (Unbiased)",
+      "Cluster_1" = "Cluster (Biased)",
+      "Person_0" = "Person (Unbiased)",
+      "Person_1" = "Person (Biased)"
+    )
+    
+  )
 
-ggplot(sruns.full_factor %>% filter(weight=="Person"), aes(x = method, y = cover.f.stu*100, color = biased)) +
-  geom_boxplot() +
-    geom_hline(yintercept = 95, color="red", linewidth=.75)+
-  labs(
-    title = "Coverage by Method, Person Weighed Finite Population",
-    x = "Method",
-    y = "Coverage, Person Weighed Finite Population"
-  ) +
-  theme_minimal() +
-  theme(legend.position = "none", axis.text.x = element_text(size = 8))+
-  coord_flip()
-
-ggplot(sruns.full_factor %>% filter(weight=="Person"), aes(x = method, y = cover.s.stu*100, color = biased)) +
-  geom_boxplot() +
-    geom_hline(yintercept = 95, color="red", linewidth=.75)+
-  labs(
-    title = "Coverage by Method, Person Weighed Finite Population",
-    x = "Method",
-    y = "Coverage, Person Weighed Super Population"
-  ) +
-  theme_minimal() +
-  theme(legend.position = "none", axis.text.x = element_text(size = 8))+
-  coord_flip()
-
-
-ggplot(sruns.graph %>% filter(weight=="Person"), aes(x = method, y = cover.ratio.stu, color = biased)) +
+# Create the plot
+ggplot(plot_data %>% filter(!(method=="MLM-RE")), aes(x = method_ordered, y = CI.length, color = weight_biased)) +
   geom_boxplot() +
   labs(
-    title = "Ratio of Finite Coverage to Super Coverage by Method, Person Weighted",
-    x = "Method",
-    y = "Coverage Ratio"
+    title = "Confidence Interval Length by Method",
+    x = "",
+    y = "Confidence Interval Length"
   ) +
   theme_minimal() +
-  theme(
-    legend.position = "none", 
-    axis.text.x = element_text(size = 8),
-    plot.title = element_text(hjust = 2),  # Move title to left (0) 
-    plot.margin = margin(t = 1, r = 1, b = 1, l = 1)  # Adjust margins
-  ) +
-  coord_flip()
+  theme(axis.text.x = element_text(size = 8)) +
+  coord_flip() +
+  scale_color_manual(
+    values = c(
+      "Cluster_0" = "darkblue", 
+      "Cluster_1" = "lightblue",
+      "Person_0" = "darkred", 
+      "Person_1" = "lightcoral"
+    ),
+    name = "Weight and Bias",
+    labels = c(
+      "Cluster_0" = "Cluster (Unbiased)",
+      "Cluster_1" = "Cluster (Biased)",
+      "Person_0" = "Person (Unbiased)",
+      "Person_1" = "Person (Biased)"
+    )
+    
+  )
+
+
 ```
 
 ## What do the standard errors look like for each estimator
@@ -848,89 +814,147 @@ Standard error inflation is the ration of the estimated standard error over the 
 For some of the methods the standard error estimates are way off, but it does not seem obviously driven by low degrees of freedom. The true finite standard errors do not look to be the same as the true super standard errors. 
 
 ```{r infl, include=TRUE, echo=FALSE}
-
-ggplot(sruns.full_factor, aes(x = method, y = log(inflate.f), color = weight)) +
+# Create the plot
+ggplot(plot_data , aes(x = method_ordered, y = inflate.s, color = weight_biased)) +
   geom_boxplot() +
   labs(
-    title = "Standard Error Inflation by Method, Finite Population",
-    x = "Method",
-    y = "Log of Standard Error Inflation, Finite Population"
+    title = "Standard Error Inflation by Method",
+    x = "",
+    y = "Super Population Standard Error Inflation"
   ) +
   theme_minimal() +
-  theme( axis.text.x = element_text(size = 8)) +
-  coord_flip()
+  theme(axis.text.x = element_text(size = 8)) +
+  scale_y_log10()+
+  coord_flip() +
+  scale_color_manual(
+    values = c(
+      "Cluster_0" = "darkblue", 
+      "Cluster_1" = "lightblue",
+      "Person_0" = "darkred", 
+      "Person_1" = "lightcoral"
+    ),
+    name = "Weight and Bias",
+    labels = c(
+      "Cluster_0" = "Cluster (Unbiased)",
+      "Cluster_1" = "Cluster (Biased)",
+      "Person_0" = "Person (Unbiased)",
+      "Person_1" = "Person (Biased)"
+    )
+    
+  )
 
-ggplot(sruns.full_factor, aes(x = mean.df, y = log(inflate.f), color = method)) +
-  geom_point() +
-  labs(
-    title = "Standard Error Inflation versus Mean Degrees of Freedom, Finite Population",
-    x = "Mean Degrees of Freedom",
-    y = "Log Standard Error Inflation, Finite Population"
-  ) +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(size = 7),
-    plot.title = element_text(hjust = 0, size=12),
-    plot.margin = margin(t = 1, r = 1, b = 1, l = 1),
-    legend.text = element_text(size = 7),
-    legend.box.margin = margin(t = 20),
-    legend.spacing.y = unit(0.1, "lines"),
-    legend.key.height = unit(0.8, "lines"),
-    legend.title = element_blank()
-  ) +
-  coord_cartesian(x = c(0, 250))
-
-ggplot(sruns.full_factor, aes(x = method, y = log(inflate.s), color = weight)) +
+#standard deviation of se hat across replications
+#it's sd.SE.hat.s
+# Create the plot
+ggplot(plot_data , aes(x = method_ordered, y = sd.SE.hat.s, color = weight_biased)) +
   geom_boxplot() +
   labs(
-    title = "Standard Error Inflation by Method, Super Population",
-    x = "Method",
-    y = "Log Standard Error Inflation, Super Population"
+    title = "Stability of Standard Error Estimate by Method",
+    x = "",
+    y = "Standard Deviation of Estimated Standard Error Across Replications"
   ) +
   theme_minimal() +
-  theme( axis.text.x = element_text(size = 8))+
-  coord_flip()
-
-
-ggplot(sruns.full_factor, aes(x = mean.df, y = log(inflate.s), color = method)) +
-  geom_point() +
-  labs(
-    title = "Standard Error Inflation versus Mean Degrees of Freedom, Super Population",
-    x = "Mean Degrees of Freedom",
-    y = "Log Standard Error Inflation, Super Population"
-  ) +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(size = 7),
-    plot.title = element_text(hjust = 0,size=12),
-    plot.margin = margin(t = 1, r = 1, b = 1, l = 1),
-    legend.text = element_text(size = 7),
-    legend.box.margin = margin(t = 20),
-    legend.spacing.y = unit(0.1, "lines"),
-    legend.key.height = unit(0.8, "lines"),
-    legend.title = element_blank()
-  ) +
-  coord_cartesian(x = c(0, 250))
-
-#true finite to true super 
-
-ggplot(sruns.graph , aes(x = method, y =log(true.se.ratio), color = weight)) +
-  geom_boxplot() +
-  labs(
-    title = "Log Ratio of True Finite SEs to True Super SEs by Method",
-    x = "Method",
-    y = "Log True SE Ratio"
-  ) +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(size = 8),
-    plot.title = element_text(hjust = 0),  # Move title to left (0) 
-    plot.margin = margin(t = 1, r = 1, b = 1, l = 1)  # Adjust margins
-  ) +
-  coord_flip()
+  theme(axis.text.x = element_text(size = 8)) +
+  coord_flip() +
+  scale_color_manual(
+    values = c(
+      "Cluster_0" = "darkblue", 
+      "Cluster_1" = "lightblue",
+      "Person_0" = "darkred", 
+      "Person_1" = "lightcoral"
+    ),
+    name = "Weight and Bias",
+    labels = c(
+      "Cluster_0" = "Cluster (Unbiased)",
+      "Cluster_1" = "Cluster (Biased)",
+      "Person_0" = "Person (Unbiased)",
+      "Person_1" = "Person (Biased)"
+    )
+    
+  )
 
 ```
 
+```{r semodel, include=TRUE, echo=FALSE, results='asis'}
+
+# Create a list to store models
+models_by_method <- list()
+model_summaries <- list()
+
+# Run separate models for each method
+for (m in core.methods.se) {
+  # Subset data for this method
+  method_data <- sruns.clean %>% filter(method == m)
+  
+  # Run the model for this method
+  # Note: I'm using bias.s.estimand as you specified in your formula
+  # Make sure this column exists or replace with the correct one
+  models_by_method[[m]] <- lm(sd.SE.hat.s~ (block_type + J.bar + size.impact.cor.school + 
+                                                 sd.school + ICC.school + variable.n + 
+                                                 cv.school + num.cov.school)^2, 
+                              data = method_data)
+  
+  # Store summary statistics
+  model_summaries[[m]] <- broom::tidy(models_by_method[[m]])
+  
+  # Print basic information about the model
+  cat("\n\n=======================================\n")
+  cat("Model for method:", m, "\n")
+  cat("Number of observations:", nrow(method_data), "\n")
+  cat("R-squared:", summary(models_by_method[[m]])$r.squared, "\n")
+  cat("=======================================\n\n")
+}
+
+# Generate comparison table
+full_comparison <- create_star_comparison_table (models_by_method)
+
+print(full_comparison)
+
+bias_column <- "sd.SE.hat.s"
+
+top_five_bias_by_method <- sruns.clean %>% 
+  filter(method %in% core.methods.se) %>%
+  # Group by method
+  group_by(method) %>%
+  # Arrange by absolute bias value in descending order
+  # Use the actual column name directly with arrange_
+  arrange_at(vars(bias_column), list(~desc(abs(.)))) %>%
+  # Take the top 5 rows for each method
+  slice_head(n = 5) %>%
+  # Keep the grouping but sort methods alphabetically
+  arrange(method) %>% 
+  select(method,sd.SE.hat.s,sd.ATE, size.impact.cor, J.bar, sd.school, ICC.school, cv.school, 
+         num.cov.school, proptx.impact.cor, size.intercept.cor, 
+         size.impact.cor.school, block_type, method) 
+  
+# View results
+print(top_five_bias_by_method %>%  arrange(method)%>% as.data.frame())
+```
+
+```{r degfree, include=TRUE, echo=FALSE, results='asis'}
 
 
+ggplot(sruns.graph.bias , aes(x = mean.df, y = SE.s, color = method)) +
+  geom_point() +
+  labs(
+    title = "Estimate Instability versus Degrees of Freedom by Model",
+    x = "",
+    y = ""
+  ) +
+  theme_minimal() +
+  xlim(c(0,100))+
+  theme(axis.text.x = element_text(size = 8)) 
+
+ggplot(sruns.graph.bias , aes(x = mean.df, y = bias.s.estimand, color = method)) +
+  geom_point() +
+  labs(
+    title = "Estimate Mean Bias versus Degrees of Freedom by Model",
+    x = "",
+    y = ""
+  ) +
+  theme_minimal() +
+  xlim(c(0,100))+
+  theme(axis.text.x = element_text(size = 8)) 
+
+```
 
