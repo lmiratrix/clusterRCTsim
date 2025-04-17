@@ -1,68 +1,35 @@
 
+# Analysis of the permutation simulations
 
-# Make plots showing 4 of the fingerprint runs along with the real
-# data to see if we are getting similar ranges and whatnot in our
-# simulation to empirical
+
+# This script, among other things, makes plots showing some of the
+# fingerprint runs along with the empirical data to see if we are getting
+# similar ranges and whatnot in our simulation to empirical.
+
 
 library( tidyverse )
 library( clusterRCT )
 
-# Simulation result directory
-# This directory holds the results of some simulation, with one file
-# per dataset.
-SIM_DIR = here::here( "fingerprint/rerand_sim_results/" )
 
-# Load list of empirical studies ----
-
-studies = read_csv( here::here( "empirical/results/study_descriptions.csv" ),
-                    show_col_types = FALSE )
-studies <- filter( studies,
-                   blocked == "Blocked" )
-studies
+source( here::here( "fingerprint/load_master_fingerprint_results.R" ) )
 
 
-# Load simulation data ----
+range_dat <- simdat %>%
+  group_by( UniqueID ) %>%
+  nest() %>%
+  mutate( data = map( data, summarize_simulation_results, "cross" ) ) %>%
+  unnest( data ) 
+
+range_dat  
+table(range_dat$runID )
 
 
-if ( FALSE ) {
-  # Read one example result file
-  res = read_rds( paste0( SIM_DIR, studies$UniqueID[1], ".rds" ) )
-  res
-}
-
-simdat <- studies$UniqueID %>%
-  set_names() %>%
-  map( \(file) {
-    fname = paste0( SIM_DIR, file, ".rds" )
-    # check if file exists
-    if ( file.exists( fname ) ) {
-      res <- read_rds( fname )
-      summarize_simulation_results( res, "cross" )
-    } else {
-      NULL
-    }
-  } )  %>% 
-  bind_rows( .id = "UniqueID" ) %>%
-  as_tibble()
-
-# Our simulation results
-simdat
-
-
-
-# Who is missing from the fingerprint simulation?
-length( unique( simdat$UniqueID ) )
-miss_sets <- setdiff( studies$UniqueID, simdat$UniqueID )
-miss_sets
-
-# The missing ones
-filter( studies, UniqueID %in% miss_sets )
 
 
 # Windsorize the SE ranges
-simdat$ratioSE[ simdat$ratioSE > 5 ] = 5
+range_dat$ratioSE[ range_dat$ratioSE > 5 ] = 5
 
-simdat <- simdat %>%
+range_dat <- range_dat %>%
   rename( Estimand = weight )
 
 
@@ -70,63 +37,25 @@ simdat <- simdat %>%
 
 
 
-# Load the empirical results ----
-
-# load all data
-source( here::here( "empirical/load_empirical_results.R" ) )
-source( here::here( "empirical/makeDotplot.R" ) )
-
-nrow( combined )
-
-# Drop data we didn't simulate for
-combined <- filter( combined,
-                    !( UniqueID %in% miss_sets ) )
-nrow( combined )
-
-source( here::here( "empirical/calculate_all_ranges.R" ) )
-
-rm( combined_exclFI )
-rm( outs )
-rm( unblocked )
-
-summary_stats$Estimand = "Overall"
-
-summary_stats = bind_rows( summary_stats, summary_stats_estimand )
-rm( summary_stats_estimand )
-
-table( summary_stats$Estimand )
-
-#summary_stats <- summary_stats %>%
-#  mutate( Estimand = fct_recode( Estimand,
-#                                 "C" = "Cluster",
-#                                 "P" = "Person" ) )
-
-
-summary_stats <- summary_stats %>%
-  rename( rangeATE = Range ,
-          ratioSE = Ratio )
-summary_stats$runID = "real"
-
-
-
 # Make the combined plots ----
+
 if ( FALSE ) {
   
   # See the Rmd file for most recent versions of this
   
   set.seed( 4044404 )
   
-  selected_sims = sample( unique( simdat$runID ), 4 )
+  selected_sims = sample( unique( range_dat$runID ), 4 )
   selected_sims
   
-  # Add real data results to simulated data results
-  simdat = bind_rows( simdat, 
+  # Add empirical data results to simulated data results
+  range_dat = bind_rows( range_dat, 
                       filter( summary_stats, Covariates == "none" ) ) %>%
-    mutate( real = ifelse( runID == "real", "real", "simulated" ) )
+    mutate( empirical = ifelse( runID == "empirical", "empirical", "simulated" ) )
   
   
-  sub_dat <- simdat %>% 
-    filter( runID %in% c( selected_sims, "real" ) )
+  sub_dat <- range_dat %>% 
+    filter( runID %in% c( selected_sims, "empirical" ) )
   
   
   # Make hidden IDs
@@ -135,7 +64,7 @@ if ( FALSE ) {
                                labels = 1:5 )
   
   
-  # Which is the real one??
+  # Which is the empirical one??
   sub_dat %>% 
     dplyr::select( runID, blindRunID ) %>%
     distinct() 
@@ -163,7 +92,7 @@ if ( FALSE ) {
   
   
   
-  table( simdat$runID )
+  table( range_dat$runID )
   
 }
 
@@ -172,7 +101,7 @@ if ( FALSE ) {
 
 
 
-ranges <- simdat %>% 
+ranges <- range_dat %>% 
   group_by( Estimand, runID ) %>%
   summarise( mn_rngATE = mean( rangeATE ),
              sd_rngATE = sd( rangeATE ),

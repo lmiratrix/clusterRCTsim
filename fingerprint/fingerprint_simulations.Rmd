@@ -1,7 +1,7 @@
 ---
-title: "Fingerprint simulations"
+title: "Fingerprint simulations report"
 author: "Miratrix"
-date: "2025-03-13"
+date: "2025-04-16"
 output: pdf_document
 editor_options: 
   chunk_output_type: console
@@ -10,24 +10,45 @@ editor_options:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 
-source( here::here( "fingerprint_and_empirical_analysis.R" ) )
+source( here::here( "fingerprint/fingerprint_and_empirical_analysis.R" ) )
 ```
 
 
 ## Process
 
-To generate simulation data I did the following for each study $j$ in our empirical dataset:
+To generate simulation data I did the following for each outcome $j$ in our set of outcomes across our empirical dataset (excepting a few studies that were inaccessible):
 
-1) Load the statistics from describe_clusterRCT.  Call these $\theta_j$.
-2) Repeatedly, for runs $r = 1, \ldots, R$, generated a dataset with similar characteristics to $j$. I then stored the set of estimates from applying all our estimators to the data.
-3) I then calculated the range of estimates for each estimator, and the ratio of the largest to smallest standard error.  I did this both overall, and within each estimand (Person or Cluster).
-4) I finally saved the set of results to a file. 
+1) Load the empirical data for outcome $j$, patch missing data, etc.
+2) Calculate the empirical estimates of the treatment effects for outcome $j$, and the associated empirical standard errors.
+3) Repeatedly, for simulation runs $r = 1, \ldots, R$, permute the treatment assignment across clusters and within blocks.  I then re-estimated the impacts given the permuted assignment.
+4) I then, within each run and outcome, calculated the range of estimates, and the ratio of the largest to smallest standard error, across all the estimators that were defined for that run. I did this both overall, and for the group of estimators within each estimand (Person or Cluster).
+5) I finally saved the set of results to a file. 
 
-In all of the generated data there were no treatment effects, and no correlations of anything to anything else.  We are looking at a simple scenario.
-The block and cluster sizes, number of blocks, and ICC values were all matched to those estimated/observed.
+Due to the permutation, there is no actual treatment effect.
+Any actual treatment effect is pushed into individual and cluster variation.
+For example, if a cluster had a positive average effect, the permutation simulation views this cluster as just having a slightly higher intercept than it would have had, had it been a control cluster in reality.
+The structure of the data, the relationship of covariates to outcome, etc., is all preserved by this approach.
 
-Once done, I loaded all the runs for all the datasets, and then for each run id $r$, I made a histogram of the ranges across all the datasets, mimicing our core figures from the empirical paper.
+Once done, I loaded all the runs for all the datasets, and then for each run id $r$, I made a histogram of the ranges across all the datasets, mimicking our core figures from the empirical paper.
 I also insert the real estimated values as an "imposter" so we could see if the estimated distributions looked like the actual one.
+
+
+```{r}
+range_dat %>%
+  filter( Estimand == "Overall" ) %>%
+  group_by( UniqueID ) %>%
+  summarise( sdRange = sd( rangeATE ),
+             sdRatio = sd( ratioSE ) ) %>%
+  knitr::kable( digits = 2 )
+emp_dat <- filter( range_dat, runID == "empirical",
+                   Estimand == "Overall")
+range_dat %>%
+  filter( Estimand == "Overall" ) %>%
+  ggplot( aes( UniqueID, rangeATE ) ) +
+  geom_boxplot() +
+  geom_point( data=emp_dat, color="red" ) +
+  coord_flip()
+```
 
 These are in the provided fingerprint figures.
 
@@ -38,6 +59,7 @@ The two "imposter" plots described above are the following
 
 
 ```{r, fig.width = 8, fig.height = 6, out.width="100%"}
+
 aterange_plot
 seratio_plot
 ```
