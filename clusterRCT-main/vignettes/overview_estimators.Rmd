@@ -1,0 +1,93 @@
+---
+title: "Estimating ATEs for CRTs"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Estimating ATEs for CRTs}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+library( clusterRCT )
+library( estimatr )
+library( lme4 )
+library( lmerTest )
+library( formula.tools )
+
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+This package is designed to make comparing different estimators for the average treatment effect (ATE) of a cluster randomized trial (CRT) relatively straightforward.
+There are a host of methods that will estimate the ATE using different modeling approaches (linear regression models, multilevel models, design-based methods, aggregate-then-analyze approaches).
+There is also an overall method `compare_methods()` that compares all the estimators in one large table of results.
+
+<!--
+This doesn't work yet since package is private.
+To install the package off of GitHub you can do this:
+
+```{r install_package, eval=FALSE}
+devtools::install_github( "https://github.com/lmiratrix/clusterRCT" )
+```
+-->
+
+To install the package, download the directory from GitHub (`https://github.com/lmiratrix/clusterRCT`), and then open RStudio and select "Install" under the Build menu.  You can also click on "Test" to see if the package is working on your system. (In the rough state, it might not be advertising all package dependencies correctly, yet.)
+
+Once installed, to load the package, first call `library()`:
+```{r setup}
+library(clusterRCT)
+```
+
+
+To illustrate we use a fake dataset embedded in the package called `fakeCRT`:
+
+```{r}
+data( fakeCRT )
+head( fakeCRT )
+```
+
+We have a few covariates, a treatment assignment, and an outcome.  The `S.id` and `D.id` are school and district IDs, respectively.
+
+We can estimate impacts as follows:
+
+```{r}
+compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT, 
+                 include_method_characteristics = FALSE ) %>%
+    knitr::kable( digits = 2 )
+```
+
+Each row of the output represents a different estimator (defined as a point estimator and standard error estimator pair).
+The first column is our estimate ATE, the second the estimated standard error.  We also have a calculated p-value and some further information about the estimator itself.
+The `include_method_characteristics` flag will eventually allow us to have notes on each method, such as whether it is targeting a finite or superpopulation estimand, and so forth.
+
+If we want to control for covariates, we can as so:
+
+```{r}
+compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT,
+                 control_formula = ~ V.k + X.jk + C.ijk,
+                 include_method_characteristics = FALSE )
+
+```
+
+Here we are controlling for district, school, and individual-level characteristics.
+
+Finally, we can turn on or off different families of estimator. E.g., we are dropping the aggregation methods in this call:
+
+```{r}
+compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT,
+                 include_agg = FALSE,
+                 include_method_characteristics = FALSE )
+
+```
+
+
+If we have data with no blocking (district-level grouping) we run like this:
+```{r}
+
+compare_methods( Yobs ~ T.x | S.id, data=fakeCRT,
+                 control_formula = ~ V.k + X.jk + C.ijk,
+                 include_method_characteristics = FALSE )
+
+```

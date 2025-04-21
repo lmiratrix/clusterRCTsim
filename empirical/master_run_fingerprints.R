@@ -162,7 +162,7 @@ grid_mpc <- expand_grid(outcome = outcomes_mpc,
 compare_mpc <- pmap(grid_mpc, run_sim, 
                     proj        = 'MPC',
                     covars_list = covars_mpc,
-                    data        = mpc,
+                    data        = zap_labels(mpc),
                     trt         = 'dtx',
                     clust       = 'school1',
                     blk         = 'block', 
@@ -210,7 +210,7 @@ grid_triad <- expand_grid(outcome = outcomes_triad,
 compare_triad <- pmap(grid_triad, run_sim,
                       proj        = 'TRIAD',
                       covars_list = covars_triad,
-                      data        = triad,
+                      data        = zap_labels(triad),
                       trt         = 'dtx',
                       clust       = 'school1',
                       blk         = 'block',
@@ -235,7 +235,7 @@ grid_triadsu <- expand_grid(outcome = outcomes_triadsu,
 compare_triadsu <- pmap(grid_triadsu, run_sim, 
                         proj        = 'TRIAD Scale-up',
                         covars_list = covars_triadsu,
-                        data        = triadsu,
+                        data        = zap_labels(triadsu),
                         trt         = 'dtx',
                         clust       = 'school1',
                         blk         = 'block',
@@ -278,13 +278,30 @@ grid_tnstar <- expand_grid(outcome = outcomes_tnstar,
 compare_tnstar <- pmap(grid_tnstar, run_sim, 
                        proj        = 'Tennessee STAR',
                        covars_list = covars_tnstar,
-                       data        = tnstar,
+                       data        = zap_labels(tnstar),
                        trt         = 'adj_racode',
                        clust       = 'K_TEACHER_ID',
                        blk         = 'K_SCHOOL_ID',
                        ptest       = 0,
                        .progress   = T) %>%
   reduce(bind_rows)
+
+# testing on smaller dataset, one grid row at a time
+# issue might be large number of clusters and blocks - try with fewer
+
+# tnstar_test <- tnstar %>%
+#   filter(K_SCHOOL_ID %in% unique(.$K_SCHOOL_ID)[1:5])
+# 
+# compare_tnstar_test <- pmap(grid_tnstar[5,], run_sim, 
+#                        proj        = 'Tennessee STAR',
+#                        covars_list = covars_tnstar,
+#                        data        = zap_labels(tnstar_test),
+#                        trt         = 'adj_racode',
+#                        clust       = 'K_TEACHER_ID',
+#                        blk         = 'K_SCHOOL_ID',
+#                        ptest       = 0,
+#                        .progress   = T) %>%
+#   reduce(bind_rows)
 
 ## Beacon Mentor ----
 
@@ -336,4 +353,35 @@ compare_powerteaching <- pmap(grid_powerteaching, run_sim,
 if ( RUN_PARALLEL ) {
   plan(oplan)
 }
+
+# Combine and save results ----
+
+compare <- grep('compare_', ls(), value = T) %>%
+  map_dfr(~ bind_rows(get(.x))) %>%
+  relocate(Project, Outcome, Trt_arm, Covariates) %>%
+  # filter to only exemplar CARES outcomes
+  mutate(cares_keep = case_when(Project != 'CARES' ~ T,
+                                Trt_arm == 'Incredible Years'  & Outcome %in% c('F1_DC_PT', 'F1_TR_BPI', 'F1_TR_WRS')            ~ T,
+                                Trt_arm == 'Preschool PATHS'   & Outcome %in% c('F1_DC_EMIT', 'F1_DC_CST_COMPTOT', 'F1_TR_SSRS') ~ T,
+                                Trt_arm == 'Tools of the Mind' & Outcome %in% c('F1_DC_PT', 'F1_TR_WRS')                         ~ T,
+                                TRUE ~ F)) %>%
+  filter(cares_keep == T) %>%
+  select(-cares_keep) %>%
+  rename(Estimator = method) %>%
+  # map estimators to estimands
+  mutate(Estimand = case_when(Estimator %in% c('LRi-FE-crve',    'LRi-FE-db',
+                                               'LRi-FIpw-crve',  'LRi-FIpw-db',
+                                               'LRapw-FE-het',   'LRapw-FE-db',
+                                               'LRapw-FIpw-het', 'LRapw-FIpw-db')    ~ 'Person',
+                              Estimator %in% c('LRicw-FE-crve',   'LRicw-FE-db',
+                                               'LRicw-FIcw-crve', 'LRicw-FIcw-db',
+                                               'LRa-FE-het',      'LRa-FE-db',
+                                               'LRa-FIcw-het',    'LRa-FIcw-db',
+                                               'MLM-FE', 'MLM-RE', 'MLM-FIcw')       ~ 'Cluster'))
+
+
+
+write_xlsx(compare,  '/data/share/pse/IES CRT/sd7/master_run_fingerprints.xlsx')
+saveRDS(compare,    '/data/share/pse/IES CRT/sd7/master_run_fingerprints.RDS')
+
 

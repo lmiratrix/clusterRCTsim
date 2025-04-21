@@ -25,7 +25,9 @@ get_best_covariate <- function( covars_list, outcome, data ) {
       return(0)
     }
     if ( sd( data[[covariate]], na.rm=TRUE ) == 0 ) {
-      cli::cli_alert( "Zero variance in covariate {covariate} for {proj}/{outcome}" )
+      # CH - this line is causing an error - I think because "proj" does not exist
+      # cli::cli_alert( "Zero variance in covariate {covariate} for {proj}/{outcome}" )
+      cli::cli_alert( "Zero variance in covariate {covariate} for {outcome}" )
       return(0)
     }
     cor(data[[outcome]], data[[covariate]], use = "complete.obs")
