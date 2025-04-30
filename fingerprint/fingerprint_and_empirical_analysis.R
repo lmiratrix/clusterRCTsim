@@ -14,25 +14,6 @@ library( clusterRCT )
 source( here::here( "fingerprint/load_master_fingerprint_results.R" ) )
 
 
-range_dat <- simdat %>%
-  group_by( UniqueID ) %>%
-  nest() %>%
-  mutate( data = map( data, summarize_simulation_results, "cross" ) ) %>%
-  unnest( data ) 
-
-range_dat  
-table(range_dat$runID )
-
-
-
-
-# Windsorize the SE ranges
-range_dat$ratioSE[ range_dat$ratioSE > 5 ] = 5
-
-range_dat <- range_dat %>%
-  rename( Estimand = weight )
-
-
 
 
 

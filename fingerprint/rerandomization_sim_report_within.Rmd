@@ -23,45 +23,8 @@ theme_set( theme_classic() )
 source( here::here( "fingerprint/fingerprint_and_empirical_analysis.R" ) )
 ```
 
-Building on our rerandomizatio simulation we can analyze each outcome in turn to assess how the estimators function for that particular simulation scenario.  See the main rerandomizartion report for how the range of estimates across the simulation scenarios changes.
+Building on our randomization simulation we can analyze each outcome in turn to assess how the estimators function for that particular simulation scenario.  See the main rerandomizartion report for how the range of estimates across the simulation scenarios changes.
 
-
-## The datasets missing from this analysis
-
-We didn't run the simulation on all the empirical datasets due to privacy restrictions and computational feasibility.  The datasets dropped are the following:
-
-```{r}
-knitr::kable( tibble( `dropped sets` = miss_sets ) )
-```
-
-
-## How do the simulation estimated SEs compare to the actual simulation SE?
-
-
-```{r}
-
-simdat_meth <- studies$UniqueID %>%
-  set_names() %>%
-  map( \(file) {
-    fname = paste0( SIM_DIR, file, ".rds" )
-    # check if file exists
-    if ( file.exists( fname ) ) {
-      res <- read_rds( fname )
-      summarize_simulation_results( res, "method" )
-    } else {
-      NULL
-    }
-  } )  %>% 
-  bind_rows( .id = "UniqueID" ) %>%
-  as_tibble()
-
-ggplot( simdat_meth, aes( SE, ESEhat ) ) +
-  facet_wrap( ~ method ) +
-  geom_point() +
-  coord_fixed() +
-  geom_abline( slope=1, intercept=0, lty=2 )
-
-```
 
 
 ## How do the SEs we get from simulation compare to empirical SEhats?

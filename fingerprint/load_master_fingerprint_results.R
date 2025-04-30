@@ -43,29 +43,48 @@ simdat <- studies$UniqueID %>%
   bind_rows( .id = "UniqueID" ) %>%
   as_tibble()
 
-simdat$runID = paste0( "R", simdat$runID )
 
 # Our simulation results
-simdat
-
+skimr::skim_without_charts( simdat )
 
 
 # Load MDRC side ----
 
 mdrc_dat <- read_rds( "fingerprint/results_master_finger/master_run_fingerprints.RDS" ) %>%
   as_tibble()
-mdrc_dat
 
+skimr::skim_without_charts( mdrc_dat )
 
 mdrc_dat <- mdrc_dat %>%
+  rename( method = Estimator ) %>%
   mutate( UniqueID     = str_remove_all(paste(Project, Outcome, Trt_arm, sep = '_'), '_NA') )
 
 table( mdrc_dat$Project )
 table( mdrc_dat$Outcome )
 table( mdrc_dat$Trt_arm )
 table( mdrc_dat$UniqueID )  
-          
 
+if ( FALSE ) {
+  tt <- filter( mdrc_dat, UniqueID == "Tennessee STAR_gktreadss" ) %>%
+    #  dplyr::filter( weight == "overall" ) %>%
+    dplyr::select( -Covariates, -best_cov, -max_cor ) 
+  View( tt )
+  
+  t_agg <- tt %>% 
+    group_by( runID ) %>%
+    summarise( n = n(),
+               nna = sum( is.na(ATE_hat ) ),
+               EATE = mean( ATE_hat, na.rm=TRUE ),
+               max = max( ATE_hat, na.rm=TRUE ),
+               min = min( ATE_hat, na.rm=TRUE ),
+               del = max - min ) %>%
+    arrange( del )
+  
+  t_agg %>%
+    knitr::kable( digits = 2 )
+  
+  sd( t_agg$EATE, na.rm=TRUE )
+}
 
 # Combine and clean up ----
 
@@ -79,10 +98,19 @@ rm( mdrc_dat )
 source( here::here( "empirical/R/clean_result_table.R" ) )
 simdat <- clean_result_table( simdat )
 
-simdat
+simdat$Project = NULL
+simdat$Outcome = NULL
+simdat$Trt_arm = NULL
+
+table( simdat$Collection, simdat$Covariates, useNA="always" )
+
+skimr::skim( simdat )
 table( table(simdat$runID ) )
 
-# Standardize ----
+
+
+
+# Standardize our outcomes ----
 
 ok = !is.na( simdat$ATE_hat )
 simdat <- left_join( simdat,
@@ -96,28 +124,68 @@ stopifnot( all( !is.na( simdat$ATE_hat[ok] ) ) )
 
 
 
-# Who is missing from the fingerprint simulation?
+# Who is missing from the fingerprint simulation? ----
 table(simdat$UniqueID)
 length( unique( simdat$UniqueID ) )
 miss_sets <- setdiff( studies$UniqueID, simdat$UniqueID )
 
 miss_sets
 
-
 # The missing ones
 filter( studies, UniqueID %in% miss_sets ) %>%
   dplyr::select( UniqueID, n, J ) %>%
-  knitr::kable()
+  knitr::kable( caption = "Dropped Datasets" ) %>%
+  print()
 
-rm( miss_sets )
+# rm( miss_sets )
 
 # Subset to our core fingerprinted studies
 studies <- filter( studies,
                    UniqueID %in% simdat$UniqueID )
 
-# some final cleanup
+
+# Some final cleanup -----
 rm( SIM_DIR )
 rm( clean_result_table, make_df_flags )
+
+
+# **********************************************************************
+# Now calculate useful aggregations
+# **********************************************************************
+
+
+# Calculate ranges ----
+
+
+range_dat <- simdat %>%
+  group_by( UniqueID ) %>%
+  nest() %>%
+  mutate( data = map( data, summarize_simulation_results, "cross" ) ) %>%
+  unnest( data ) 
+
+range_dat  
+table(range_dat$runID )
+
+
+# Calculate method performances s---
+
+table( simdat$method, useNA="always" )
+
+meth_dat <- simdat %>%
+  group_by( UniqueID ) %>%
+  nest() %>%
+  mutate( data = map( data, summarize_simulation_results, "method" ) ) %>%
+  unnest( data ) 
+
+meth_dat  
+
+
+# Windsorize the SE ranges
+range_dat$ratioSE[ range_dat$ratioSE > 5 ] = 5
+
+range_dat <- range_dat %>%
+  rename( Estimand = weight )
+
 
 
 
