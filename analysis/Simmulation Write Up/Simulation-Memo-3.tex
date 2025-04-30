@@ -69,6 +69,9 @@
 \usepackage{float}
 \usepackage{caption}
 \usepackage{changepage}
+\usepackage[utf8]{inputenc}
+\usepackage{newunicodechar}
+\newunicodechar{−}{\textminus}
 \usepackage{booktabs}
 \usepackage{longtable}
 \usepackage{array}
@@ -97,7 +100,7 @@
 
 \title{Simulation Analysis}
 \author{Sophie Litschwartz}
-\date{2024-08-09}
+\date{2025-04-19}
 
 \begin{document}
 \maketitle
@@ -113,7 +116,9 @@ The simulations are a fully factored experiment.
 \textbf{Block Level Fixed Covariates}\\
 Number of Blocks: 5; ATE: .2; ICC: .2; Average Number of Observations
 Per Cluster: 20; Proportion of Clusters Treated: .5 (this is fixed
-across blocks); Number of District Level Covariates: 0
+across blocks); Number of District Level Covariates: 0; How much does
+the average cluster size vary across blocks (coefficient of variation)?:
+0
 
 \textbf{Block Level Varying Covariates (Factors that are varied across
 simulations)}
@@ -121,34 +126,31 @@ simulations)}
 Three groups of block level parameters Blocks all the same, Blocks all
 messy, and Blocks all reasonable
 
-Blocks all the same: How much do number clusters per block vary (size
-ratio)?: 0 (none); How much does the size of the cluster vary (size
-ratio)? 0 (none); ATE SD: 0; Correlation Between Treatment Effect and
-Cluster Size: 0; Correlation Between Average Number of Observations Per
-Cluster and Total Number of Clusters: 0; Correlation of Proportion of
-Clusters Treated per Block and Impact: 0; Correlation Between Outcome
-Intercept and Cluster Size: 0
+Blocks all the same: How much do number clusters per block vary
+(coefficient of variation)?: 0 (none); ATE SD: 0; Correlation Between
+Treatment Effect and Cluster Size: 0; Correlation Between Average Number
+of Observations Per Cluster and Total Number of Clusters: 0; Correlation
+of Proportion of Clusters Treated per Block and Impact: 0; Correlation
+Between Outcome Intercept and Cluster Size: 0
 
-Blocks all messy: How much do number clusters per block vary (size
-ratio)?: 1.3 (big) ; How much does the size of the cluster vary (size
-ratio)? 1.3 (big); ATE SD: .6; Correlation Between Treatment Effect and
-Cluster Size: .8; Correlation Between Average Number of Observations Per
-Cluster and Total Number of Clusters: .8; Correlation of Proportion of
-Clusters Treated per Block and Impact: .8; Correlation Between Outcome
-Intercept and Cluster Size: .8
+Blocks all messy: How much do number clusters per block vary
+(coefficient of variation)?: .85 (big); ATE SD: .6; Correlation Between
+Treatment Effect and Cluster Size: .8; Correlation Between Average
+Number of Observations Per Cluster and Total Number of Clusters: .8;
+Correlation of Proportion of Clusters Treated per Block and Impact: .8;
+Correlation Between Outcome Intercept and Cluster Size: .8
 
-Blocks all reasonable: How much do number clusters per block vary (size
-ratio)?: .4 (average); How much does the size of the cluster vary (size
-ratio)? .4 (average); ATE SD: .1; Correlation Between Treatment Effect
-and Cluster Size: .2; Correlation Between Average Number of Observations
-Per Cluster and Total Number of Clusters: .1; Correlation of Proportion
-of Clusters Treated per Block and Impact: 0; Correlation Between Outcome
-Intercept and Cluster Size: .1
+Blocks all reasonable: How much do number clusters per block vary
+(coefficient of variation)?: .33 (average); ATE SD: .1; Correlation
+Between Treatment Effect and Cluster Size: .2; Correlation Between
+Average Number of Observations Per Cluster and Total Number of Clusters:
+.1; Correlation of Proportion of Clusters Treated per Block and Impact:
+0; Correlation Between Outcome Intercept and Cluster Size: .1
 
 Each of the rest of these factors don't vary as a group but vary each
 individually and are fully factored with all other factors:
 
-Average Number of Clusters per Block: 4,8,16
+Average Number of Clusters per Block: 7,10,16
 
 \textbf{Cluster Level Varying Parameters}
 
@@ -160,7 +162,8 @@ Cluster Level ICC: 0, .2
 
 Number of Observations Per Cluster Varies: True, False
 
-Ratio of Size Cluster Sizes: 0, .4, 1.3
+How much does the size of clusters vary (coefficient of variation)?: 0,
+.33, .6
 
 Number of School-Level Covariates: 0, 1, 5
 
@@ -169,26 +172,41 @@ Number of School-Level Covariates: 0, 1, 5
 \subsection{What does the bias look like for each
 estimator}\label{what-does-the-bias-look-like-for-each-estimator}
 
-The estimators that theory says should be biased are in fact much more
-biased across the simulations. These boxplots are across the different
-data generating processes, each dot is the mean bias across simulation
-replications. The methods in light blue are the ones theory says should
-be biased. I only show the finite population numbers because they are
-the same as the super population results.
+*The next thing to do is to move all the simulation questions I'm
+answering to my emails and also to attach the page numbers to the
+analysis
 
-There are tables showing how the different simulation facets predict
-bias. The regression model is how each facet of the data generating
-process predicts mean bias against a methods targeted estimand. The
-facets are binary indicators and are fully interacted with each other. I
-ran three models: just the cluster targeted methods, just the person
-targeted methods, and all methods. I don't know what to make of the
-results.
+Main Bullet Points:
 
-To-Do: Re-write the summary section
+*The estimators theory says are unbiased are indeed consistently
+unbiased (or have very low bias across the full range of simulations)
+
+*The LRapw−FIpw−db has bias as large as -.025, which seems from the
+statistical model to be driven by the interactions of a large treatment
+effect standard deviation across clusters, high variability in cluster
+size, and correlations between treatment effect and cluster size. This
+is consitent with theory.
+
+*For the various estimators that are biased, the mean bias is mostly
+driven by the different blocks being different from each other
+
+Description of Analysis
+
+*The graph is a boxplot of mean bias across the different scenarios by
+method. The faint horizontal lines go out to the full range, the bars
+are the 1\% to 99\%, and the boxes are the 10\% to 90\%.
+
+*The first table contains the regression coefficients from a regression
+that predicts the magnitude of the mean bias using different data
+generating parameters. Each regression is run separately by estimator
+and mean bias is the mean bias against the targeted estimator.
+
+*The second table contains the DGPs that produce that largest magnitude
+of mean bias for each method, conditional on the magnitude of the mean
+bias being at least .1 . Where again mean bias is the mean bias against
+the targeted estimator.
 
 \begin{center}\includegraphics{Simulation-Memo-3_files/figure-latex/bias-1} \end{center}
-
-\pagebreak
 
 \subsubsection{The Effect of Different Data Generating Parameters on the
 Magnitude of Mean
@@ -385,6 +403,9 @@ cv.schoolL: num.cov.schoolL & .002 & \textless.001 & .001 &
 
 \emph{Significance: `***' 0.001 `**' 0.01 `*' 0.05 `.' 0.1} \endgroup
 
+\subsubsection{Top Five Scenarios with Most Bias by
+Method}\label{top-five-scenarios-with-most-bias-by-method}
+
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.1061}}
   >{\centering\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.1364}}
@@ -397,7 +418,7 @@ cv.schoolL: num.cov.schoolL & .002 & \textless.001 & .001 &
   >{\centering\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.0985}}@{}}
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
-met hod
+method
 \end{minipage} & \begin{minipage}[b]{\linewidth}\centering
 bias.s estimand
 \end{minipage} & \begin{minipage}[b]{\linewidth}\centering
@@ -441,30 +462,1608 @@ MLM-RE & -0.113 & 0 & 0 & 0 & L & L & 0 & L \\
 MLM-RE & -0.11 & S & L & 0 & L & 0 & 0 & L \\
 \end{longtable}
 
-\subsection{What does the RMSE look like for each
-estimator}\label{what-does-the-rmse-look-like-for-each-estimator}
+\subsection{What does the error look like for each
+estimator}\label{what-does-the-error-look-like-for-each-estimator}
 
-As far as I can tell the RMSE actually looks pretty similar across
-estimators, which is consistent with the idea of there being a bias
-variance trade off. Unlike with the bias, the finite population RMSEs
-are fairly different from the super population RMSEs.
+Main Bullet Points:
 
-Like above, the boxplots are across the different data generating
-processes, each dot is a mean across simulation replications. The
-methods in light blue are those classified to be biased by theory. The
-ratio of finite RMSE to super RMSE plots show the ratio of RMSE from the
-finite population models over the super population models, and are
-designed to show that these are different.
+*For the person weighted estimators, the unbiased estimator both has
+less error and is more stable than the biased estimator.
 
-To-Do: Fix the graph to only include the core methods Re-Run the models
-here
+*For the cluster weighted estimators, the unbiased estimator generally
+has less error than the biased estimators but more instablity.
+
+*The MLM estimators are the most stable, which fits with theory.
+
+*High RMSE and estimate instability is driven by a low number of
+clusters, the interaction of a low number of clusters and high cluster
+level ICC, and high cluster level treatment effect variance.
+
+*Re the question on pg. 39, looking at the second boxplot shows that
+true S.E. do vary across estimators with the true standard error in a
+given DGP often 40\% bigger for some estimates than the median estimate
+in that DPG.
+
+Description of Analysis:
+
+*The first graph is a boxplot of the normalized RMSE across the
+different scenarios by method. The normalized RMSE is the RMSE for given
+method divided by the median RMSE across methods within a given
+simulation scenario. Therefore each data point is adjusted for the
+underlying base RMSE from a given set of DGPs and represents the RMSE
+driven by the estimation method.
+
+*The second graph is a boxplot of the normalized estimate standard
+deviation across the different scenarios by method. This is also
+normalized by dividing by the median estimate standard deviation within
+a given simulation scenario.
+
+*The first table contains the regression coefficients from a regression
+that predicts the RMSE using different data generating parameters and
+the second table is from regressions predicting the estimate standard
+deviation. Each regression is run separately by estimator and the RMSE
+is against the targeted estimator.
+
+*The second table contains the DGPs that produce the normalized RMSE
+(against the targeted estimator) for each method, conditional on the
+magnitude of the being at least 1.10.
+
+*The third table contains the regression coefficients from a regression
+that predicts the true superpopulation estimate standard error using
+different data generating parameters.
+
+*The fourth table contains the DGPs that produce the normalized super
+population estimator standard error for each method, conditional on the
+magnitude of the being at least 1.10.
 
 \begin{center}\includegraphics{Simulation-Memo-3_files/figure-latex/rmse-1} \end{center}
 
 \begin{center}\includegraphics{Simulation-Memo-3_files/figure-latex/rmse-2} \end{center}
 
-\subsection{What does the coverage look like for each
-estimator}\label{what-does-the-coverage-look-like-for-each-estimator}
+\subsubsection{The Effect of Different Data Generating Parameters on the
+RMSE}\label{the-effect-of-different-data-generating-parameters-on-the-rmse}
+
+\begingroup
+\scriptsize
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.2583}}
+  >{\centering\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1000}}
+  >{\centering\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1167}}
+  >{\centering\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1167}}
+  >{\centering\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1333}}
+  >{\centering\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.0917}}
+  >{\centering\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.0917}}
+  >{\centering\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.0917}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Term
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRa-FE-db
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRa-FIcw-db
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRapw-FE-db
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRapw-FIpw-db
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+MLM-FE
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+MLM-FIcw
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+MLM-RE
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+(Intercept) & .071*** & .067*** & .074*** & .070*** & .072*** & .069***
+& .072*** \\
+block\_typeS & .002 & .002 & .002 & .002 & .002 & .002 & .002 \\
+block\_typeL & .015*** & \textless.001 & .014*** & \textless.001 &
+.017*** & .001 & .015*** \\
+J.barS & -.013*** & -.011*** & -.012*** & -.010** & -.013*** & -.011***
+& -.013*** \\
+J.barL & -.024*** & -.024*** & -.022*** & -.022*** & -.025*** & -.025***
+& -.024*** \\
+size.impact.cor.schoolL & -.005. & -.003 & -.005 & -.003 & -.006* &
+-.005. & -.006. \\
+sd.schoolL & .024*** & .026*** & .025*** & .026*** & .024*** & .024*** &
+.023*** \\
+ICC.schoolL & .090*** & .094*** & .087*** & .090*** & .092*** & .097***
+& .093*** \\
+variable.nTRUE & .003 & .005. & -.005 & -.003 & -.002 & -.001 & -.002 \\
+cv.schoolS & -.002 & .001 & -.004 & -.001 & -.003 & \textless.001 &
+-.003 \\
+cv.schoolL & .003 & .004 & -.007. & -.005. & -.003 & -.004 & -.003 \\
+num.cov.schoolS & -.004 & -.001 & -.004 & -.001 & -.004 & -.001 &
+-.003 \\
+num.cov.schoolL & .001 & \textless.001 & .001 & \textless.001 & .001 &
+\textless.001 & .001 \\
+block\_typeS:J.barS & -.002 & -.002 & -.002 & -.002 & -.002 & -.002 &
+-.002 \\
+block\_typeL:J.barS & .003 & .004. & .002 & .003 & .002 & .003 & .003 \\
+block\_typeS:J.barL & -.001 & -.001 & -.001 & -.001 & -.001 & -.001 &
+-.001 \\
+block\_typeL:J.barL & .003 & .003 & .001 & .001 & .002 & .002 & .003 \\
+block\_typeS: size.impact.cor.schoolL & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 \\
+block\_typeL: size.impact.cor.schoolL & \textless.001 & .002 &
+\textless.001 & .003 & -.002 & .002 & -.001 \\
+block\_typeS:sd.schoolL & .001 & .001 & .001 & .001 & .001 & .001 &
+.001 \\
+block\_typeL:sd.schoolL & \textless.001 & .002 & -.001 & .002 & -.002 &
+.002 & -.002 \\
+block\_typeS:ICC.schoolL & \textless.001 & \textless.001 & \textless.001
+& \textless.001 & \textless.001 & \textless.001 & \textless.001 \\
+block\_typeL:ICC.schoolL & .001 & .009*** & \textless.001 & .008*** &
+.001 & .009*** & .001 \\
+block\_typeS: variable.nTRUE & .001 & .001 & .001 & .001 & .001 & .001 &
+.001 \\
+block\_typeL: variable.nTRUE & .002 & .002 & .008*** & .005** & .002 &
+.002 & .002 \\
+block\_typeS:cv.schoolS & -.001 & -.001 & \textless.001 & \textless.001
+& \textless.001 & \textless.001 & \textless.001 \\
+block\_typeL:cv.schoolS & .002 & .002 & .004 & .004. & .002 & .002 &
+.002 \\
+block\_typeS:cv.schoolL & -.001 & -.001 & -.001 & -.001 & -.001 & -.001
+& -.001 \\
+block\_typeL:cv.schoolL & .004 & .004. & .011*** & .008*** & .005. &
+.004. & .004. \\
+block\_typeS: num.cov.schoolS & .001 & .001 & .001 & .001 & .001 & .001
+& .001 \\
+block\_typeL: num.cov.schoolS & -.003 & -.001 & -.003 & -.001 & -.003 &
+-.001 & -.003 \\
+block\_typeS: num.cov.schoolL & .001 & .001 & .001 & .001 & .001 & .001
+& .001 \\
+block\_typeL: num.cov.schoolL & -.002 & -.002 & -.002 & -.002 & -.002 &
+-.002 & -.002 \\
+J.barS: size.impact.cor.schoolL & .001 & \textless.001 & .001 &
+\textless.001 & .001 & \textless.001 & .001 \\
+J.barL: size.impact.cor.schoolL & -.002 & -.003 & -.002 & -.003 & -.001
+& -.002 & -.001 \\
+J.barS:sd.schoolL & -.002 & -.002 & -.002 & -.002 & -.001 & -.002 &
+-.001 \\
+J.barL:sd.schoolL & -.003 & -.003. & -.003 & -.003. & -.002 & -.003 &
+-.002 \\
+J.barS:ICC.schoolL & -.013*** & -.015*** & -.014*** & -.016*** &
+-.014*** & -.016*** & -.014*** \\
+J.barL:ICC.schoolL & -.028*** & -.028*** & -.029*** & -.030*** &
+-.029*** & -.030*** & -.030*** \\
+J.barS:variable.nTRUE & .001 & \textless.001 & .001 & \textless.001 &
+.002 & .001 & .001 \\
+J.barL:variable.nTRUE & -.003 & -.004. & -.004. & -.004* & -.001 & -.002
+& -.001 \\
+J.barS:cv.schoolS & .001 & \textless.001 & .001 & \textless.001 & .001 &
+\textless.001 & .001 \\
+J.barL:cv.schoolS & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & .001 & \textless.001 \\
+J.barS:cv.schoolL & -.003 & -.003 & -.004 & -.003 & -.002 & -.002 &
+-.002 \\
+J.barL:cv.schoolL & -.004. & -.003 & -.005. & -.003 & -.002 & -.001 &
+-.001 \\
+J.barS:num.cov.schoolS & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 \\
+J.barL:num.cov.schoolS & .002 & .002 & .002 & .003 & .002 & .002 &
+.002 \\
+J.barS:num.cov.schoolL & -.002 & -.001 & -.002 & -.001 & -.002 & -.001 &
+-.002 \\
+J.barL:num.cov.schoolL & -.003 & -.001 & -.003 & -.001 & -.004 & -.002 &
+-.004 \\
+size.impact.cor.schoolL: sd.schoolL & \textless.001 & -.001 &
+\textless.001 & -.001 & .002 & .002 & .002 \\
+size.impact.cor.schoolL: ICC.schoolL & .003* & .002 & .004* & .003. &
+.002 & \textless.001 & .002 \\
+size.impact.cor.schoolL: variable.nTRUE & .003 & .003. & .003 & .003. &
+.004* & .006*** & .005** \\
+size.impact.cor.schoolL: cv.schoolS & .002 & \textless.001 & .002 &
+\textless.001 & .002 & .001 & .002 \\
+size.impact.cor.schoolL: cv.schoolL & .002 & .001 & .001 & .001 & .004.
+& .004* & .003. \\
+size.impact.cor.schoolL: num.cov.schoolS & .002 & .002 & .002 & .002 &
+.002 & .002 & .002 \\
+size.impact.cor.schoolL: num.cov.schoolL & .001 & .002 & .001 & .002 &
+.001 & .002 & .001 \\
+sd.schoolL:ICC.schoolL & -.009*** & -.010*** & -.010*** & -.011*** &
+-.012*** & -.014*** & -.012*** \\
+sd.schoolL:variable.nTRUE & -.002 & -.003. & -.001 & -.001 & .001 & .001
+& .001 \\
+sd.schoolL:cv.schoolS & -.004* & -.004* & -.004. & -.004. & -.004. &
+-.003 & -.003 \\
+sd.schoolL:cv.schoolL & -.004. & -.003 & -.001 & -.001 & \textless.001 &
+.002 & .001 \\
+sd.schoolL: num.cov.schoolS & \textless.001 & \textless.001 &
+\textless.001 & -.001 & \textless.001 & -.001 & \textless.001 \\
+sd.schoolL: num.cov.schoolL & -.002 & -.001 & -.002 & -.001 & -.001 &
+-.001 & -.001 \\
+ICC.schoolL: variable.nTRUE & -.001 & -.003. & .009*** & .008*** & .002
+& \textless.001 & .001 \\
+ICC.schoolL:cv.schoolS & .001 & -.001 & .004. & .002 & .001 &
+\textless.001 & .001 \\
+ICC.schoolL:cv.schoolL & -.005* & -.006** & .008*** & .007*** & -.001 &
+-.002 & -.001 \\
+ICC.schoolL: num.cov.schoolS & -.001 & -.002 & -.001 & -.002 & -.001 &
+-.002 & -.001 \\
+ICC.schoolL: num.cov.schoolL & -.001 & -.001 & -.001 & -.002 & -.001 &
+-.001 & -.001 \\
+variable.nTRUE:cv.schoolS & .002 & .001 & .004* & .003. & .001 & .001 &
+.001 \\
+variable.nTRUE:cv.schoolL & .015*** & .015*** & .016*** & .014*** &
+.008*** & .008*** & .008*** \\
+variable.nTRUE: num.cov.schoolS & -.004. & -.004* & -.004. & -.004* &
+-.004. & -.004* & -.004. \\
+variable.nTRUE: num.cov.schoolL & -.001 & -.001 & -.001 & -.001 & -.001
+& -.001 & -.001 \\
+cv.schoolS: num.cov.schoolS & .007** & .005* & .007** & .005* & .007** &
+.005* & .006* \\
+cv.schoolL: num.cov.schoolS & .006* & .005* & .006* & .005* & .006* &
+.005* & .006* \\
+cv.schoolS: num.cov.schoolL & .002 & .001 & .003 & .001 & .002 & .001 &
+.002 \\
+cv.schoolL: num.cov.schoolL & .003 & .002 & .003 & .002 & .004 & .002 &
+.003 \\
+\end{longtable}
+
+\emph{Significance: `***' 0.001 `**' 0.01 `*' 0.05 `.' 0.1} \endgroup
+
+\subsubsection{Top Five Scenarios with Largest Normalized RMSE by
+Method}\label{top-five-scenarios-with-largest-normalized-rmse-by-method}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.1013}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.1519}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.1139}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.0506}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.0759}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.0823}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.0759}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.1076}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.1582}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.0823}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+method
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+RMSE.s.est imand.norm
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+RMSE.s estimand
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+J.bar
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+sd school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+ICC school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+cv school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+num.cov school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+size.impact cor.school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+block type
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+LRa-FE-db & 1.41 & 0.0635 & L & 0 & 0 & L & S & 0 & 0 \\
+LRa-FE-db & 1.4 & 0.0632 & L & 0 & 0 & L & 0 & L & 0 \\
+LRa-FE-db & 1.4 & 0.0635 & L & 0 & 0 & L & S & L & 0 \\
+LRa-FE-db & 1.4 & 0.0633 & L & 0 & 0 & L & L & L & 0 \\
+LRa-FE-db & 1.4 & 0.0811 & S & 0 & 0 & L & 0 & L & 0 \\
+LRapw-FE-db & 1.27 & 0.098 & L & 0 & 0 & L & S & 0 & L \\
+LRapw-FE-db & 1.25 & 0.113 & L & L & 0 & S & S & L & L \\
+LRapw-FE-db & 1.17 & 0.202 & L & L & L & L & 0 & L & L \\
+LRapw-FE-db & 1.16 & 0.247 & 0 & L & L & L & L & 0 & L \\
+LRapw-FE-db & 1.16 & 0.142 & 0 & 0 & 0 & L & S & 0 & L \\
+MLM-FE & 1.34 & 0.0638 & L & L & 0 & S & 0 & L & L \\
+MLM-FE & 1.32 & 0.0996 & L & L & 0 & L & L & L & 0 \\
+MLM-FE & 1.31 & 0.0888 & L & L & 0 & L & S & L & L \\
+MLM-FE & 1.31 & 0.0941 & L & L & 0 & L & 0 & L & L \\
+MLM-FE & 1.31 & 0.1 & L & L & 0 & L & S & L & 0 \\
+MLM-FIcw & 1.48 & 0.1 & L & L & 0 & L & S & L & L \\
+MLM-FIcw & 1.39 & 0.0999 & L & L & 0 & L & 0 & L & L \\
+MLM-FIcw & 1.33 & 0.101 & L & L & 0 & L & L & L & 0 \\
+MLM-FIcw & 1.32 & 0.101 & L & L & 0 & L & S & L & 0 \\
+MLM-FIcw & 1.32 & 0.101 & L & L & 0 & L & 0 & L & 0 \\
+MLM-RE & 1.35 & 0.0646 & L & L & 0 & S & 0 & L & L \\
+MLM-RE & 1.34 & 0.0963 & L & L & 0 & L & 0 & L & L \\
+MLM-RE & 1.32 & 0.0996 & L & L & 0 & L & L & L & 0 \\
+MLM-RE & 1.32 & 0.0891 & L & L & 0 & L & S & L & L \\
+MLM-RE & 1.31 & 0.1 & L & L & 0 & L & S & L & 0 \\
+LRa-FIcw-db & 1.41 & 0.0635 & L & 0 & 0 & L & S & 0 & 0 \\
+LRa-FIcw-db & 1.4 & 0.0632 & L & 0 & 0 & L & 0 & L & 0 \\
+LRa-FIcw-db & 1.4 & 0.0635 & L & 0 & 0 & L & S & L & 0 \\
+LRa-FIcw-db & 1.4 & 0.0633 & L & 0 & 0 & L & L & L & 0 \\
+LRa-FIcw-db & 1.4 & 0.0811 & S & 0 & 0 & L & 0 & L & 0 \\
+LRapw-FIpw-db & 1.13 & 0.112 & L & 0 & L & L & L & 0 & L \\
+LRapw-FIpw-db & 1.12 & 0.177 & L & 0 & L & L & S & 0 & L \\
+LRapw-FIpw-db & 1.11 & 0.238 & S & L & L & L & L & L & L \\
+\end{longtable}
+
+\subsubsection{The Effect of Different Data Generating Parameters on the
+Estimate
+Instability}\label{the-effect-of-different-data-generating-parameters-on-the-estimate-instability}
+
+\begingroup
+\footnotesize
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.2583}}
+  >{\centering\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1000}}
+  >{\centering\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1167}}
+  >{\centering\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1167}}
+  >{\centering\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.1333}}
+  >{\centering\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.0917}}
+  >{\centering\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.0917}}
+  >{\centering\arraybackslash}p{(\columnwidth - 14\tabcolsep) * \real{0.0917}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Term
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRa-FE-db
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRa-FIcw-db
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRapw-FE-db
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRapw-FIpw-db
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+MLM-FE
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+MLM-FIcw
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+MLM-RE
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+(Intercept) & .067*** & .067*** & .069*** & .070*** & .068*** & .069***
+& .068*** \\
+block\_typeS & .002 & .002 & .002 & .002 & .002 & .002 & .002 \\
+block\_typeL & \textless.001 & \textless.001 & -.001 & \textless.001 &
+.001 & \textless.001 & .001 \\
+J.barS & -.011*** & -.011*** & -.010** & -.010** & -.011*** & -.011*** &
+-.011*** \\
+J.barL & -.024*** & -.024*** & -.022*** & -.022*** & -.024*** & -.024***
+& -.023*** \\
+size.impact.cor.schoolL & -.003 & -.003 & -.002 & -.003 & -.002 & -.003
+& -.002 \\
+sd.schoolL & .026*** & .026*** & .027*** & .026*** & .026*** & .026*** &
+.026*** \\
+ICC.schoolL & .094*** & .094*** & .091*** & .090*** & .093*** & .092***
+& .093*** \\
+variable.nTRUE & .005. & .005. & -.003 & -.003 & .001 & .001 & .001 \\
+cv.schoolS & .001 & .001 & -.001 & -.001 & \textless.001 & \textless.001
+& \textless.001 \\
+cv.schoolL & .004 & .004 & -.006. & -.005 & -.001 & -.001 & -.001 \\
+num.cov.schoolS & -.001 & -.001 & -.001 & -.001 & -.001 & -.001 &
+-.001 \\
+num.cov.schoolL & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 \\
+block\_typeS:J.barS & -.002 & -.002 & -.002 & -.002 & -.002 & -.002 &
+-.002 \\
+block\_typeL:J.barS & .004 & .004. & .003 & .003 & .003 & .004 & .003 \\
+block\_typeS:J.barL & -.001 & -.001 & -.001 & -.001 & -.001 & -.001 &
+-.001 \\
+block\_typeL:J.barL & .003 & .003 & .001 & .002 & .002 & .002 & .002 \\
+block\_typeS: size.impact.cor.schoolL & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 \\
+block\_typeL: size.impact.cor.schoolL & .002 & .002 & .002 & .003 & .002
+& .002 & .002 \\
+block\_typeS:sd.schoolL & .001 & .001 & .001 & .001 & .001 & .001 &
+.001 \\
+block\_typeL:sd.schoolL & .003 & .002 & .001 & .001 & .002 & .002 &
+.002 \\
+block\_typeS:ICC.schoolL & \textless.001 & \textless.001 & \textless.001
+& \textless.001 & \textless.001 & \textless.001 & \textless.001 \\
+block\_typeL:ICC.schoolL & .008*** & .009*** & .006*** & .008*** &
+.007*** & .009*** & .006*** \\
+block\_typeS: variable.nTRUE & .001 & .001 & .001 & .001 & .001 & .001 &
+.001 \\
+block\_typeL: variable.nTRUE & .002 & .002 & .008*** & .005** & .003. &
+.002 & .003. \\
+block\_typeS:cv.schoolS & -.001 & -.001 & \textless.001 & \textless.001
+& -.001 & -.001 & \textless.001 \\
+block\_typeL:cv.schoolS & .002 & .002 & .004. & .004. & .002 & .002 &
+.002 \\
+block\_typeS:cv.schoolL & -.001 & -.001 & -.001 & -.001 & -.001 & -.001
+& -.001 \\
+block\_typeL:cv.schoolL & .004. & .004. & .011*** & .008*** & .006** &
+.004. & .006** \\
+block\_typeS: num.cov.schoolS & .001 & .001 & .001 & .001 & .001 & .001
+& .001 \\
+block\_typeL: num.cov.schoolS & -.001 & -.001 & -.001 & -.001 & -.001 &
+-.001 & -.001 \\
+block\_typeS: num.cov.schoolL & .001 & .001 & .001 & .001 & .001 & .001
+& .001 \\
+block\_typeL: num.cov.schoolL & -.002 & -.002 & -.002 & -.002 & -.002 &
+-.002 & -.002 \\
+J.barS: size.impact.cor.schoolL & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 \\
+J.barL: size.impact.cor.schoolL & -.003 & -.003 & -.003 & -.003 & -.003
+& -.003 & -.003 \\
+J.barS:sd.schoolL & -.002 & -.002 & -.002 & -.002 & -.002 & -.002 &
+-.002 \\
+J.barL:sd.schoolL & -.003. & -.003. & -.003. & -.003. & -.003. & -.004.
+& -.003. \\
+J.barS:ICC.schoolL & -.015*** & -.015*** & -.016*** & -.016*** &
+-.015*** & -.015*** & -.015*** \\
+J.barL:ICC.schoolL & -.029*** & -.028*** & -.030*** & -.030*** &
+-.029*** & -.029*** & -.029*** \\
+J.barS:variable.nTRUE & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 \\
+J.barL:variable.nTRUE & -.004* & -.004. & -.005* & -.004* & -.003 &
+-.003 & -.003 \\
+J.barS:cv.schoolS & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 \\
+J.barL:cv.schoolS & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 \\
+J.barS:cv.schoolL & -.003 & -.003 & -.004 & -.003 & -.003 & -.003 &
+-.003 \\
+J.barL:cv.schoolL & -.003 & -.003 & -.004. & -.003 & -.002 & -.002 &
+-.002 \\
+J.barS:num.cov.schoolS & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 \\
+J.barL:num.cov.schoolS & .002 & .002 & .002 & .003 & .002 & .002 &
+.002 \\
+J.barS:num.cov.schoolL & -.001 & -.001 & -.001 & -.001 & -.001 & -.001 &
+-.001 \\
+J.barL:num.cov.schoolL & -.001 & -.001 & -.002 & -.001 & -.001 & -.001 &
+-.001 \\
+size.impact.cor.schoolL: sd.schoolL & -.001 & -.001 & -.002 & -.001 &
+-.001 & -.001 & -.001 \\
+size.impact.cor.schoolL: ICC.schoolL & .002 & .002 & .003. & .003. &
+.002 & .002 & .002 \\
+size.impact.cor.schoolL: variable.nTRUE & .003. & .003. & .002 & .003. &
+.003. & .003. & .003. \\
+size.impact.cor.schoolL: cv.schoolS & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 \\
+size.impact.cor.schoolL: cv.schoolL & .001 & .001 & .001 & .001 & .001 &
+.001 & .001 \\
+size.impact.cor.schoolL: num.cov.schoolS & .002 & .002 & .002 & .002 &
+.002 & .002 & .002 \\
+size.impact.cor.schoolL: num.cov.schoolL & .002 & .002 & .002 & .002 &
+.002 & .002 & .002 \\
+sd.schoolL:ICC.schoolL & -.010*** & -.010*** & -.011*** & -.011*** &
+-.011*** & -.011*** & -.011*** \\
+sd.schoolL:variable.nTRUE & -.003. & -.003. & -.002 & -.001 & -.002 &
+-.001 & -.002 \\
+sd.schoolL:cv.schoolS & -.004* & -.004* & -.004* & -.004. & -.004* &
+-.004* & -.004* \\
+sd.schoolL:cv.schoolL & -.003. & -.003 & -.001 & -.001 & -.002 & -.001 &
+-.002 \\
+sd.schoolL: num.cov.schoolS & \textless.001 & \textless.001 & -.001 &
+-.001 & -.001 & -.001 & -.001 \\
+sd.schoolL: num.cov.schoolL & -.001 & -.001 & -.001 & -.001 & -.001 &
+-.001 & -.001 \\
+ICC.schoolL: variable.nTRUE & -.003. & -.003. & .008*** & .008*** & .002
+& .003. & .002 \\
+ICC.schoolL:cv.schoolS & -.001 & -.001 & .002 & .002 & \textless.001 &
+\textless.001 & \textless.001 \\
+ICC.schoolL:cv.schoolL & -.006** & -.006** & .007*** & .007*** &
+\textless.001 & .001 & \textless.001 \\
+ICC.schoolL: num.cov.schoolS & -.002 & -.002 & -.002 & -.002 & -.002 &
+-.002 & -.002 \\
+ICC.schoolL: num.cov.schoolL & -.001 & -.001 & -.002 & -.002 & -.001 &
+-.001 & -.001 \\
+variable.nTRUE:cv.schoolS & .001 & .001 & .004* & .003. & \textless.001
+& \textless.001 & \textless.001 \\
+variable.nTRUE:cv.schoolL & .015*** & .015*** & .016*** & .014*** &
+.005** & .004* & .005** \\
+variable.nTRUE: num.cov.schoolS & -.004* & -.004* & -.004* & -.004* &
+-.004* & -.004* & -.004* \\
+variable.nTRUE: num.cov.schoolL & -.001 & -.001 & -.001 & -.001 & -.001
+& -.001 & -.001 \\
+cv.schoolS: num.cov.schoolS & .004. & .005* & .004. & .005* & .004. &
+.005* & .004* \\
+cv.schoolL: num.cov.schoolS & .005* & .005* & .005* & .005* & .005* &
+.005* & .005* \\
+cv.schoolS: num.cov.schoolL & .001 & .001 & .001 & .001 & .001 & .001 &
+.001 \\
+cv.schoolL: num.cov.schoolL & .002 & .002 & .002 & .002 & .002 & .002 &
+.002 \\
+\end{longtable}
+
+\emph{Significance: `***' 0.001 `**' 0.01 `*' 0.05 `.' 0.1} \endgroup
+
+\subsubsection{Top Five Scenarios with Largest Normalized Estimate
+Standard Error by
+Method}\label{top-five-scenarios-with-largest-normalized-estimate-standard-error-by-method}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.1168}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.0876}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.0657}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.0584}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.0876}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.0949}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.0876}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.1241}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.1825}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.0949}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+method
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+SE s.norm
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+SE.s
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+J.bar
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+sd school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+ICC school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+cv school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+num.cov school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+size.impact cor.school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+block type
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+LRa-FE-db & 1.41 & 0.0635 & L & 0 & 0 & L & S & 0 & 0 \\
+LRa-FE-db & 1.4 & 0.0632 & L & 0 & 0 & L & 0 & L & 0 \\
+LRa-FE-db & 1.4 & 0.0635 & L & 0 & 0 & L & S & L & 0 \\
+LRa-FE-db & 1.4 & 0.0633 & L & 0 & 0 & L & L & L & 0 \\
+LRa-FE-db & 1.4 & 0.0811 & S & 0 & 0 & L & 0 & L & 0 \\
+LRapw-FE-db & 1.21 & 0.0918 & L & 0 & 0 & L & S & 0 & L \\
+LRapw-FE-db & 1.19 & 0.139 & 0 & 0 & 0 & L & L & 0 & L \\
+LRapw-FE-db & 1.19 & 0.0731 & S & 0 & 0 & S & L & 0 & L \\
+LRapw-FE-db & 1.17 & 0.184 & L & L & L & L & 0 & L & L \\
+LRapw-FE-db & 1.15 & 0.222 & 0 & 0 & L & L & L & 0 & L \\
+LRa-FIcw-db & 1.41 & 0.0635 & L & 0 & 0 & L & S & 0 & 0 \\
+LRa-FIcw-db & 1.4 & 0.0632 & L & 0 & 0 & L & 0 & L & 0 \\
+LRa-FIcw-db & 1.4 & 0.0635 & L & 0 & 0 & L & S & L & 0 \\
+LRa-FIcw-db & 1.4 & 0.0633 & L & 0 & 0 & L & L & L & 0 \\
+LRa-FIcw-db & 1.4 & 0.0811 & S & 0 & 0 & L & 0 & L & 0 \\
+LRapw-FIpw-db & 1.13 & 0.112 & L & 0 & L & L & L & 0 & L \\
+LRapw-FIpw-db & 1.12 & 0.134 & L & 0 & L & L & 0 & L & L \\
+LRapw-FIpw-db & 1.12 & 0.177 & L & 0 & L & L & S & 0 & L \\
+LRapw-FIpw-db & 1.11 & 0.213 & 0 & 0 & L & L & L & 0 & L \\
+LRapw-FIpw-db & 1.11 & 0.123 & L & 0 & L & L & L & L & L \\
+\end{longtable}
+
+\subsection{What do the estimated standard errors look like for each
+estimator}\label{what-do-the-estimated-standard-errors-look-like-for-each-estimator}
+
+Main Bullet Points:
+
+*This section answers the rest of the questions from pg.39 (i.e.~are
+certain SE estimators more accurate than others)
+
+*For the cluster targeted estimates the unbiased estimators produce more
+accurate standard errors than the biased estimators (graph one). The
+unbiased estimators produce more unstable estimates than the biased
+estimators, but in 90\% of the DGP we looked at they aren't a lot more
+unstable (graph four).
+
+*For the person targeted estimates the unbiased estimators produce more
+accurate standard errors than the biased estimators (graph one), except
+when the school ICC is zero and the blocks are all very dissimilar from
+each other and their is high variance in the cluster sizes. if all three
+of these risk factors are not present than the unbiased estimator
+standard estimates are generally fine (graph two). The unbiased
+estimators produce more unstable estimates than the biased estimators
+unless all three of these factors are present (graphs four and five).
+However they aren't a lot more unstable, 90\% of the time they're within
+about 10\% of the median instability.
+
+*This section also answers the question from pg. 38 about the
+instability of the estimated standard erros for the fully interacted
+models, what I've been calling hte unbiased estimators. The simulations
+do not really show that the standard errors from the fully interacted
+models are lot more unstable than the other standard errors. We should
+talk about this more, and what would be helpful for me to dig into more.
+
+Description of Analysis:
+
+*The first graph is a boxplot of the estimated standard error accuracy
+across the different scenarios by method. Standard error accuracy is
+quantified as the estimated standard error over the true super
+population standard error. Estimated standard errors are most accurate
+if the number is close to one. Numbers below one represent under
+estimated standard errors and numbers above one represent over estimated
+standard errors.
+
+*The second graph is the same as the first but for just the person
+weighted fully interacted estimators broken out by identified ``risk
+factors'' for poorly estimated standard errors. In the graph on the left
+the school level ICC is zero, the blocks are all messy, and there is
+high variance in the cluster size and the graph on the right does not
+have all three of these things at the same time.
+
+*The third graph is a boxplot of the standard deviation of the estimated
+standard error across the different replications by method.
+
+*The forth graph is a boxplot of the normalized standard deviation of
+the estimated standard error across the different replications by
+method.
+
+*The fifth graph is the same as the fourth graph but broken by the same
+risk factors as before.
+
+*The second graph is a boxplot of the normalized estimate standard
+deviation across the different scenarios by method. This is also
+normalized by dividing by the median estimate standard deviation within
+a given simulation scenario.
+
+*The first table contains the regression coefficients from a regression
+that predicts the RMSE using different data generating parameters and
+the second table is from regressions predicting the estimate standard
+deviation. Each regression is run separately by estimator and the RMSE
+is against the targeted estimator.
+
+*The second table contains the DGPs that produce the normalized RMSE
+(against the targeted estimator) for each method, conditional on the
+magnitude of the being at least 1.10.
+
+*The third table contains the regression coefficients from a regression
+that predicts the true superpopulation estimate standard error using
+different data generating parameters.
+
+*The fourth table contains the DGPs that produce the normalized super
+population estimator standard error for each method, conditional on the
+magnitude of the being at least 1.10.
+
+\begin{center}\includegraphics{Simulation-Memo-3_files/figure-latex/infl-1} \end{center}
+
+\subsubsection{The Risk Factors are School Level ICC = 0 \& Blocks All
+Different \& High Variance in Cluster
+Size}\label{the-risk-factors-are-school-level-icc-0-blocks-all-different-high-variance-in-cluster-size}
+
+\begin{center}\includegraphics{Simulation-Memo-3_files/figure-latex/infl-2} \end{center}
+
+\begin{center}\includegraphics{Simulation-Memo-3_files/figure-latex/infl-3} \end{center}
+
+\begin{center}\includegraphics{Simulation-Memo-3_files/figure-latex/infl-4} \end{center}
+
+\subsubsection{The Risk Factors are School Level ICC = 0 \& Blocks All
+Different \& High Variance in Cluster
+Size}\label{the-risk-factors-are-school-level-icc-0-blocks-all-different-high-variance-in-cluster-size-1}
+
+\begin{center}\includegraphics{Simulation-Memo-3_files/figure-latex/infl-5} \end{center}
+
+\subsubsection{The Effect of Different Data Generating Parameters on \%
+Points Estimated SE Off from True Super
+SE}\label{the-effect-of-different-data-generating-parameters-on-points-estimated-se-off-from-true-super-se}
+
+\begingroup
+\fontsize{5pt}{6pt}\selectfont
+\setlength{\tabcolsep}{.5pt}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.1512}}
+  >{\centering\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.0634}}
+  >{\centering\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.0634}}
+  >{\centering\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.0683}}
+  >{\centering\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.0683}}
+  >{\centering\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.0732}}
+  >{\centering\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.0780}}
+  >{\centering\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.0829}}
+  >{\centering\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.0780}}
+  >{\centering\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.0878}}
+  >{\centering\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.0634}}
+  >{\centering\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.0585}}
+  >{\centering\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.0634}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Term
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRa-FE-db
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRa-FE-het
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRa-FIcw-db
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRapw-FE-db
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRapw-FE-het
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRapw-FIpw-db
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRapw-FIpw-het
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRicw-FE-crve
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRicw-FIcw-crve
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+MLM-FE
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+MLM-FIcw
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+MLM-RE
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+(Intercept) & 5.842** & 6.070** & 1.069*** & 5.501** & 5.975** & .990* &
+1.092** & 5.679** & 1.217*** & 8.017*** & 5.468*** & 8.038*** \\
+block\_typeS & .785 & .885 & .288. & .794 & 1.200 & .146 & .145 & .947 &
+.313. & .157 & -.929. & .170 \\
+block\_typeL & 79.662*** & 82.928*** & .755*** & 81.702*** & 84.100*** &
+-.307 & -.166 & 84.159*** & .977*** & 57.767*** & 1.269* & 57.528*** \\
+J.barS & -.501 & -.572 & -.410* & -.366 & -.595 & .243 & .145 & -.525 &
+-.495** & -1.450 & -1.872*** & -1.429 \\
+J.barL & -.546 & -.854 & -.676*** & -.829 & -.887 & .908* & .536 & -.905
+& -.780*** & -3.217* & -3.597*** & -3.246* \\
+size.impact.c or.schoolL & -2.549 & -2.439 & -.060 & -3.061. & -2.992* &
+-.578 & -.517 & -2.456 & .009 & -1.619 & -.292 & -1.614 \\
+sd.schoolL & -5.786*** & -5.976*** & -.041 & -6.463*** & -6.511*** &
+.074 & .182 & -5.977*** & -.071 & -4.594*** & .238 & -4.654*** \\
+ICC.schoolL & -9.989*** & -10.379*** & -.105 & -9.942*** & -9.782*** &
+.849* & .908** & -10.238*** & -.391** & -10.638*** & -4.002*** &
+-10.585*** \\
+variable.nTRU E & -.076 & -.245 & .109 & 1.458 & .164 & -.769* &
+-1.147*** & .289 & -.309* & 1.030 & .138 & 1.063 \\
+cv.schoolS & .132 & -.093 & .211 & .784 & .259 & -.079 & -.144 & .031 &
+.144 & .733 & .020 & .639 \\
+cv.schoolL & -.230 & -.296 & .599*** & 1.418 & -.034 & -.427 & -.929* &
+.381 & .040 & -.510 & -.315 & -.555 \\
+num.cov.schoo lS & -1.140 & -1.279 & .017 & -1.376 & -1.657 & -.011 &
+-.005 & -1.286 & -.001 & -.418 & .024 & -.432 \\
+num.cov.schoo lL & .135 & .174 & .013 & -.072 & -.183 & -.027 & -.085 &
+.250 & .082 & -.201 & -.084 & -.234 \\
+block\_typeS: J.barS & .250 & .183 & -.103 & .153 & .079 & -.169 & -.196
+& .138 & -.074 & .985 & .919* & .978 \\
+block\_typeL: J.barS & -1.105 & -1.001 & -.107 & -.396 & -.998 & .089 &
+-.178 & -.756 & -.059 & -1.544 & 1.624*** & -1.557 \\
+block\_typeS: J.barL & .422 & .361 & -.096 & .338 & .271 & -.102 & -.199
+& .383 & .039 & .967 & .993* & .959 \\
+block\_typeL: J.barL & -2.036 & -2.360 & -.462*** & .170 & -1.841 &
+-.569. & -.907** & -1.648 & -.217. & -3.667*** & 1.827*** & -3.489** \\
+block\_typeS: size.impact.cor.schoolL & .021 & .025 & -.022 & .021 &
+-.020 & .023 & .028 & .035 & -.044 & .069 & .113 & .076 \\
+block\_typeL: size.impact.cor.schoolL & -2.313. & -2.316* & .126 &
+-2.014. & -1.956. & .408 & .378 & -2.270. & .077 & -.906 & -.793* &
+-.822 \\
+block\_typeS: sd.schoolL & -.281 & -.337 & .016 & -.090 & -.614 & .062 &
+.052 & -.309 & .016 & -1.299 & -.543. & -1.294 \\
+block\_typeL: sd.schoolL & -17.243*** & -17.420*** & -.024 & -16.305***
+& -16.905*** & -.988*** & -.910*** & -17.414*** & -.059 & -10.763*** &
+3.666*** & -10.700*** \\
+block\_typeS: ICC.schoolL & -.614 & -.633 & .002 & -.344 & -.851 & -.200
+& -.135 & -.645 & -.028 & -.271 & .646* & -.266 \\
+block\_typeL: ICC.schoolL & -47.760*** & -49.338*** & -.140 & -47.155***
+& -49.943*** & -1.918*** & -1.798*** & -49.892*** & -.370*** &
+-34.502*** & -2.556*** & -34.672*** \\
+block\_typeS: variable.nTRUE & -.383 & -.383 & -.036 & -.701 & -.299 &
+.357 & .350 & -.471 & -.110 & -.143 & .016 & -.148 \\
+block\_typeL: variable.nTRUE & -5.922*** & -6.151*** & .138 & -13.397***
+& -8.641*** & 4.563*** & 4.528*** & -8.710*** & -.217* & -3.898*** &
+-.235 & -3.815*** \\
+block\_typeS: cv.schoolS & -.171 & -.165 & -.191 & -.501 & -.250 & -.010
+& -.033 & -.224 & -.217. & .018 & -.156 & -.003 \\
+block\_typeL: cv.schoolS & -.005 & -.016 & .043 & -4.063** & -2.210. &
+2.014*** & 1.957*** & -.585 & -.024 & .123 & -.448 & .114 \\
+block\_typeS: cv.schoolL & -.449 & -.458 & -.217. & -.596 & -.248 & .192
+& .205 & -.532 & -.302* & .185 & .238 & .195 \\
+block\_typeL: cv.schoolL & -6.736*** & -6.960*** & .067 & -13.890*** &
+-8.502*** & 4.734*** & 4.738*** & -10.231*** & -.398** & -3.676*** &
+-.357 & -3.635** \\
+block\_typeS: num.cov.schoolS & -.149 & -.146 & -.047 & -.102 & -.139 &
+.109 & .101 & -.154 & -.062 & -.146 & -.173 & -.153 \\
+block\_typeL: num.cov.schoolS & -1.002 & -1.007 & -.025 & -1.112 &
+-1.155 & -.075 & -.051 & -.997 & .028 & -.187 & .039 & -.127 \\
+block\_typeS: num.cov.schoolL & .033 & .032 & .071 & -.074 & -.044 &
+-.008 & .046 & -.029 & .037 & .020 & -.003 & .017 \\
+block\_typeL: num.cov.schoolL & .687 & .563 & .141 & .211 & .003 & .339
+& .298 & .495 & .132 & -1.117 & -.615 & -1.080 \\
+J.barS: size.impact.cor.schoolL & .592 & .661 & .078 & .571 & .656 &
+.152 & .113 & .682 & .095 & .243 & .324 & .212 \\
+J.barL: size.impact.cor.schoolL & \textless.001 & .117 & .011 & .208 &
+.217 & -.110 & -.094 & .177 & .052 & -.364 & .404 & -.369 \\
+J.barS: sd.schoolL & .224 & .273 & .131 & .024 & .294 & .157 & .116 &
+.212 & .150 & -1.172 & -.547. & -1.243 \\
+J.barL: sd.schoolL & .921 & 1.003 & .100 & .563 & .915 & .221 & .130 &
+.899 & .129 & .266 & .031 & .225 \\
+J.barS: ICC.schoolL & .264 & .349 & .126 & -.003 & .202 & -.180 & -.263
+& .213 & .186. & 1.470 & .992** & 1.464 \\
+J.barL: ICC.schoolL & 1.069 & 1.189 & .282** & .304 & .638 & -.311 &
+-.380. & .932 & .258* & 2.851** & 1.347*** & 2.827** \\
+J.barS: variable.nTRUE & 1.003 & 1.049 & .057 & .728 & .945 & -1.187***
+& -.666** & .982 & .132 & -.344 & -.035 & -.342 \\
+J.barL: variable.nTRUE & -.825 & -.623 & -.046 & -.844 & -.530 &
+-2.689*** & -1.491*** & -.728 & -.139 & -.577 & .729* & -.588 \\
+J.barS: cv.schoolS & -.735 & -.514 & -.003 & -1.145 & -.949 & -.490 &
+-.289 & -.542 & -.018 & -.905 & -.113 & -.883 \\
+J.barL: cv.schoolS & .316 & .432 & .003 & .199 & .280 & -1.051*** &
+-.578* & .394 & -.112 & .937 & .413 & 1.056 \\
+J.barS: cv.schoolL & -1.044 & -1.113 & -.328** & -1.047 & -.834 &
+-1.707*** & -1.126*** & -1.186 & -.200 & -.012 & .246 & -.008 \\
+J.barL: cv.schoolL & -.871 & -.903 & -.366** & -.782 & -.613 & -3.277***
+& -1.953*** & -1.023 & -.390** & .435 & .183 & .508 \\
+J.barS: num.cov.schoolS & -.088 & -.044 & -.022 & .118 & .303 & -.033 &
+-.006 & -.020 & -.057 & .245 & -.264 & .257 \\
+J.barL: num.cov.schoolS & .702 & .866 & .052 & .515 & .826 & .310 & .254
+& .840 & .052 & .623 & .345 & .611 \\
+J.barS: num.cov.schoolL & -.500 & -.606 & -.219. & -.579 & -.430 & -.122
+& -.100 & -.605 & -.259* & .635 & -.290 & .711 \\
+J.barL: num.cov.schoolL & -1.613 & -1.466 & -.122 & -1.298 & -1.085 &
+-.166 & -.139 & -1.412 & -.121 & -.710 & -.048 & -.663 \\
+size.impact.cor.schoolL: sd.schoolL & 1.442 & 1.268 & .029 & 1.808. &
+1.551. & .336 & .281 & 1.306 & .005 & .271 & -.332 & .303 \\
+size.impact.cor.schoolL: ICC.schoolL & 1.866. & 1.821. & .059 & 1.332 &
+1.446. & .197 & .167 & 1.727. & .024 & .687 & .537* & .641 \\
+size.impact.cor.schoolL: variable.nTRUE & .302 & .238 & .196* & .750 &
+.658 & .658** & .588** & .269 & .136 & .295 & -.185 & .287 \\
+size.impact.cor.schoolL: cv.schoolS & 2.144. & 2.058. & -.160. & 2.125.
+& 2.088. & .035 & -.008 & 2.041. & -.177. & 1.714. & .243 & 1.707. \\
+size.impact.cor.schoolL: cv.schoolL & 1.479 & 1.430 & -.066 & 2.170. &
+2.032. & .430. & .369 & 1.495 & -.140 & 1.760. & .505 & 1.766. \\
+size.impact.cor.schoolL: num.cov.schoolS & -1.287 & -1.223 & .005 &
+-1.046 & -.909 & -.058 & -.014 & -1.233 & .007 & -.836 & -.330 &
+-.805 \\
+size.impact.cor.schoolL: num.cov.schoolL & -.632 & -.660 & -.091 & -.243
+& -.218 & -.113 & -.059 & -.699 & -.110 & .551 & -.221 & .571 \\
+sd.schoolL: ICC.schoolL & 9.881*** & 10.098*** & .112 & 9.106*** &
+9.813*** & -.117 & -.063 & 9.915*** & -.059 & 8.586*** & -.285 &
+8.563*** \\
+sd.schoolL: variable.nTRUE & .529 & .677 & -.171* & 1.716. & 1.278 &
+.093 & -.046 & .910 & .091 & .513 & -.037 & .551 \\
+sd.schoolL: cv.schoolS & -2.729* & -2.534* & -.085 & -1.845 & -1.948. &
+-.094 & -.167 & -2.455* & .008 & -1.367 & -.384 & -1.271 \\
+sd.schoolL: cv.schoolL & -.079 & .002 & -.105 & .818 & .318 & .301 &
+.164 & .274 & .196. & .439 & -.139 & .497 \\
+sd.schoolL: num.cov.schoolS & 1.332 & 1.318 & .017 & 1.329 & 1.496 &
+.007 & -.047 & 1.298 & \textless.001 & .506 & .175 & .551 \\
+sd.schoolL: num.cov.schoolL & -.515 & -.535 & .017 & -.220 & -.177 &
+-.064 & -.058 & -.514 & .008 & -.597 & -.227 & -.564 \\
+ICC.schoolL: variable.nTRUE & 4.219*** & 4.340*** & -.196* & 5.149*** &
+4.426*** & .073 & -.092 & 4.945*** & .736*** & 2.511*** & .120 &
+2.483*** \\
+ICC.schoolL: cv.schoolS & .260 & .423 & -.126 & 1.464 & 1.186 & -.133 &
+-.289 & .582 & .085 & -.177 & .366 & -.175 \\
+ICC.schoolL: cv.schoolL & 3.902** & 4.208*** & -.396*** & 4.093*** &
+3.573*** & .014 & -.076 & 4.956*** & .791*** & 2.307* & .248 & 2.294* \\
+ICC.schoolL: num.cov.schoolS & .304 & .340 & -.028 & .614 & .599 & -.196
+& -.201 & .380 & -.008 & -.124 & -.072 & -.111 \\
+ICC.schoolL: num.cov.schoolL & -.217 & -.213 & -.015 & .056 & .119 &
+-.095 & -.089 & -.207 & -.041 & .447 & .481 & .477 \\
+variable.nTRUE: cv.schoolS & -1.044 & -1.117 & .025 & -2.644* & -2.246*
+& 3.750*** & 2.253*** & -1.277 & .360*** & -1.640. & -.550. & -1.635. \\
+variable.nTRUE: cv.schoolL & -5.616*** & -5.661*** & .568*** & -6.344***
+& -5.707*** & 10.657*** & 6.163*** & -5.877*** & 2.479*** & -4.975*** &
+-.499 & -4.965*** \\
+variable.nTRUE: num.cov.schoolS & .188 & .204 & -.098 & .141 & .099 &
+-.036 & -.027 & .209 & -.070 & .551 & .231 & .521 \\
+variable.nTRUE: num.cov.schoolL & -.281 & -.241 & .109 & -.594 & -.606 &
+.256 & .266 & -.331 & .079 & -.661 & .268 & -.749 \\
+cv.schoolS: num.cov.schoolS & .342 & .437 & .155 & .440 & .470 & .135 &
+.145 & .442 & .158 & -.602 & .024 & -.606 \\
+cv.schoolL: num.cov.schoolS & 1.890 & 1.844 & .041 & 1.722 & 1.653 &
+.154 & .158 & 1.846 & .081 & 1.122 & .073 & 1.086 \\
+cv.schoolS: num.cov.schoolL & 1.944 & 1.886 & .112 & 1.703 & 1.594 &
+.122 & .123 & 1.872 & .105 & .315 & -.158 & .311 \\
+cv.schoolL: num.cov.schoolL & 2.079 & 1.980 & -.048 & 1.849 & 1.724 &
+.162 & .176 & 1.858 & -.086 & .719 & .262 & .709 \\
+\end{longtable}
+
+\emph{Significance: `***' 0.001 `**' 0.01 `*' 0.05 `.' 0.1} \endgroup
+
+\subsubsection{Top Five Scenarios with Most SE Estimate Inaccuracy by
+Method}\label{top-five-scenarios-with-most-se-estimate-inaccuracy-by-method}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.1308}}
+  >{\centering\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.1000}}
+  >{\centering\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.0615}}
+  >{\centering\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.0923}}
+  >{\centering\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.1000}}
+  >{\centering\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.0923}}
+  >{\centering\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.1308}}
+  >{\centering\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.1923}}
+  >{\centering\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.1000}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+method
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+infla te.s
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+J.bar
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+sd school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+ICC school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+cv school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+num.cov school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+size.impact cor.school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+block type
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+LRa-FE-db & 2.53 & S & 0 & 0 & S & L & 0 & L \\
+LRa-FE-db & 2.39 & 0 & 0 & 0 & 0 & 0 & 0 & L \\
+LRa-FE-db & 2.28 & 0 & 0 & 0 & L & L & 0 & L \\
+LRa-FE-db & 2.19 & S & 0 & 0 & L & L & 0 & L \\
+LRa-FE-db & 2.13 & 0 & 0 & 0 & S & L & L & L \\
+LRa-FE-het & 2.55 & S & 0 & 0 & S & L & 0 & L \\
+LRa-FE-het & 2.39 & 0 & 0 & 0 & 0 & 0 & 0 & L \\
+LRa-FE-het & 2.32 & 0 & 0 & 0 & L & L & 0 & L \\
+LRa-FE-het & 2.21 & S & 0 & 0 & L & L & 0 & L \\
+LRa-FE-het & 2.17 & 0 & 0 & 0 & S & L & 0 & L \\
+LRapw-FE-db & 2.39 & 0 & 0 & 0 & 0 & 0 & 0 & L \\
+LRapw-FE-db & 2.28 & 0 & 0 & 0 & L & L & 0 & L \\
+LRapw-FE-db & 2.19 & S & 0 & 0 & L & L & 0 & L \\
+LRapw-FE-db & 2.14 & S & 0 & 0 & S & L & 0 & L \\
+LRapw-FE-db & 2.13 & 0 & 0 & 0 & S & L & 0 & L \\
+LRapw-FE-het & 2.39 & 0 & 0 & 0 & 0 & 0 & 0 & L \\
+LRapw-FE-het & 2.32 & 0 & 0 & 0 & L & L & 0 & L \\
+LRapw-FE-het & 2.21 & S & 0 & 0 & L & L & 0 & L \\
+LRapw-FE-het & 2.19 & S & 0 & 0 & S & L & 0 & L \\
+LRapw-FE-het & 2.17 & 0 & 0 & 0 & S & L & 0 & L \\
+LRicw-FE-crve & 2.54 & S & 0 & 0 & S & L & 0 & L \\
+LRicw-FE-crve & 2.39 & 0 & 0 & 0 & 0 & 0 & 0 & L \\
+LRicw-FE-crve & 2.32 & 0 & 0 & 0 & L & L & 0 & L \\
+LRicw-FE-crve & 2.21 & S & 0 & 0 & L & L & 0 & L \\
+LRicw-FE-crve & 2.17 & 0 & 0 & 0 & S & L & 0 & L \\
+MLM-FE & 2.02 & L & 0 & 0 & S & 0 & 0 & L \\
+MLM-FE & 1.97 & S & 0 & 0 & L & S & L & L \\
+MLM-FE & 1.9 & S & 0 & 0 & 0 & L & 0 & L \\
+MLM-FE & 1.89 & L & 0 & 0 & 0 & S & 0 & L \\
+MLM-FE & 1.89 & L & 0 & 0 & S & L & L & L \\
+MLM-FIcw & 1.27 & L & L & 0 & 0 & S & 0 & L \\
+MLM-FIcw & 1.25 & 0 & L & 0 & 0 & 0 & 0 & L \\
+MLM-FIcw & 1.25 & L & L & 0 & 0 & L & 0 & L \\
+MLM-FIcw & 1.25 & L & L & 0 & S & S & L & L \\
+MLM-FIcw & 1.25 & L & L & 0 & S & 0 & L & L \\
+MLM-RE & 2.03 & L & 0 & 0 & S & 0 & 0 & L \\
+MLM-RE & 1.97 & S & 0 & 0 & L & S & L & L \\
+MLM-RE & 1.9 & S & 0 & 0 & 0 & L & 0 & L \\
+MLM-RE & 1.89 & L & 0 & 0 & 0 & S & 0 & L \\
+MLM-RE & 1.89 & L & 0 & 0 & S & L & L & L \\
+LRapw-FIpw-db & 0.671 & 0 & 0 & 0 & L & L & 0 & L \\
+LRapw-FIpw-db & 0.714 & 0 & 0 & 0 & L & 0 & L & L \\
+LRapw-FIpw-db & 0.714 & 0 & 0 & 0 & L & S & 0 & L \\
+LRapw-FIpw-db & 0.716 & S & 0 & 0 & L & L & L & L \\
+LRapw-FIpw-db & 0.723 & L & 0 & 0 & L & S & 0 & L \\
+LRapw-FIpw-het & 0.748 & 0 & 0 & 0 & L & L & 0 & L \\
+LRapw-FIpw-het & 0.756 & S & 0 & 0 & L & L & L & L \\
+LRapw-FIpw-het & 0.761 & L & 0 & 0 & L & S & 0 & L \\
+LRapw-FIpw-het & 0.767 & 0 & 0 & 0 & L & S & 0 & L \\
+LRapw-FIpw-het & 0.781 & 0 & 0 & 0 & L & S & L & L \\
+\end{longtable}
+
+\subsubsection{The Effect of Different Data Generating Parameters on the
+Estimate Standard Error
+Stability}\label{the-effect-of-different-data-generating-parameters-on-the-estimate-standard-error-stability}
+
+\begingroup
+\fontsize{6pt}{7pt}\selectfont
+\setlength{\tabcolsep}{1pt}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.1558}}
+  >{\centering\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.0603}}
+  >{\centering\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.0653}}
+  >{\centering\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.0704}}
+  >{\centering\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.0704}}
+  >{\centering\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.0754}}
+  >{\centering\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.0804}}
+  >{\centering\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.0854}}
+  >{\centering\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.0804}}
+  >{\centering\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.0905}}
+  >{\centering\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.0553}}
+  >{\centering\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.0553}}
+  >{\centering\arraybackslash}p{(\columnwidth - 24\tabcolsep) * \real{0.0553}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Term
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRa-FE-db
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRa-FE-het
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRa-FIcw-db
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRapw-FE-db
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRapw-FE-het
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRapw-FIpw-db
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRapw-FIpw-het
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRicw-FE-crve
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+LRicw-FIcw-crve
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+MLM-FE
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+MLM-FIcw
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+MLM-RE
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+(Intercept) & .009*** & .009*** & .010*** & .010*** & .010*** & .010***
+& .010*** & .009*** & .010*** & .006*** & .006*** & .006*** \\
+block\_typeS & .001 & .001 & .001 & .001 & .001 & .001 & .001 & .001 &
+.001 & .001 & \textless.001 & .001 \\
+block\_typeL & .006*** & .006*** & .003** & .005*** & .005*** & .004***
+& .004** & .006*** & .003** & .006*** & .001 & .006*** \\
+J.barS & -.003** & -.003** & -.003** & -.003* & -.002. & -.003** &
+-.003** & -.003** & -.003** & -.002* & -.002* & -.002* \\
+J.barL & -.005*** & -.005*** & -.006*** & -.004*** & -.003** & -.006***
+& -.006*** & -.005*** & -.006*** & -.004*** & -.004*** & -.004*** \\
+size.impact.c or.schoolL & -.001 & -.001 & -.001 & -.001 & -.001 & -.001
+& -.001 & -.001 & -.001 & -.001 & -.001 & -.001 \\
+sd.schoolL & .004*** & .004*** & .005*** & .005*** & .004*** & .005*** &
+.005*** & .004*** & .005*** & .007*** & .009*** & .007*** \\
+ICC.schoolL & .012*** & .012*** & .014*** & .011*** & .011*** & .013***
+& .013*** & .012*** & .014*** & .015*** & .017*** & .015*** \\
+variable.nTRU E & .002* & .002* & .002. & -.001 & -.001 & \textless.001
+& \textless.001 & .002* & .002* & .001 & .001 & .001 \\
+cv.schoolS & .001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & .001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 \\
+cv.schoolL & .002* & .002. & .002. & -.002. & -.002. & -.001 & -.001 &
+.002* & .002* & \textless.001 & \textless.001 & \textless.001 \\
+num.cov.schoo lS & -.001 & -.001 & -.001 & \textless.001 & \textless.001
+& -.001 & -.001 & -.001 & -.001 & \textless.001 & -.001 &
+\textless.001 \\
+num.cov.schoo lL & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 \\
+block\_typeS: J.barS & -.001 & -.001 & -.001 & -.001 & -.001 & -.001 &
+-.001 & -.001 & -.001 & \textless.001 & \textless.001 & \textless.001 \\
+block\_typeL: J.barS & \textless.001 & \textless.001 & .001 &
+\textless.001 & -.001 & \textless.001 & .001 & \textless.001 & .001 &
+-.001 & \textless.001 & -.001 \\
+block\_typeS: J.barL & -.001 & -.001 & -.001 & -.001 & -.001 & -.001 &
+-.001 & -.001 & -.001 & \textless.001 & \textless.001 & \textless.001 \\
+block\_typeL: J.barL & -.003*** & -.003*** & -.002* & -.004*** &
+-.004*** & -.002* & -.001. & -.003*** & -.002. & -.003*** & -.001 &
+-.003*** \\
+block\_typeS: size.impact.cor.schoolL & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 \\
+block\_typeL: size.impact.cor.schoolL & .001 & .001 & .001 & .001 & .001
+& .001 & .001 & .001 & .001 & .001 & .001 & .001 \\
+block\_typeS: sd.schoolL & \textless.001 & .001 & .001 & \textless.001 &
+\textless.001 & .001 & .001 & .001 & .001 & \textless.001 &
+\textless.001 & \textless.001 \\
+block\_typeL: sd.schoolL & .001 & .001 & .001 & \textless.001 & .001 &
+.001 & .001 & .001 & .001 & -.001. & .001 & -.001. \\
+block\_typeS: ICC.schoolL & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 \\
+block\_typeL: ICC.schoolL & .004*** & .004*** & .005*** & .003*** &
+.004*** & .005*** & .005*** & .004*** & .005*** & .001 & .003*** &
+.001 \\
+block\_typeS: variable.nTRUE & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 \\
+block\_typeL: variable.nTRUE & \textless.001 & \textless.001 & .001 &
+.003*** & .004*** & \textless.001 & \textless.001 & \textless.001 & .001
+& \textless.001 & .001 & \textless.001 \\
+block\_typeS: cv.schoolS & \textless.001 & \textless.001 & \textless.001
+& \textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 \\
+block\_typeL: cv.schoolS & .001 & .001 & .001 & .002. & .002. & .001 &
+.001 & .001 & .001 & \textless.001 & \textless.001 & \textless.001 \\
+block\_typeS: cv.schoolL & \textless.001 & \textless.001 & \textless.001
+& \textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 \\
+block\_typeL: cv.schoolL & .001 & .001 & .002** & .004*** & .005*** &
+.001 & .001 & .001 & .002* & .001 & .001 & .001 \\
+block\_typeS: num.cov.schoolS & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 \\
+block\_typeL: num.cov.schoolS & -.001 & -.001 & -.001 & -.001 & -.001 &
+-.001 & -.001 & -.001 & -.001 & -.001 & -.001 & -.001 \\
+block\_typeS: num.cov.schoolL & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 \\
+block\_typeL: num.cov.schoolL & -.001 & -.001 & -.001 & \textless.001 &
+\textless.001 & -.001 & -.001 & -.001 & -.001 & -.001 & -.001 & -.001 \\
+J.barS: size.impact.cor.schoolL & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 & -.001 &
+\textless.001 \\
+J.barL: size.impact.cor.schoolL & -.001 & -.001 & -.001 & -.001 & -.001
+& -.001 & -.001 & -.001 & -.001 & -.001. & -.001* & -.001. \\
+J.barS: sd.schoolL & \textless.001 & \textless.001 & -.001 & -.001 &
+-.001 & -.001 & -.001 & \textless.001 & -.001 & -.001* & -.002** &
+-.001* \\
+J.barL: sd.schoolL & -.001 & -.001 & -.001 & -.001 & -.001 & -.001 &
+-.001 & -.001 & -.001 & -.002*** & -.003*** & -.002*** \\
+J.barS: ICC.schoolL & -.004*** & -.004*** & -.004*** & -.004*** &
+-.005*** & -.005*** & -.005*** & -.004*** & -.004*** & -.005*** &
+-.005*** & -.005*** \\
+J.barL: ICC.schoolL & -.006*** & -.006*** & -.007*** & -.008*** &
+-.008*** & -.008*** & -.008*** & -.006*** & -.007*** & -.007*** &
+-.009*** & -.007*** \\
+J.barS: variable.nTRUE & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & -.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 \\
+J.barL: variable.nTRUE & -.001* & -.001* & -.002* & -.002* & -.003*** &
+-.001 & -.001. & -.001* & -.002* & -.001 & -.001. & -.001 \\
+J.barS: cv.schoolS & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 \\
+J.barL: cv.schoolS & \textless.001 & \textless.001 & \textless.001 &
+-.001 & -.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 \\
+J.barS: cv.schoolL & -.001. & -.001. & -.002. & -.001 & -.002* & -.001 &
+-.001 & -.001. & -.002. & -.001 & -.001 & -.001 \\
+J.barL: cv.schoolL & -.002* & -.002* & -.002** & -.002* & -.003*** &
+-.001 & -.002. & -.002* & -.002** & \textless.001 & \textless.001 &
+\textless.001 \\
+J.barS: num.cov.schoolS & \textless.001 & \textless.001 & \textless.001
+& \textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & .001 & \textless.001 \\
+J.barL: num.cov.schoolS & .001 & .001 & .001 & .001 & .001 & .001 & .001
+& .001 & .001 & .001 & .001 & .001 \\
+J.barS: num.cov.schoolL & \textless.001 & \textless.001 & \textless.001
+& \textless.001 & \textless.001 & -.001 & -.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 \\
+J.barL: num.cov.schoolL & \textless.001 & \textless.001 & -.001 & -.001
+& -.001 & -.001 & -.001 & \textless.001 & -.001 & \textless.001 &
+\textless.001 & \textless.001 \\
+size.impact.cor.schoolL: sd.schoolL & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 \\
+size.impact.cor.schoolL: ICC.schoolL & .001* & .001* & .001. & .001* &
+.001* & .001. & .001. & .001* & .001. & .001. & .001. & .001. \\
+size.impact.cor.schoolL: variable.nTRUE & .001* & .001* & .001* & .001 &
+.001. & .001. & .001. & .001* & .001* & .001* & .001* & .001* \\
+size.impact.cor.schoolL: cv.schoolS & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 \\
+size.impact.cor.schoolL: cv.schoolL & .001 & .001 & \textless.001 &
+\textless.001 & .001 & \textless.001 & \textless.001 & .001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 \\
+size.impact.cor.schoolL: num.cov.schoolS & \textless.001 & \textless.001
+& .001 & \textless.001 & \textless.001 & .001 & .001 & \textless.001 &
+.001 & \textless.001 & \textless.001 & \textless.001 \\
+size.impact.cor.schoolL: num.cov.schoolL & \textless.001 & \textless.001
+& \textless.001 & \textless.001 & \textless.001 & .001 & .001 &
+\textless.001 & .001 & .001 & .001 & .001 \\
+sd.schoolL: ICC.schoolL & -.001** & -.001** & -.002* & -.002*** &
+-.002** & -.002*** & -.002*** & -.001** & -.001* & -.003*** & -.005*** &
+-.003*** \\
+sd.schoolL: variable.nTRUE & -.001* & -.001* & -.001* & -.001 &
+\textless.001 & \textless.001 & \textless.001 & -.001* & -.001* & -.001.
+& -.001 & -.001 \\
+sd.schoolL: cv.schoolS & -.002** & -.002** & -.002* & -.002* & -.002* &
+-.002* & -.001* & -.002** & -.002* & -.001* & -.001. & -.001. \\
+sd.schoolL: cv.schoolL & -.001* & -.001* & -.001* & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & -.001* & -.001* & -.001
+& \textless.001 & \textless.001 \\
+sd.schoolL: num.cov.schoolS & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 \\
+sd.schoolL: num.cov.schoolL & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 \\
+ICC.schoolL: variable.nTRUE & -.001* & -.001* & -.001* & .003*** &
+.003*** & .002*** & .003*** & -.002** & -.002** & \textless.001 &
+\textless.001 & \textless.001 \\
+ICC.schoolL: cv.schoolS & \textless.001 & \textless.001 & \textless.001
+& .001 & .001 & .001 & .001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 \\
+ICC.schoolL: cv.schoolL & -.003*** & -.003*** & -.003*** & .003*** &
+.003*** & .002* & .002** & -.003*** & -.003*** & \textless.001 & -.001 &
+-.001 \\
+ICC.schoolL: num.cov.schoolS & -.001 & -.001 & -.001 & -.001 & -.001 &
+-.001 & -.001 & -.001 & -.001 & -.001 & -.001 & -.001 \\
+ICC.schoolL: num.cov.schoolL & \textless.001 & \textless.001 & -.001 &
+\textless.001 & \textless.001 & -.001 & -.001 & \textless.001 & -.001 &
+\textless.001 & \textless.001 & \textless.001 \\
+variable.nTRUE: cv.schoolS & \textless.001 & \textless.001 &
+\textless.001 & .002* & .002** & \textless.001 & .001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 \\
+variable.nTRUE: cv.schoolL & .004*** & .004*** & .005*** & .006*** &
+.008*** & .003*** & .005*** & .005*** & .006*** & .001 & .001* & .001 \\
+variable.nTRUE: num.cov.schoolS & -.001* & -.001* & -.002* & -.001* &
+-.002* & -.002* & -.002* & -.001* & -.002* & -.001* & -.001. & -.001* \\
+variable.nTRUE: num.cov.schoolL & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 & \textless.001 & \textless.001 &
+\textless.001 & \textless.001 \\
+cv.schoolS: num.cov.schoolS & .001. & .001. & .002* & .001 & .001 &
+.002* & .002* & .001. & .002* & .001 & .001 & .001 \\
+cv.schoolL: num.cov.schoolS & .002* & .002* & .002* & .002* & .002* &
+.002* & .002* & .002* & .002* & .001* & .001* & .001* \\
+cv.schoolS: num.cov.schoolL & \textless.001 & \textless.001 & .001 &
+\textless.001 & \textless.001 & .001 & .001 & \textless.001 & .001 &
+\textless.001 & \textless.001 & \textless.001 \\
+cv.schoolL: num.cov.schoolL & .001 & .001 & .001 & .001 & .001 & .001 &
+.001 & .001 & .001 & .001 & .001 & .001 \\
+\end{longtable}
+
+\emph{Significance: `***' 0.001 `**' 0.01 `*' 0.05 `.' 0.1} \endgroup
+
+\subsubsection{Top Five Scenarios with Most SE Estimate Instability by
+Method}\label{top-five-scenarios-with-most-se-estimate-instability-by-method}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.1364}}
+  >{\centering\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.1061}}
+  >{\centering\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.0606}}
+  >{\centering\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.0909}}
+  >{\centering\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.0985}}
+  >{\centering\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.0909}}
+  >{\centering\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.1288}}
+  >{\centering\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.1894}}
+  >{\centering\arraybackslash}p{(\columnwidth - 16\tabcolsep) * \real{0.0985}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+method
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+sd.SE hat.s
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+J.bar
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+sd school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+ICC school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+cv school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+num.cov school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+size.impact cor.school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+block type
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+LRapw-FE-db & 0.0585 & 0 & L & L & L & 0 & L & L \\
+LRapw-FE-db & 0.0585 & 0 & L & L & L & L & L & L \\
+LRapw-FE-db & 0.0582 & 0 & 0 & L & L & L & L & L \\
+LRapw-FE-db & 0.0573 & 0 & 0 & L & L & 0 & L & L \\
+LRapw-FE-db & 0.0569 & 0 & 0 & L & S & L & L & L \\
+LRapw-FE-het & 0.0717 & 0 & L & L & L & 0 & L & L \\
+LRapw-FE-het & 0.0715 & 0 & L & L & L & L & L & L \\
+LRapw-FE-het & 0.0715 & 0 & 0 & L & L & L & L & L \\
+LRapw-FE-het & 0.0673 & 0 & 0 & L & L & 0 & L & L \\
+LRapw-FE-het & 0.0638 & 0 & L & L & L & 0 & 0 & L \\
+MLM-FIcw & 0.0519 & 0 & L & L & 0 & L & L & L \\
+MLM-FIcw & 0.0516 & 0 & L & L & 0 & 0 & L & L \\
+LRa-FIcw-db & 0.0659 & S & 0 & L & S & S & 0 & L \\
+LRa-FIcw-db & 0.0612 & 0 & L & L & L & L & L & L \\
+LRa-FIcw-db & 0.056 & 0 & L & L & S & S & 0 & L \\
+LRa-FIcw-db & 0.0541 & 0 & L & L & L & 0 & L & L \\
+LRa-FIcw-db & 0.0519 & 0 & L & L & S & 0 & 0 & L \\
+LRapw-FIpw-db & 0.0659 & S & 0 & L & S & S & 0 & L \\
+LRapw-FIpw-db & 0.0565 & 0 & L & L & L & L & L & L \\
+LRapw-FIpw-db & 0.056 & 0 & L & L & S & S & 0 & L \\
+LRapw-FIpw-db & 0.0519 & 0 & L & L & S & 0 & 0 & L \\
+LRapw-FIpw-db & 0.0519 & 0 & L & L & 0 & L & L & L \\
+LRapw-FIpw-het & 0.0659 & S & 0 & L & S & S & 0 & L \\
+LRapw-FIpw-het & 0.0579 & 0 & L & L & L & L & L & L \\
+LRapw-FIpw-het & 0.056 & 0 & L & L & S & S & 0 & L \\
+LRapw-FIpw-het & 0.0521 & 0 & L & L & L & 0 & L & L \\
+LRapw-FIpw-het & 0.0519 & 0 & L & L & S & 0 & 0 & L \\
+LRicw-FIcw-crve & 0.0659 & S & 0 & L & S & S & 0 & L \\
+LRicw-FIcw-crve & 0.0613 & 0 & L & L & L & L & L & L \\
+LRicw-FIcw-crve & 0.056 & 0 & L & L & S & S & 0 & L \\
+LRicw-FIcw-crve & 0.0543 & 0 & L & L & L & 0 & L & L \\
+LRicw-FIcw-crve & 0.0519 & 0 & L & L & S & 0 & 0 & L \\
+\end{longtable}
+
+\subsubsection{Top Five Scenarios with Most Normalized SE Estimate
+Instability by
+Method}\label{top-five-scenarios-with-most-normalized-se-estimate-instability-by-method}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.1192}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.1258}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.0927}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.0530}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.0795}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.0861}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.0795}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.1126}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.1656}}
+  >{\centering\arraybackslash}p{(\columnwidth - 18\tabcolsep) * \real{0.0861}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+method
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+sd.SE hat.s.norm
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+sd.SE hat.s
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+J.bar
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+sd school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+ICC school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+cv school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+num.cov school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+size.impact cor.school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+block type
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+LRa-FE-db & 2.1 & 0.01 & L & 0 & 0 & L & S & 0 & 0 \\
+LRa-FE-db & 2.06 & 0.00985 & L & 0 & 0 & L & L & 0 & 0 \\
+LRa-FE-db & 2.04 & 0.00986 & L & 0 & 0 & L & L & L & 0 \\
+LRa-FE-db & 2.03 & 0.00951 & L & 0 & 0 & L & L & L & S \\
+LRa-FE-db & 2.03 & 0.00791 & L & 0 & 0 & L & L & 0 & S \\
+LRa-FE-het & 2.1 & 0.01 & L & 0 & 0 & L & S & 0 & 0 \\
+LRa-FE-het & 2.06 & 0.00985 & L & 0 & 0 & L & L & 0 & 0 \\
+LRa-FE-het & 2.04 & 0.00986 & L & 0 & 0 & L & L & L & 0 \\
+LRa-FE-het & 2.03 & 0.00792 & L & 0 & 0 & L & L & 0 & S \\
+LRa-FE-het & 2.03 & 0.00951 & L & 0 & 0 & L & L & L & S \\
+LRapw-FE-db & 1.49 & 0.0198 & 0 & L & 0 & S & S & 0 & L \\
+LRapw-FE-db & 1.47 & 0.0155 & S & 0 & 0 & S & L & 0 & L \\
+LRapw-FE-db & 1.44 & 0.0122 & L & 0 & L & L & L & 0 & L \\
+LRapw-FE-db & 1.42 & 0.0247 & S & 0 & 0 & S & 0 & L & L \\
+LRapw-FE-db & 1.41 & 0.0197 & L & 0 & L & L & 0 & L & L \\
+LRapw-FE-het & 1.52 & 0.0337 & 0 & 0 & L & L & S & 0 & L \\
+LRapw-FE-het & 1.51 & 0.0361 & L & 0 & L & L & S & 0 & L \\
+LRapw-FE-het & 1.49 & 0.0127 & L & 0 & L & L & L & 0 & L \\
+LRapw-FE-het & 1.48 & 0.0589 & 0 & 0 & L & L & L & 0 & L \\
+LRapw-FE-het & 1.48 & 0.0206 & L & 0 & L & L & 0 & L & L \\
+LRicw-FE-crve & 2.16 & 0.0103 & L & 0 & 0 & L & S & 0 & 0 \\
+LRicw-FE-crve & 2.12 & 0.0102 & L & 0 & 0 & L & L & 0 & 0 \\
+LRicw-FE-crve & 2.1 & 0.0102 & L & 0 & 0 & L & L & L & 0 \\
+LRicw-FE-crve & 2.09 & 0.0098 & L & 0 & 0 & L & L & L & S \\
+LRicw-FE-crve & 2.08 & 0.00812 & L & 0 & 0 & L & L & 0 & S \\
+MLM-FIcw & 1.15 & 0.0148 & 0 & L & 0 & 0 & 0 & 0 & 0 \\
+MLM-FIcw & 1.15 & 0.0146 & 0 & L & 0 & 0 & 0 & L & 0 \\
+MLM-FIcw & 1.15 & 0.0148 & 0 & L & 0 & S & 0 & L & 0 \\
+MLM-FIcw & 1.15 & 0.0148 & 0 & L & 0 & 0 & S & 0 & 0 \\
+MLM-FIcw & 1.15 & 0.0147 & 0 & L & 0 & 0 & L & L & 0 \\
+LRa-FIcw-db & 2.12 & 0.0101 & L & 0 & 0 & L & S & 0 & 0 \\
+LRa-FIcw-db & 2.07 & 0.00991 & L & 0 & 0 & L & L & 0 & 0 \\
+LRa-FIcw-db & 2.06 & 0.00995 & L & 0 & 0 & L & L & L & 0 \\
+LRa-FIcw-db & 2.05 & 0.00801 & L & 0 & 0 & L & L & 0 & S \\
+LRa-FIcw-db & 2.05 & 0.00962 & L & 0 & 0 & L & L & L & S \\
+LRapw-FIpw-db & 1.38 & 0.0388 & S & L & 0 & 0 & 0 & L & L \\
+LRapw-FIpw-db & 1.34 & 0.0659 & S & 0 & L & S & S & 0 & L \\
+LRapw-FIpw-db & 1.33 & 0.0369 & 0 & 0 & L & 0 & S & L & L \\
+LRapw-FIpw-db & 1.33 & 0.0143 & L & L & L & L & L & 0 & 0 \\
+LRapw-FIpw-db & 1.33 & 0.0268 & L & 0 & L & L & S & L & L \\
+LRapw-FIpw-het & 1.42 & 0.0152 & L & L & L & L & L & 0 & 0 \\
+LRapw-FIpw-het & 1.41 & 0.0154 & L & L & L & L & 0 & 0 & 0 \\
+LRapw-FIpw-het & 1.39 & 0.0152 & L & L & L & L & S & 0 & 0 \\
+LRapw-FIpw-het & 1.39 & 0.0177 & L & L & L & L & L & 0 & S \\
+LRapw-FIpw-het & 1.38 & 0.014 & L & 0 & L & L & 0 & L & 0 \\
+LRicw-FIcw-crve & 2.21 & 0.0106 & L & 0 & 0 & L & S & 0 & 0 \\
+LRicw-FIcw-crve & 2.17 & 0.0104 & L & 0 & 0 & L & L & 0 & 0 \\
+LRicw-FIcw-crve & 2.15 & 0.0104 & L & 0 & 0 & L & L & L & 0 \\
+LRicw-FIcw-crve & 2.14 & 0.01 & L & 0 & 0 & L & L & L & S \\
+LRicw-FIcw-crve & 2.13 & 0.00831 & L & 0 & 0 & L & L & 0 & S \\
+\end{longtable}
+
+\subsection{Are the estimated standard errors targeting the finite or
+super
+population}\label{are-the-estimated-standard-errors-targeting-the-finite-or-super-population}
+
+*This section answers the questions on page 39. I can answer: 1) how
+accurate are the estimated standard errors, 2) how stable are the
+standard errors and 3) are certain standard errors performing better
+than others. I'm not
+
+\begin{itemize}
+\tightlist
+\item
+  The Choosing an estimand and excluding the fully interacted estimators
+  results in estimated standards errors that are less variable across
+  estimators. However, it is notable that differences are still often
+  non-trivial. Even in Figure we see estimated standard errors are 20
+  percent different across estimators in 24 percent of the cases we
+  examined.
+\end{itemize}
+
+{[}ADD ANY TEXT WE CAN HERE ABOUT WHAT WE'VE LEAREND FROM SIMULATIONS.
+IS THIS BECAUSE TRUE SEs VARY ACROSS ESTIMATORS? IS THIS ESTIMATION
+ERROR? ARE CERTAIN SE ESTIMATORS MORE ACCURATE THAN OTHERS?{]}
+
+*make sure I answer this question when I finish my write up of the
+standard errors
+
+*pg 39
+
+*The estimated standard errors for the unbiased cluster targeted
+estimators are consistently good and are also pretty good for the
+unbiased person targeted estimators, although in some of the scenarios
+they're under estimated. The biased estimators are often also
+overestimating the standard errors.
+
+*Graphs in this section back up the point on pg. X of the paper
+
+*True super population standard errors are almost always larger than the
+finite population standard errors, the cases where finite standard
+errors are larger it seems almost certainly to be noise in the
+simulations.
+
+*Approximately a quarter of the time the true finite and true super
+standard errors are the same.
+
+*Approximately three quarters of the time the estimated standard errors
+are closer to the super population standard errors than the finite
+population standard errors,
+
+\begin{itemize}
+\tightlist
+\item
+\end{itemize}
+
+Standard error inflation is the ratio of the estimated standard error
+over the true standard error. High inflation means the standard errors
+are too big and low inflation means the standard errors are too small.
+
+For some of the methods the standard error estimates are way off, but it
+does not seem obviously driven by low degrees of freedom. The true
+finite standard errors do not look to be the same as the true super
+standard errors.
+
+\#To Do \emph{make edits to all the graphs }move the finite versus super
+population stuff to its own section \emph{fix the formating of the table
+}add in description of the plots
+
+\begin{center}\includegraphics{Simulation-Memo-3_files/figure-latex/finite-1} \end{center}
+
+\begin{center}\includegraphics{Simulation-Memo-3_files/figure-latex/finite-2} \end{center}
+
+\begin{center}\includegraphics{Simulation-Memo-3_files/figure-latex/finite-3} \end{center}
+
+\begin{center}\includegraphics{Simulation-Memo-3_files/figure-latex/finite-4} \end{center}
+
+\begin{center}\includegraphics{Simulation-Memo-3_files/figure-latex/finite-5} \end{center}
+
+\subsubsection{Top Five Scenarios with Where Estimated SEs are Closest
+to Targeting Finite
+SEs}\label{top-five-scenarios-with-where-estimated-ses-are-closest-to-targeting-finite-ses}
+
+\begingroup
+\fontsize{8pt}{9pt}\selectfont
+\setlength{\tabcolsep}{4pt}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 22\tabcolsep) * \real{0.1018}}
+  >{\centering\arraybackslash}p{(\columnwidth - 22\tabcolsep) * \real{0.0479}}
+  >{\centering\arraybackslash}p{(\columnwidth - 22\tabcolsep) * \real{0.0778}}
+  >{\centering\arraybackslash}p{(\columnwidth - 22\tabcolsep) * \real{0.0778}}
+  >{\centering\arraybackslash}p{(\columnwidth - 22\tabcolsep) * \real{0.0958}}
+  >{\centering\arraybackslash}p{(\columnwidth - 22\tabcolsep) * \real{0.0479}}
+  >{\centering\arraybackslash}p{(\columnwidth - 22\tabcolsep) * \real{0.0719}}
+  >{\centering\arraybackslash}p{(\columnwidth - 22\tabcolsep) * \real{0.0778}}
+  >{\centering\arraybackslash}p{(\columnwidth - 22\tabcolsep) * \real{0.0719}}
+  >{\centering\arraybackslash}p{(\columnwidth - 22\tabcolsep) * \real{0.1018}}
+  >{\centering\arraybackslash}p{(\columnwidth - 22\tabcolsep) * \real{0.1497}}
+  >{\centering\arraybackslash}p{(\columnwidth - 22\tabcolsep) * \real{0.0778}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+method
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+dif
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+infla te.f
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+infla te.s
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+true se.ratio
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+J.bar
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+sd school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+ICC school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+cv school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+num.cov school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+size.impact cor.school
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+block type
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+MLM-FIcw & -11 & 0.986 & 0.877 & 0.89 & L & L & 0 & L & L & 0 & L \\
+MLM-FIcw & -9.98 & 0.978 & 0.878 & 0.9 & S & L & 0 & L & L & L & L \\
+MLM-FIcw & -9.74 & 0.963 & 0.866 & 0.9 & S & L & 0 & L & 0 & 0 & L \\
+MLM-FIcw & -9.57 & 0.973 & 0.877 & 0.9 & 0 & L & 0 & S & S & 0 & L \\
+MLM-FIcw & -8.31 & 0.928 & 0.844 & 0.91 & S & L & 0 & 0 & 0 & L & L \\
+LRapw-FIpw-db & -22.7 & 0.943 & 0.716 & 0.76 & S & 0 & 0 & L & L & L &
+L \\
+LRapw-FIpw-db & -22.5 & 1.01 & 0.766 & 0.76 & 0 & L & 0 & L & L & L &
+L \\
+LRapw-FIpw-db & -22.2 & 0.987 & 0.765 & 0.78 & S & L & 0 & L & S & 0 &
+L \\
+LRapw-FIpw-db & -21.4 & 1.02 & 0.763 & 0.75 & 0 & L & 0 & L & 0 & 0 &
+L \\
+LRapw-FIpw-db & -20.9 & 0.933 & 0.723 & 0.78 & L & 0 & 0 & L & S & 0 &
+L \\
+LRapw-FIpw-het & -24 & 0.996 & 0.756 & 0.76 & S & 0 & 0 & L & L & L &
+L \\
+LRapw-FIpw-het & -22 & 0.981 & 0.761 & 0.78 & L & 0 & 0 & L & S & 0 &
+L \\
+LRapw-FIpw-het & -21 & 0.977 & 0.767 & 0.79 & 0 & 0 & 0 & L & S & 0 &
+L \\
+LRapw-FIpw-het & -19.1 & 0.976 & 0.785 & 0.8 & 0 & 0 & 0 & L & 0 & 0 &
+L \\
+LRapw-FIpw-het & -18.7 & 0.968 & 0.781 & 0.81 & 0 & 0 & 0 & L & S & L &
+L \\
+\end{longtable}
+
+\endgroup
+
+\subsection{What do the confidence intervals look like for each
+estimator}\label{what-do-the-confidence-intervals-look-like-for-each-estimator}
+
+Main Bullet Points:
+
+*The unbiased estimators also have less error than the biased
+estimators. The unbiased person estimator has less instability than the
+person estimator, but the unbiased cluster estimator has more
+instability.
+
+*The MLM estimators are the most stable, which fits with theory.
+
+*High RMSE and estimate instability is driven by a low number of
+clusters, the interaction of a low number of clusters and high cluster
+level ICC, and high cluster level treatment effect variance.
+
+Description of Analysis:
+
+*The first graph is a boxplot of the normalized RMSE across the
+different scenarios by method. The normalized RMSE is the RMSE for given
+method divided by the median RMSE across methods within a given
+simulation scenario. Therefore each data point is adjusted for the
+underlying base RMSE from a given set of DGPs and represents the RMSE
+driven by the estimation method.
+
+*The second graph is a boxplot of the normalized estimate standard
+deviation across the different scenarios by method. This is also
+normalized by dividing by the median estimate standard deviation within
+a given simulation scenario.
+
+*The first table contains the regression coefficients from a regression
+that predicts the RMSE using different data generating parameters and
+the second table is from regressions predicting the estimate standard
+deviation. Each regression is run separately by estimator and the RMSE
+is against the targeted estimator.
 
 Coverage is the percentage of simulation replications where the
 estimator is within the 95\% confidence interval. We would like the
@@ -481,252 +2080,6 @@ makes a noticeable difference for the person weighted estimators.
 \begin{center}\includegraphics{Simulation-Memo-3_files/figure-latex/cov-1} \end{center}
 
 \begin{center}\includegraphics{Simulation-Memo-3_files/figure-latex/cov-2} \end{center}
-
-\subsection{What do the standard errors look like for each
-estimator}\label{what-do-the-standard-errors-look-like-for-each-estimator}
-
-Standard error inflation is the ration of the estimated standard error
-over the true standard error. High inflation means the standard errors
-are too big and low inflation means the standard errors are too small.
-
-For some of the methods the standard error estimates are way off, but it
-does not seem obviously driven by low degrees of freedom. The true
-finite standard errors do not look to be the same as the true super
-standard errors.
-
-\begin{center}\includegraphics{Simulation-Memo-3_files/figure-latex/infl-1} \end{center}
-
-\begin{center}\includegraphics{Simulation-Memo-3_files/figure-latex/infl-2} \end{center}
-
-======================================= Model for method: LRa-FE-db
-Number of observations: 1296 R-squared: 0.7457939
-=======================================
-
-======================================= Model for method: LRa-FE-het
-Number of observations: 1296 R-squared: 0.7486725
-=======================================
-
-======================================= Model for method: LRa-FIcw-db
-Number of observations: 1296 R-squared: 0.728729
-=======================================
-
-======================================= Model for method: LRapw-FE-db
-Number of observations: 1296 R-squared: 0.769057
-=======================================
-
-======================================= Model for method: LRapw-FE-het
-Number of observations: 1296 R-squared: 0.7735951
-=======================================
-
-======================================= Model for method: LRapw-FIpw-db
-Number of observations: 1296 R-squared: 0.7566025
-=======================================
-
-======================================= Model for method: LRapw-FIpw-het
-Number of observations: 1296 R-squared: 0.7626567
-=======================================
-
-======================================= Model for method: LRicw-FE-crve
-Number of observations: 1296 R-squared: 0.7464338
-=======================================
-
-======================================= Model for method:
-LRicw-FIcw-crve Number of observations: 1296 R-squared: 0.7279335
-=======================================
-
-======================================= Model for method: MLM-FE Number
-of observations: 1296 R-squared: 0.7635452
-=======================================
-
-======================================= Model for method: MLM-FIcw
-Number of observations: 1296 R-squared: 0.7863796
-=======================================
-
-======================================= Model for method: MLM-RE Number
-of observations: 1296 R-squared: 0.7647602
-=======================================
-
-\begin{verbatim}
-                                  term LRa-FE-db LRa-FE-het LRa-FIcw-db
-\end{verbatim}
-
-1 (Intercept) 0.01*** 0.01*** 0.01\textbf{\emph{ 2 block\_typeS 0.00
-0.00 0.00 3 block\_typeL 0.01}} 0.01*** 0.00\textbf{ 4 J.barS -0.00}
--0.00** -0.00\textbf{ 5 J.barL -0.01}* -0.01*** -0.01\textbf{\emph{ 6
-size.impact.cor.schoolL -0.00 -0.00 -0.00 7 sd.schoolL 0.00}} 0.00***
-0.00\textbf{\emph{ 8 ICC.schoolL 0.01}} 0.01*** 0.01\textbf{\emph{ 9
-variable.nTRUE 0.00} 0.00* 0.00. 10 cv.schoolS 0.00 0.00 0.00 11
-cv.schoolL 0.00* 0.00. 0.00. 12 num.cov.schoolS -0.00 -0.00 -0.00 13
-num.cov.schoolL -0.00 -0.00 0.00 14 block\_typeS:J.barS -0.00 -0.00
--0.00 15 block\_typeL:J.barS -0.00 -0.00 0.00 16 block\_typeS:J.barL
--0.00 -0.00 -0.00 17 block\_typeL:J.barL -0.00}* -0.00*** -0.00\emph{ 18
-block\_typeS:size.impact.cor.schoolL -0.00 -0.00 -0.00 19
-block\_typeL:size.impact.cor.schoolL 0.00 0.00 0.00 20
-block\_typeS:sd.schoolL 0.00 0.00 0.00 21 block\_typeL:sd.schoolL 0.00
-0.00 0.00 22 block\_typeS:ICC.schoolL -0.00 -0.00 -0.00 23
-block\_typeL:ICC.schoolL 0.00}** 0.00*** 0.01\emph{\textbf{ 24
-block\_typeS:variable.nTRUE 0.00 0.00 0.00 25
-block\_typeL:variable.nTRUE 0.00 0.00 0.00 26 block\_typeS:cv.schoolS
--0.00 -0.00 -0.00 27 block\_typeL:cv.schoolS 0.00 0.00 0.00 28
-block\_typeS:cv.schoolL -0.00 -0.00 -0.00 29 block\_typeL:cv.schoolL
-0.00 0.00 0.00} 30 block\_typeS:num.cov.schoolS 0.00 0.00 0.00 31
-block\_typeL:num.cov.schoolS -0.00 -0.00 -0.00 32
-block\_typeS:num.cov.schoolL 0.00 0.00 0.00 33
-block\_typeL:num.cov.schoolL -0.00 -0.00 -0.00 34
-J.barS:size.impact.cor.schoolL -0.00 -0.00 -0.00 35
-J.barL:size.impact.cor.schoolL -0.00 -0.00 -0.00 36 J.barS:sd.schoolL
--0.00 -0.00 -0.00 37 J.barL:sd.schoolL -0.00 -0.00 -0.00 38
-J.barS:ICC.schoolL -0.00}** -0.00*** -0.00\textbf{\emph{ 39
-J.barL:ICC.schoolL -0.01}} -0.01*** -0.01\textbf{\emph{ 40
-J.barS:variable.nTRUE -0.00 -0.00 -0.00 41 J.barL:variable.nTRUE -0.00}
--0.00* -0.00\emph{ 42 J.barS:cv.schoolS 0.00 0.00 0.00 43
-J.barL:cv.schoolS -0.00 -0.00 -0.00 44 J.barS:cv.schoolL -0.00. -0.00.
--0.00. 45 J.barL:cv.schoolL -0.00} -0.00* -0.00} 46
-J.barS:num.cov.schoolS 0.00 0.00 0.00 47 J.barL:num.cov.schoolS 0.00
-0.00 0.00 48 J.barS:num.cov.schoolL -0.00 -0.00 -0.00 49
-J.barL:num.cov.schoolL -0.00 -0.00 -0.00 50
-size.impact.cor.schoolL:sd.schoolL -0.00 -0.00 0.00 51
-size.impact.cor.schoolL:ICC.schoolL 0.00* 0.00* 0.00. 52
-size.impact.cor.schoolL:variable.nTRUE 0.00* 0.00* 0.00\emph{ 53
-size.impact.cor.schoolL:cv.schoolS 0.00 0.00 -0.00 54
-size.impact.cor.schoolL:cv.schoolL 0.00 0.00 0.00 55
-size.impact.cor.schoolL:num.cov.schoolS 0.00 0.00 0.00 56
-size.impact.cor.schoolL:num.cov.schoolL 0.00 0.00 0.00 57
-sd.schoolL:ICC.schoolL -0.00\textbf{ -0.00} -0.00} 58
-sd.schoolL:variable.nTRUE -0.00* -0.00* -0.00\emph{ 59
-sd.schoolL:cv.schoolS -0.00\textbf{ -0.00} -0.00} 60
-sd.schoolL:cv.schoolL -0.00* -0.00* -0.00\emph{ 61
-sd.schoolL:num.cov.schoolS 0.00 0.00 -0.00 62 sd.schoolL:num.cov.schoolL
--0.00 -0.00 0.00 63 ICC.schoolL:variable.nTRUE -0.00} -0.00* -0.00\emph{
-64 ICC.schoolL:cv.schoolS -0.00 -0.00 0.00 65 ICC.schoolL:cv.schoolL
--0.00}** -0.00*** -0.00\textbf{\emph{ 66 ICC.schoolL:num.cov.schoolS
--0.00 -0.00 -0.00 67 ICC.schoolL:num.cov.schoolL -0.00 -0.00 -0.00 68
-variable.nTRUE:cv.schoolS -0.00 -0.00 -0.00 69 variable.nTRUE:cv.schoolL
-0.00}} 0.00*** 0.01\textbf{\emph{ 70 variable.nTRUE:num.cov.schoolS
--0.00} -0.00* -0.00\emph{ 71 variable.nTRUE:num.cov.schoolL -0.00 -0.00
--0.00 72 cv.schoolS:num.cov.schoolS 0.00. 0.00. 0.00} 73
-cv.schoolL:num.cov.schoolS 0.00* 0.00* 0.00\emph{ 74
-cv.schoolS:num.cov.schoolL 0.00 0.00 0.00 75 cv.schoolL:num.cov.schoolL
-0.00 0.00 0.00 LRapw-FE-db LRapw-FE-het LRapw-FIpw-db LRapw-FIpw-het
-LRicw-FE-crve 1 0.01}} 0.01*** 0.01*** 0.01*** 0.01\textbf{\emph{ 2 0.00
-0.00 0.00 0.00 0.00 3 0.00}} 0.00*** 0.00*** 0.00** 0.01\textbf{\emph{ 4
--0.00} -0.00. -0.00} -0.00** -0.00\textbf{ 5 -0.00}* -0.00** -0.01***
--0.01*** -0.01\textbf{\emph{ 6 -0.00 -0.00 -0.00 -0.00 -0.00 7 0.00}}
-0.00*** 0.00*** 0.00*** 0.00\textbf{\emph{ 8 0.01}} 0.01*** 0.01***
-0.01*** 0.01\textbf{\emph{ 9 -0.00 -0.00 -0.00 -0.00 0.00} 10 -0.00
--0.00 -0.00 -0.00 0.00 11 -0.00. -0.00. -0.00 -0.00 0.00\emph{ 12 -0.00
--0.00 -0.00 -0.00 -0.00 13 0.00 0.00 0.00 0.00 -0.00 14 -0.00 -0.00
--0.00 -0.00 -0.00 15 -0.00 -0.00 0.00 0.00 -0.00 16 -0.00 -0.00 -0.00
--0.00 -0.00 17 -0.00}} -0.00*** -0.00* -0.00. -0.00\textbf{\emph{ 18
--0.00 -0.00 -0.00 -0.00 -0.00 19 0.00 0.00 0.00 0.00 0.00 20 0.00 0.00
-0.00 0.00 0.00 21 0.00 0.00 0.00 0.00 0.00 22 -0.00 -0.00 -0.00 -0.00
--0.00 23 0.00}} 0.00*** 0.00*** 0.00*** 0.00\textbf{\emph{ 24 0.00 0.00
-0.00 0.00 0.00 25 0.00}} 0.00*** -0.00 -0.00 0.00 26 0.00 0.00 -0.00
--0.00 -0.00 27 0.00. 0.00. 0.00 0.00 0.00 28 0.00 0.00 -0.00 -0.00 -0.00
-29 0.00*** 0.00*** 0.00 0.00 0.00 30 0.00 0.00 0.00 0.00 0.00 31 -0.00
--0.00 -0.00 -0.00 -0.00 32 0.00 0.00 0.00 0.00 0.00 33 -0.00 -0.00 -0.00
--0.00 -0.00 34 -0.00 -0.00 -0.00 -0.00 -0.00 35 -0.00 -0.00 -0.00 -0.00
--0.00 36 -0.00 -0.00 -0.00 -0.00 -0.00 37 -0.00 -0.00 -0.00 -0.00 -0.00
-38 -0.00*** -0.00*** -0.00*** -0.00*** -0.00\textbf{\emph{ 39 -0.01}}
--0.01*** -0.01*** -0.01*** -0.01\textbf{\emph{ 40 -0.00 -0.00 0.00 0.00
--0.00 41 -0.00} -0.00}* -0.00 -0.00. -0.00\emph{ 42 0.00 -0.00 0.00 0.00
-0.00 43 -0.00 -0.00 0.00 -0.00 -0.00 44 -0.00 -0.00} -0.00 -0.00 -0.00.
-45 -0.00* -0.00*** -0.00 -0.00. -0.00\emph{ 46 0.00 0.00 0.00 0.00 0.00
-47 0.00 0.00 0.00 0.00 0.00 48 -0.00 -0.00 -0.00 -0.00 -0.00 49 -0.00
--0.00 -0.00 -0.00 -0.00 50 -0.00 -0.00 -0.00 -0.00 -0.00 51 0.00} 0.00*
-0.00. 0.00. 0.00\emph{ 52 0.00 0.00. 0.00. 0.00. 0.00} 53 0.00 0.00
--0.00 -0.00 0.00 54 0.00 0.00 0.00 0.00 0.00 55 0.00 0.00 0.00 0.00 0.00
-56 0.00 0.00 0.00 0.00 0.00 57 -0.00*** -0.00** -0.00*** -0.00***
--0.00\textbf{ 58 -0.00 -0.00 -0.00 -0.00 -0.00\emph{ 59 -0.00} -0.00*
--0.00* -0.00* -0.00} 60 -0.00 -0.00 -0.00 -0.00 -0.00\emph{ 61 0.00 0.00
--0.00 -0.00 0.00 62 -0.00 -0.00 0.00 -0.00 -0.00 63 0.00}** 0.00***
-0.00*** 0.00*** -0.00\textbf{ 64 0.00 0.00 0.00 0.00 -0.00 65 0.00}*
-0.00*** 0.00* 0.00** -0.00\textbf{\emph{ 66 -0.00 -0.00 -0.00 -0.00
--0.00 67 -0.00 -0.00 -0.00 -0.00 -0.00 68 0.00} 0.00} 0.00 0.00 -0.00 69
-0.01*** 0.01*** 0.00*** 0.00*** 0.00\textbf{\emph{ 70 -0.00} -0.00*
--0.00* -0.00* -0.00\emph{ 71 -0.00 -0.00 -0.00 -0.00 -0.00 72 0.00 0.00
-0.00} 0.00* 0.00. 73 0.00* 0.00* 0.00* 0.00* 0.00\emph{ 74 0.00 0.00
-0.00 0.00 0.00 75 0.00 0.00 0.00 0.00 0.00 LRicw-FIcw-crve MLM-FE
-MLM-FIcw MLM-RE 1 0.01}} 0.01*** 0.01*** 0.01\emph{\textbf{ 2 0.00 0.00
-0.00 0.00 3 0.00} 0.01}** 0.00 0.01\emph{\textbf{ 4 -0.00} -0.00} -0.00*
--0.00\emph{ 5 -0.01}** -0.00*** -0.00*** -0.00\textbf{\emph{ 6 -0.00
--0.00 -0.00 -0.00 7 0.00}} 0.01*** 0.01*** 0.01\textbf{\emph{ 8 0.01}}
-0.01*** 0.02*** 0.01\textbf{\emph{ 9 0.00} 0.00 0.00 0.00 10 0.00 0.00
-0.00 0.00 11 0.00* 0.00 0.00 0.00 12 -0.00 -0.00 -0.00 -0.00 13 0.00
--0.00 -0.00 -0.00 14 -0.00 -0.00 -0.00 -0.00 15 0.00 -0.00 0.00 -0.00 16
--0.00 -0.00 -0.00 -0.00 17 -0.00. -0.00}* -0.00 -0.00\textbf{\emph{ 18
--0.00 -0.00 -0.00 -0.00 19 0.00 0.00 0.00 0.00 20 0.00 -0.00 -0.00 -0.00
-21 0.00 -0.00. 0.00 -0.00. 22 0.00 -0.00 0.00 -0.00 23 0.01}} 0.00
-0.00*** 0.00 24 0.00 0.00 0.00 0.00 25 0.00 0.00 0.00 0.00 26 -0.00
--0.00 -0.00 -0.00 27 0.00 0.00 0.00 0.00 28 -0.00 -0.00 -0.00 -0.00 29
-0.00* 0.00 0.00 0.00 30 0.00 0.00 0.00 0.00 31 -0.00 -0.00 -0.00 -0.00
-32 0.00 0.00 0.00 0.00 33 -0.00 -0.00 -0.00 -0.00 34 -0.00 -0.00 -0.00
--0.00 35 -0.00 -0.00. -0.00* -0.00. 36 -0.00 -0.00* -0.00** -0.00\emph{
-37 -0.00 -0.00}** -0.00*** -0.00\textbf{\emph{ 38 -0.00}} -0.00***
--0.01*** -0.00\textbf{\emph{ 39 -0.01}} -0.01*** -0.01***
--0.01\textbf{\emph{ 40 -0.00 -0.00 -0.00 -0.00 41 -0.00} -0.00 -0.00.
--0.00 42 0.00 0.00 0.00 0.00 43 -0.00 0.00 0.00 0.00 44 -0.00. -0.00
--0.00 -0.00 45 -0.00} -0.00 -0.00 -0.00 46 0.00 0.00 0.00 0.00 47 0.00
-0.00 0.00 0.00 48 -0.00 0.00 0.00 0.00 49 -0.00 -0.00 -0.00 -0.00 50
-0.00 -0.00 -0.00 -0.00 51 0.00. 0.00. 0.00. 0.00. 52 0.00* 0.00* 0.00*
-0.00\emph{ 53 -0.00 0.00 0.00 0.00 54 0.00 0.00 0.00 0.00 55 0.00 0.00
-0.00 0.00 56 0.00 0.00 0.00 0.00 57 -0.00} -0.00*** -0.00***
--0.00\textbf{\emph{ 58 -0.00} -0.00. -0.00 -0.00 59 -0.00* -0.00* -0.00.
--0.00. 60 -0.00* -0.00 -0.00 -0.00 61 -0.00 0.00 0.00 0.00 62 0.00 -0.00
--0.00 -0.00 63 -0.00} 0.00 0.00 0.00 64 -0.00 -0.00 -0.00 -0.00 65
--0.00*** -0.00 -0.00 -0.00 66 -0.00 -0.00 -0.00 -0.00 67 -0.00 -0.00
--0.00 -0.00 68 0.00 -0.00 0.00 -0.00 69 0.01*** 0.00 0.00* 0.00 70
--0.00* -0.00* -0.00. -0.00\emph{ 71 -0.00 -0.00 -0.00 -0.00 72 0.00}
-0.00 0.00 0.00 73 0.00* 0.00* 0.00* 0.00* 74 0.00 0.00 -0.00 0.00 75
-0.00 0.00 0.00 0.00 method sd.SE.hat.s sd.ATE size.impact.cor J.bar
-sd.school 1 LRa-FE-db 0.04969950 L L 0 L 2 LRa-FE-db 0.04964257 L L 0 0
-3 LRa-FE-db 0.04934965 L L 0 L 4 LRa-FE-db 0.04914330 L L 0 L 5
-LRa-FE-db 0.04833746 L L S 0 6 LRa-FE-het 0.04958679 L L 0 L 7
-LRa-FE-het 0.04945717 L L 0 0 8 LRa-FE-het 0.04934965 L L 0 L 9
-LRa-FE-het 0.04914330 L L 0 L 10 LRa-FE-het 0.04903156 L L S 0 11
-LRapw-FE-db 0.05849423 L L 0 L 12 LRapw-FE-db 0.05847556 L L 0 L 13
-LRapw-FE-db 0.05820059 L L 0 0 14 LRapw-FE-db 0.05727228 L L 0 0 15
-LRapw-FE-db 0.05686273 L L 0 0 16 LRapw-FE-het 0.07172370 L L 0 L 17
-LRapw-FE-het 0.07150984 L L 0 L 18 LRapw-FE-het 0.07145919 L L 0 0 19
-LRapw-FE-het 0.06726747 L L 0 0 20 LRapw-FE-het 0.06379074 L L 0 L 21
-LRicw-FE-crve 0.04958679 L L 0 L 22 LRicw-FE-crve 0.04934965 L L 0 L 23
-LRicw-FE-crve 0.04930498 L L 0 0 24 LRicw-FE-crve 0.04914330 L L 0 L 25
-LRicw-FE-crve 0.04903156 L L S 0 26 MLM-FE 0.04934962 L L 0 L 27 MLM-FE
-0.04914328 L L 0 L 28 MLM-FE 0.04565466 L L 0 0 29 MLM-FE 0.04485496 L L
-0 L 30 MLM-FE 0.04478190 L L 0 L 31 MLM-FIcw 0.05187094 L L 0 L 32
-MLM-FIcw 0.05157175 L L 0 L 33 MLM-FIcw 0.04722937 L L 0 L 34 MLM-FIcw
-0.04718535 L L 0 0 35 MLM-FIcw 0.04653229 L L 0 L 36 MLM-RE 0.04931761 L
-L 0 L 37 MLM-RE 0.04879479 L L 0 L 38 MLM-RE 0.04531317 L L 0 0 39
-MLM-RE 0.04454339 L L 0 L 40 MLM-RE 0.04436160 L L 0 L 41 LRa-FIcw-db
-0.06593430 L L S 0 42 LRa-FIcw-db 0.06117638 L L 0 L 43 LRa-FIcw-db
-0.05601163 L L 0 L 44 LRa-FIcw-db 0.05414307 L L 0 L 45 LRa-FIcw-db
-0.05193417 L L 0 L 46 LRapw-FIpw-db 0.06593430 L L S 0 47 LRapw-FIpw-db
-0.05650179 L L 0 L 48 LRapw-FIpw-db 0.05601163 L L 0 L 49 LRapw-FIpw-db
-0.05193417 L L 0 L 50 LRapw-FIpw-db 0.05187420 L L 0 L 51 LRapw-FIpw-het
-0.06593430 L L S 0 52 LRapw-FIpw-het 0.05790380 L L 0 L 53
-LRapw-FIpw-het 0.05601163 L L 0 L 54 LRapw-FIpw-het 0.05211906 L L 0 L
-55 LRapw-FIpw-het 0.05193417 L L 0 L 56 LRicw-FIcw-crve 0.06593430 L L S
-0 57 LRicw-FIcw-crve 0.06134810 L L 0 L 58 LRicw-FIcw-crve 0.05601163 L
-L 0 L 59 LRicw-FIcw-crve 0.05431772 L L 0 L 60 LRicw-FIcw-crve
-0.05193417 L L 0 L ICC.school cv.school num.cov.school proptx.impact.cor
-size.intercept.cor 1 L S 0 L L 2 L S L L L 3 L 0 L L L 4 L 0 0 L L 5 L S
-S L L 6 L S 0 L L 7 L S L L L 8 L 0 L L L 9 L 0 0 L L 10 L S S L L 11 L
-L 0 L L 12 L L L L L 13 L L L L L 14 L L 0 L L 15 L S L L L 16 L L 0 L L
-17 L L L L L 18 L L L L L 19 L L 0 L L 20 L L 0 L L 21 L S 0 L L 22 L 0
-L L L 23 L S L L L 24 L 0 0 L L 25 L S S L L 26 L 0 L L L 27 L 0 0 L L
-28 L L L L L 29 L S 0 L L 30 L L 0 L L 31 L 0 L L L 32 L 0 0 L L 33 L L
-0 L L 34 L L L L L 35 L S 0 L L 36 L 0 L L L 37 L 0 0 L L 38 L L L L L
-39 L L 0 L L 40 L S 0 L L 41 L S S L L 42 L L L L L 43 L S S L L 44 L L
-0 L L 45 L S 0 L L 46 L S S L L 47 L L L L L 48 L S S L L 49 L S 0 L L
-50 L 0 L L L 51 L S S L L 52 L L L L L 53 L S S L L 54 L L 0 L L 55 L S
-0 L L 56 L S S L L 57 L L L L L 58 L S S L L 59 L L 0 L L 60 L S 0 L L
-size.impact.cor.school block\_type 1 0 L 2 L L 3 L L 4 L L 5 0 L 6 0 L 7
-L L 8 L L 9 L L 10 0 L 11 L L 12 L L 13 L L 14 L L 15 L L 16 L L 17 L L
-18 L L 19 L L 20 0 L 21 0 L 22 L L 23 L L 24 L L 25 0 L 26 L L 27 L L 28
-L L 29 0 L 30 L L 31 L L 32 L L 33 L L 34 L L 35 L L 36 L L 37 L L 38 L
-L 39 L L 40 0 L 41 0 L 42 L L 43 0 L 44 L L 45 0 L 46 0 L 47 L L 48 0 L
-49 0 L 50 L L 51 0 L 52 L L 53 0 L 54 L L 55 0 L 56 0 L 57 L L 58 0 L 59
-L L 60 0 L
 
 \begin{center}\includegraphics{Simulation-Memo-3_files/figure-latex/degfree-1} \end{center}
 
