@@ -24,7 +24,7 @@ We have the following
 
   * `simulation_support_code` - Code for generating data and running the simulation.  Uses the blkvar package, which implements the various methods we explored.
   * `data_prep` folder - Three files that form a pipeline that takes the raw output from the Odyssey cluster and makes some aggregate datafiles.  These scripts are described below.  There is also a bundling file (`fully_prepare_simulation_results.R`) that just sources these files in order.
-  * `analysis` folder - Collection of scripts that do the analysis presented in the paper.
+  * `analysis` folder - Collection of scripts that do the analysis of the simulation results presented in the paper.
   
   
 ## Instructions to get simulation results data ready

@@ -140,7 +140,8 @@ print(tot.time)
 sim.per.min = nrow(scenarios) * NUM_TRIALS_PER_SCENARIO / (tot.time["elapsed"] / 60)
 
 scat( "Num trials / scenario = %d with %d scenarios = %d runs\n", 
-      NUM_TRIALS_PER_SCENARIO, nrow( scenarios ), NUM_TRIALS_PER_SCENARIO * nrow( scenarios ) )
+      NUM_TRIALS_PER_SCENARIO, nrow( scenarios ), 
+      NUM_TRIALS_PER_SCENARIO * nrow( scenarios ) )
 scat("Realized simulations per minute = %.2f\n", sim.per.min )
 # scenarios$sim.per.min = sim.per.min
 

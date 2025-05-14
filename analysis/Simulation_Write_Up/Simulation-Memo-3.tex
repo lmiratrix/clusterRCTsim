@@ -512,9 +512,9 @@ magnitude of the being at least 1.10.
 that predicts the true superpopulation estimate standard error using
 different data generating parameters.
 
-*The fourth table contains the DGPs that produce the normalized super
-population estimator standard error for each method, conditional on the
-magnitude of the being at least 1.10.
+*The fourth table contains the five DGPs that produce the most
+normalized super population estimator standard error for each method,
+conditional on the magnitude of the being at least 1.10.
 
 \begin{center}\includegraphics{Simulation-Memo-3_files/figure-latex/rmse-1} \end{center}
 
@@ -1094,28 +1094,31 @@ method.
 *The fifth graph is the same as the fourth graph but broken by the same
 risk factors as before.
 
-*The second graph is a boxplot of the normalized estimate standard
-deviation across the different scenarios by method. This is also
-normalized by dividing by the median estimate standard deviation within
-a given simulation scenario.
+\begin{itemize}
+\tightlist
+\item
+  I was having trouble conceptualizing the scale of standard error
+  inflation, so for the regression I converted it to percentage
+  inaccuracy. The regression's for table one are therefore predicting
+  the magnitude of ((Mean Estimated SE - True Super Population SE) /
+  True Super Population SE) * 100.
+\end{itemize}
 
-*The first table contains the regression coefficients from a regression
-that predicts the RMSE using different data generating parameters and
-the second table is from regressions predicting the estimate standard
-deviation. Each regression is run separately by estimator and the RMSE
-is against the targeted estimator.
-
-*The second table contains the DGPs that produce the normalized RMSE
-(against the targeted estimator) for each method, conditional on the
-magnitude of the being at least 1.10.
+*The second table contains the five DGPs that produce the most
+inaccurate standard error estimates for each method, conditional on the
+magnitude of the inaccuracy being at least .1.
 
 *The third table contains the regression coefficients from a regression
-that predicts the true superpopulation estimate standard error using
-different data generating parameters.
+that predicts the standard deviation of the standard errors across
+simulations using different data generating parameters.
 
-*The fourth table contains the DGPs that produce the normalized super
-population estimator standard error for each method, conditional on the
-magnitude of the being at least 1.10.
+*The fourth table contains the five DGPs that produce the largest
+standard deviation in the standard error estimates for each method,
+conditional on the magnitude being at least .05.
+
+*The fifth table contains the five DGPs that produce the largest
+normalized standard deviation in the standard error estimates for each
+method, conditional on the magnitude being at least 1.10.
 
 \begin{center}\includegraphics{Simulation-Memo-3_files/figure-latex/infl-1} \end{center}
 
@@ -1876,68 +1879,68 @@ LRicw-FIcw-crve & 2.13 & 0.00831 & L & 0 & 0 & L & L & 0 & S \\
 super
 population}\label{are-the-estimated-standard-errors-targeting-the-finite-or-super-population}
 
-*This section answers the questions on page 39. I can answer: 1) how
-accurate are the estimated standard errors, 2) how stable are the
-standard errors and 3) are certain standard errors performing better
-than others. I'm not
+*This section answers the questions on page 8.
 
-\begin{itemize}
-\tightlist
-\item
-  The Choosing an estimand and excluding the fully interacted estimators
-  results in estimated standards errors that are less variable across
-  estimators. However, it is notable that differences are still often
-  non-trivial. Even in Figure we see estimated standard errors are 20
-  percent different across estimators in 24 percent of the cases we
-  examined.
-\end{itemize}
+*As long as the school level ICC isn't zero, than the true finite and
+super population standard errors are very similar to each other (graph
+2).
 
-{[}ADD ANY TEXT WE CAN HERE ABOUT WHAT WE'VE LEAREND FROM SIMULATIONS.
-IS THIS BECAUSE TRUE SEs VARY ACROSS ESTIMATORS? IS THIS ESTIMATION
-ERROR? ARE CERTAIN SE ESTIMATORS MORE ACCURATE THAN OTHERS?{]}
+*I was having a little trouble visualizing whether the standard errors
+were targeting the finite population or super population standard
+errors, so I made up this metric: difference in \% inaccuracy. This is
+calculated as the magnitude of ((Mean Estimated SE - True Super
+Population SE) / True Super Population SE) x 100 minus the magnitude of
+((Mean Estimated SE - True Finite Population SE) / True Finite
+Population SE) x 100. When this number is positive the estimated
+standard errors are closer to the true super population standard errors
+and when this number is negative the estimated standard errors are
+closer to the finite population.
 
-*make sure I answer this question when I finish my write up of the
-standard errors
+*The only estimators with standard errors that are ever really
+significantly closer to the finite standard errors than the super
+population standard errors are the person weighted fully interacted
+one's and the fully interacted MLMs (graphs three and four). It does
+look like the person weighted fully interacted estimators are targeting
+the finite standard errors when the ICC is zero, the blocks are very
+dissimilar, and there is high variance in the cluster sizes. Otherwise
+these estimators are also targetting super population standard errors
+(graph five).
 
-*pg 39
+Description of Analysis:
 
-*The estimated standard errors for the unbiased cluster targeted
-estimators are consistently good and are also pretty good for the
-unbiased person targeted estimators, although in some of the scenarios
-they're under estimated. The biased estimators are often also
-overestimating the standard errors.
+*The first graph is a boxplot of ratio of the true finite standard
+errors over the true super population standard errors across the
+different scenarios by method. When this metric is one the two standard
+errors are the same, when it's above one the finite population standard
+errors are bigger and when it's below one the super population standard
+errors are bigger.
 
-*Graphs in this section back up the point on pg. X of the paper
+*The second graph is the same as the first but broken out by ICC. In the
+graph on the left the school level ICC is zero and on the right it's
+.20.
 
-*True super population standard errors are almost always larger than the
-finite population standard errors, the cases where finite standard
-errors are larger it seems almost certainly to be noise in the
-simulations.
+*The third graph is a boxplot of the difference in \% inaccuracy across
+methods. This is calculated as the magnitude of ((Mean Estimated SE -
+True Super Population SE) / True Super Population SE) x 100 minus the
+magnitude of ((Mean Estimated SE - True Finite Population SE) / True
+Finite Population SE) x 100. When this number is positive the estimated
+standard errors are closer to the true super population standard errors
+and when this number is negative the estimated standard errors are
+closer to the finite population.
 
-*Approximately a quarter of the time the true finite and true super
-standard errors are the same.
+*The fourth graph is the same as the third but broken out by ICC. In the
+graph on the left the school level ICC is zero and on the right it's
+.20.
 
-*Approximately three quarters of the time the estimated standard errors
-are closer to the super population standard errors than the finite
-population standard errors,
+*The fifth graph is a boxplot of the difference in \% inaccuracy across
+methods, but only for the methods that might be targeting the finite
+population standard errors and only when the school level ICC is zero,
+the blocks are all messy, and the cluster size coefficient of variation
+is large.
 
-\begin{itemize}
-\tightlist
-\item
-\end{itemize}
-
-Standard error inflation is the ratio of the estimated standard error
-over the true standard error. High inflation means the standard errors
-are too big and low inflation means the standard errors are too small.
-
-For some of the methods the standard error estimates are way off, but it
-does not seem obviously driven by low degrees of freedom. The true
-finite standard errors do not look to be the same as the true super
-standard errors.
-
-\#To Do \emph{make edits to all the graphs }move the finite versus super
-population stuff to its own section \emph{fix the formating of the table
-}add in description of the plots
+*The table contains the five DGPs that produce the largest difference in
+\% inaccuracy for each method, conditional on the magnitude being at
+least five percentage points.
 
 \begin{center}\includegraphics{Simulation-Memo-3_files/figure-latex/finite-1} \end{center}
 
@@ -2034,52 +2037,52 @@ estimator}\label{what-do-the-confidence-intervals-look-like-for-each-estimator}
 
 Main Bullet Points:
 
-*The unbiased estimators also have less error than the biased
-estimators. The unbiased person estimator has less instability than the
-person estimator, but the unbiased cluster estimator has more
-instability.
-
-*The MLM estimators are the most stable, which fits with theory.
-
-*High RMSE and estimate instability is driven by a low number of
-clusters, the interaction of a low number of clusters and high cluster
-level ICC, and high cluster level treatment effect variance.
+*Coverage is the percentage of simulation replications where the
+estimator is within the 95\% confidence interval. We would like the
+number to 95\% (the boxplots have a line there). The notable things are
+that the coverage for the MLM estimators is often very bad but other
+than that the coverage for the cluster weighted estimators is generally
+good. The coverage rates for the person weighted estimators however are
+pretty bad across methods,it's either very low (meaning the SEs are
+being underestimated) or too high (meaning the SEs are being
+overestimated within the same methods.
 
 Description of Analysis:
 
-*The first graph is a boxplot of the normalized RMSE across the
-different scenarios by method. The normalized RMSE is the RMSE for given
-method divided by the median RMSE across methods within a given
-simulation scenario. Therefore each data point is adjusted for the
-underlying base RMSE from a given set of DGPs and represents the RMSE
-driven by the estimation method.
+*The first graph is a boxplot of the coverage by method. Coverage is the
+percentage of treatment effect estimates that fall in the 95\%
+confidence interval. The vertical line is at 95\%, which is what
+coverage should be.
 
-*The second graph is a boxplot of the normalized estimate standard
-deviation across the different scenarios by method. This is also
-normalized by dividing by the median estimate standard deviation within
-a given simulation scenario.
-
-*The first table contains the regression coefficients from a regression
-that predicts the RMSE using different data generating parameters and
-the second table is from regressions predicting the estimate standard
-deviation. Each regression is run separately by estimator and the RMSE
-is against the targeted estimator.
-
-Coverage is the percentage of simulation replications where the
-estimator is within the 95\% confidence interval. We would like the
-number to 95\% (the boxplots have a red line at there). The notable
-things are that the coverage for the MLM estimators is often very bad
-but other than that the coverage for the cluster weighted estimators is
-generally good. The coverage rates for the person weighted estimators
-however are pretty bad across methods,it's either very low (meaning the
-SEs are being underestimated) or too high (meaning the SEs are being
-overestimated within the same methods. In addition, finite versus super
-makes very little difference for the cluster targeted estimators but
-makes a noticeable difference for the person weighted estimators.
+*The second graph is a boxplot of the normalized 95\% confidence
+interval length by method.
 
 \begin{center}\includegraphics{Simulation-Memo-3_files/figure-latex/cov-1} \end{center}
 
 \begin{center}\includegraphics{Simulation-Memo-3_files/figure-latex/cov-2} \end{center}
+
+\subsection{Is Low Degrees of Freedom Causing Problems because of
+Estimate Instability Driven or
+Bias}\label{is-low-degrees-of-freedom-causing-problems-because-of-estimate-instability-driven-or-bias}
+
+Main Bullet Points:
+
+*This is answering the question on page 35
+
+*Low degrees of freedom is clearly causing problems because of estimate
+instability. There is clear increase in estimate instability for the low
+degrees of freedom DGPs (graph one) and no relation between degrees of
+freedom and mean bias (graph two).
+
+Description of Analysis:
+
+*The first graph is scatter plot of the true estimate standard error
+across replications against the model degrees of freedom, graphed
+sepparately for each method
+
+*The second graph is scatter plot of the mean bias across replications
+against the model degrees of freedom, graphed sepparately for each
+method
 
 \begin{center}\includegraphics{Simulation-Memo-3_files/figure-latex/degfree-1} \end{center}
 

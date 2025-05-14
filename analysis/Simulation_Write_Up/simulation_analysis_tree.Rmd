@@ -1,7 +1,7 @@
 ---
-title: "Simulation Analysis"
-author: "Sophie Litschwartz"
-date: '2025-04-19'
+title: "Tree-Based Simulation Analysis"
+author: "Luke Miratrix"
+date: '`r Sys.Date()`'
 output:
   pdf_document:
     keep_tex: true
@@ -14,27 +14,16 @@ header-includes:
    - \usepackage[utf8]{inputenc}
    - \usepackage{newunicodechar}
    - \newunicodechar{−}{\textminus}
-
 geometry:
   - margin=1in
+editor_options: 
+  chunk_output_type: console
 ---
-
-```{r todo, include=FALSE, echo=FALSE}
-
-#To-Do Notes:
-#re-write all the summary sections
-#include in the stuff to answer paper questions
-
-#What drives bias and is it different for different models 
-#Move extra stuff to the end of this memo
-
-
-#what is the next round of simulations 
-
-```
 
 
 ```{r setup, include=FALSE, echo=FALSE}
+
+# Following code taken from simulation memo 3.rmd
 
 knitr::opts_chunk$set(
   echo = FALSE,          # Don't show code in output by default
@@ -44,7 +33,6 @@ knitr::opts_chunk$set(
   fig.height = 6,        # Default figure height
   fig.align = "center"   # Center figures
 )
-load( "/Users/sophielitschwartz/Dropbox/clusterRCTsim/results_agg/processed_simulation_results_agg_full_factor_2025-04-03.RData" )
 
 require(tidyverse)
 require(rlang)
@@ -58,626 +46,125 @@ require(gridExtra)
 require(pander)
 
 
-
 select <- dplyr::select
 
 my_t = theme_tufte() + theme( legend.position="bottom", 
-                              legend.direction="horizontal", legend.key.width=unit(1,"cm"),
-                              panel.border = element_blank(), axis.title=element_text(size=12))
+                              legend.direction="horizontal",
+                              legend.key.width=unit(1,"cm"),
+                              panel.border = element_blank(), 
+                              axis.title=element_text(size=12))
 theme_set( my_t )
  
 
-
-DGP_vars <- c("K", "J.bar", "p.bar", "sd.ATE", "ICC", "variable.J", 
-                 "variable.p", "n.bar", "sd.school", "ICC.school", "variable.n", 
-                 "size.impact.cor", "num.cov.district","cv.nbar", "R2.school", 
-                 "num.cov.school", "cv.school", "num.cov.indiv", 
-                 "empirical", "cv.district", "nbar.J.cor", "size.intercept.cor", 
-                 "variable.nbar")
-```
-## Introduction and Overview
-
-*I need to write this once I figure out what goes here 
-
-## Data Generating Process
-
-The simulations are a fully factored experiment. 
-
-**Block Level Fixed Covariates**  
-Number of Blocks: 5;  ATE: .2; ICC: .2; Average Number of Observations Per Cluster: 20; Proportion of Clusters Treated: .5 (this is fixed across blocks); Number of District Level Covariates: 0; How much does the average cluster size vary across blocks (coefficient of variation)?: 0
-
-**Block Level Varying Covariates (Factors that are varied across simulations)**
-
-Three groups of block level parameters Blocks all the same, Blocks all messy, and Blocks all reasonable
-
-Blocks all the same: How much do number clusters per block vary (coefficient of variation)?: 0 (none);  ATE SD: 0; Correlation Between Treatment Effect and Cluster Size: 0; Correlation Between Average Number of Observations Per Cluster and Total Number of Clusters: 0; Correlation of Proportion of Clusters Treated per Block and Impact: 0; Correlation Between Outcome Intercept and Cluster Size: 0
-
-Blocks all messy: How much do number clusters per block vary (coefficient of variation)?: .85 (big); ATE SD: .6; Correlation Between Treatment Effect and Cluster Size: .8; Correlation Between Average Number of Observations Per Cluster and Total Number of Clusters: .8; Correlation of Proportion of Clusters Treated per Block and Impact: .8; Correlation Between Outcome Intercept and Cluster Size: .8
-
-Blocks all reasonable: How much do number clusters per block vary (coefficient of variation)?: .33 (average); ATE SD: .1; Correlation Between Treatment Effect and Cluster Size: .2; Correlation Between Average Number of Observations Per Cluster and Total Number of Clusters: .1; Correlation of Proportion of Clusters Treated per Block and Impact: 0; Correlation Between Outcome Intercept and Cluster Size: .1
-
-Each of the rest of these factors don't vary as a group but vary each individually and are fully factored with all other factors:
-
-Average Number of Clusters per Block: 7,10,16
-
-**Cluster Level Varying Parameters**
-
-Correlation of Impact and Size of Cluster: 0, .8
-
-Cluster Level Treatment Effect Standard Deviation: 0, .3
-
-Cluster Level ICC: 0, .2
-
-Number of Observations Per Cluster Varies: True, False 
-
-How much does the size of clusters vary (coefficient of variation)?: 0, .33, .6 
-
-Number of School-Level Covariates: 0, 1, 5
-
-[School Level Covariate R Squared is always .5]
-
-
-```{r dataprep, echo=FALSE, include=FALSE, fig.width=7, fig.height=6}
-
-# Function to create labeled factors with zero as base level
-create_labeled_factor <- function(x) {
-  unique_values <- sort(unique(x))
-  num_levels <- length(unique_values)
-  
-  if (num_levels == 1) {
-    # If only one level, just return as is
-    return(factor(x))
-  } else if (num_levels == 2) {
-    # For two levels: 0 (base) and "L" (for larger value)
-    labels <- c("0", "L")
-    return(factor(x, levels = unique_values, labels = labels))
-  } else if (num_levels == 3) {
-    # For three levels: 0 (base), "S" (small/middle), and "L" (large)
-    labels <- c("0", "S", "L")
-    return(factor(x, levels = unique_values, labels = labels))
-  } else {
-    # For more than three levels, label by position
-    # Zero is always the base (first level), and others are numbered
-    zero_pos <- which(unique_values == 0)
-    if (length(zero_pos) > 0) {
-      # Reorder so 0 is first
-      ordered_levels <- c(0, unique_values[unique_values != 0])
-      labels <- c("0", paste0("L", 1:(num_levels-1)))
-      return(factor(x, levels = ordered_levels, labels = labels))
-    } else {
-      # If no zero value exists, just use ordered values
-      warning("No zero value found in variable. Using smallest value as base.")
-      labels <- c("0", paste0("L", 1:(num_levels-1)))
-      return(factor(x, levels = unique_values, labels = labels))
-    }
-  }
-}
-
-sruns.clean <- sruns %>%  
-   mutate(block_type = case_when(
-   variable.J == FALSE & sd.ATE == 0 & 
-   size.impact.cor == 0 & 
-   proptx.impact.cor == 0 & size.intercept.cor == 0 ~ 1,
-   
-   variable.J == TRUE & sd.ATE == 0.6 & 
-   size.impact.cor == 0.8 & 
-   proptx.impact.cor == 0.8 & size.intercept.cor == 0.8 ~ 3,
-   
-   variable.J == TRUE & sd.ATE == 0.1 & 
-   size.impact.cor == 0.2 & 
-   proptx.impact.cor == 0 & size.intercept.cor == 0.1 ~ 2,
-   
-   TRUE ~ NA  # Catch any other combinations
- ) ) %>% mutate(
-   bias.s.estimand = case_when(
-     weight == "Cluster" ~ bias.s.sch,
-     weight == "Person" ~ bias.s.stu
-   ))%>% 
-  mutate(
-   cover.s.estimand = case_when(
-     weight == "Cluster" ~ cover.s.sch,
-     weight == "Person" ~ cover.s.stu
-   ))%>%
-   mutate(
-   RMSE.s.estimand = case_when(
-     weight == "Cluster" ~ RMSE.s.sch,
-     weight == "Person" ~ RMSE.s.stu
-   ))%>%
-mutate(
-  sd.ATE = create_labeled_factor(sd.ATE),
-  size.impact.cor = create_labeled_factor(size.impact.cor),
-  J.bar = create_labeled_factor(J.bar),
-  sd.school = create_labeled_factor(sd.school),
-  ICC.school = create_labeled_factor(ICC.school),
-  cv.school = create_labeled_factor(cv.school),
-  num.cov.school = create_labeled_factor(num.cov.school),
-  proptx.impact.cor = create_labeled_factor(proptx.impact.cor),
-  size.intercept.cor = create_labeled_factor(size.intercept.cor),
-  size.impact.cor.school = create_labeled_factor(size.impact.cor.school),
-  block_type = create_labeled_factor(block_type),
-  bias.s.estimand.mag=abs(bias.s.estimand),
-  method = reorder(method, -biased),
-  bias.ratio.sch=(round(bias.f.sch/bias.s.sch,4)),
-  bias.ratio.stu=(round(bias.f.stu/bias.s.stu,4)),
-  RMSE.ratio.sch=(round(RMSE.f.sch/RMSE.s.sch,4)),
-  RMSE.ratio.stu=(round(RMSE.f.stu/RMSE.s.stu,4)),
-  cover.ratio.stu=(round(cover.f.stu/cover.s.stu,4)),
-  cover.ratio.sch=(round(cover.f.sch/cover.s.sch,4)),    
-  true.se.ratio=(round(SE.f/SE.s,2))
-)
-
-# Check the levels of one of the variables
-levels(sruns.clean$block_type)
-
-# Create the new variable with median RMSE.s.estimand for each ID
-sruns.clean <- sruns.clean %>%
-  group_by(ID) %>%
-  mutate(RMSE.s.estimand.median = median(RMSE.s.estimand, na.rm = TRUE),
-         SE.s.median = median(SE.s, na.rm = TRUE),
-         CI.length.median = median(CI.length, na.rm = TRUE),
-         sd.SE.hat.s.median=median(sd.SE.hat.s,na.rm=TRUE)) %>%
-  ungroup()
-
-
-# Create ordered factor levels
-ordered_methods <- sruns.clean %>%
-  # First get Cluster unbiased methods
-  filter(weight == "Cluster" & biased == 0) %>% pull(method) %>% unique() %>%
-  c(
-    # Then Cluster biased methods
-    sruns.clean %>% filter(weight == "Cluster" & biased == 1) %>% pull(method) %>% unique(),
-    # Then Person unbiased methods
-    sruns.clean %>% filter(weight == "Person" & biased == 0) %>% pull(method) %>% unique(),
-    # Finally Person biased methods
-    sruns.clean %>% filter(weight == "Person" & biased == 1) %>% pull(method) %>% unique()
-  )
-
-# Create the plot data with ordered methods
-plot_data <- sruns.clean %>%
-  mutate(
-    weight_biased = paste(weight, biased, sep = "_"),
-    method_ordered = factor(method, levels = ordered_methods)
-  )
-
-
-#figure out which estimators produce the same ATE results 
-
-group_estimators <- function( rps,var ) {
-  
-  wid <-rps %>% dplyr::select( ID, method, all_of(var) ) %>% 
-    pivot_wider( names_from = method, values_from = var ) %>%
-    dplyr::select( -ID)
-  
-  results <- combn(names(wid), 2, function(x) {
-    mean_diff <- mean(wid[[x[1]]] - wid[[x[2]]])
-    tibble(pair = paste(x, collapse = " - "), mean_difference = round( mean_diff, digits=10 ) )
-  }, simplify = FALSE) %>% bind_rows()
-  
-  
-  # Create a matrix where each element is the mean difference between two columns
-  mean_diff_matrix <- outer(1:ncol(wid), 1:ncol(wid), Vectorize(function(x, y) {
-    abs( mean(wid[[x]] - wid[[y]]) )
-  }))
-  
-  # Naming rows and columns for clarity
-  colnames(mean_diff_matrix) <- names(wid)
-  rownames(mean_diff_matrix) <- names(wid)
-  
-  mean_diff_matrix
-  
-  # Assuming mean_diff_matrix is your matrix of pairwise mean differences
-  tolerance <- 10^-7
-  
-  # Create a binary matrix where 1 indicates differences below the tolerance
-  binary_matrix <- 0 + (mean_diff_matrix < tolerance)
-  binary_matrix
-  
-  # Convert this binary matrix into a list of groups
-  groups <- list()
-  already_included <- c()
-  
-  ests = sort( rownames(binary_matrix) )
-  for (i in ests) {
-    if (!( i %in% already_included)) {
-      # Find indices where the estimator is within tolerance of others
-      in_group <- which(binary_matrix[i, ] == 1)
-      group_names <- colnames(binary_matrix)[in_group]
-      groups[[length(groups) + 1]] <- group_names
-      already_included <- c(already_included, group_names)
-    }
-  }
-  groups
-}
-
-groups<-group_estimators(sruns, var= "mean.ATE.hat")
-
-
-# List the groups
-map_chr(groups, paste, collapse = ", ") %>%
-  # Convert to a data frame with a proper column name
-  data.frame(group_values = .) %>%
-  # Now n() will work inside mutate()
-  mutate(grp = 1:nrow(.)) %>%
-  relocate(grp) %>%
-  knitr::kable()
-
-#this is the list of methods that don't produce the same ATE estimates
-core.methods <- c("LRa-FE-db", "LRa-FIcw-db", "LRapw-FE-db", "LRapw-FIpw-db", "MLM-FE", "MLM-FIcw", "MLM-RE")
-
-
-#this is the list of MLM methods
-MLM.methods<-c( "MLM-FE", "MLM-FIcw", "MLM-RE" )
-
-#this is the list of methods that don't produce the same se estimates
-all.methods<-c("LRa-FE-db", "LRa-FE-het", "LRicw-FE-crve", "LRicw-FE-db","LRa-FIcw-db","LRa-FIcw-het", "LRicw-FIcw-crve", "LRicw-FIcw-db", "LRapw-FE-db", "LRapw-FE-het", "LRi-FE-crve", "LRi-FE-db","LRapw-FIpw-db", "LRapw-FIpw-het", "LRi-FIpw-crve", "LRi-FIpw-db", "MLM-FE", "MLM-FIcw","MLM-RE")
-
-groups<-group_estimators(sruns, var= "mean.SE.hat")
-
-
-# List the groups
-map_chr(groups, paste, collapse = ", ") %>%
-  # Convert to a data frame with a proper column name
-  data.frame(group_values = .) %>%
-  # Now n() will work inside mutate()
-  mutate(grp = 1:nrow(.)) %>%
-  relocate(grp) %>%
-  knitr::kable()
-
-core.methods.se <- c("LRa-FE-db", "LRa-FE-het", "LRa-FIcw-db", "LRapw-FE-db", "LRapw-FE-het", "LRapw-FIpw-db", "LRapw-FIpw-het", "LRicw-FE-crve", "LRicw-FIcw-crve", "MLM-FE", "MLM-FIcw", "MLM-RE")
-
+source( here::here( "analysis/Simulation_Write_Up/load_and_prep_data.R" ) )
+source( here::here( "analysis/Simulation_Write_Up/create_custom_boxplot.R" ) )
 
 ```
 
-
-## What does the bias look like for each estimator 
-
-
-*The next thing to do is to move all the simulation questions I'm answering to my emails and also to attach the page numbers to the analysis 
-
-Main Bullet Points:
-
-*The estimators theory says are unbiased are indeed consistently unbiased (or have very low bias across the full range of simulations)
-
-*The LRapw−FIpw−db has bias as large as -.025, which seems from the statistical model to be driven by the interactions of a large treatment effect standard deviation across clusters, high variability in cluster size, and correlations between treatment effect and cluster size. This is consitent with theory. 
-
-*For the various estimators that are biased, the mean bias is mostly driven by the different blocks being different from each other  
-
-
-Description of Analysis
-
-*The graph is a boxplot of mean bias across the different scenarios by method. The faint horizontal lines go out to the full range, the bars are the 1% to 99%, and the boxes are the 10% to 90%.
-
-*The first table contains the regression coefficients from a regression that predicts the magnitude of the mean bias using different data generating parameters. Each regression is run separately by estimator and mean bias is the mean bias against the targeted estimator. 
-
-*The second table contains the DGPs that produce that largest magnitude of mean bias for each method, conditional on the magnitude of the mean bias being at least .1 . Where again mean bias is the mean bias against the targeted estimator. 
 
 
 ```{r bias, include=TRUE, echo=FALSE}
 
-sruns.graph.bias<-plot_data  %>% filter(method %in% core.methods) 
+sruns.sub <- plot_data %>% 
+  filter(method %in% core.methods) 
 
-create_custom_boxplot <- function(data, y_var, title = NULL, y_label = NULL, vline_at = NULL, log_scale = FALSE) {
-  # Default title and y-axis label if not provided
-  if(is.null(title)) {
-    title <- paste("Distribution of", y_var, "by Method")
-  }
+library(rpart)
   
-  if(is.null(y_label)) {
-    y_label <- y_var
-  }
-  
-  # Create the plot
-  p <- ggplot(data, aes(x = method_ordered, y = .data[[y_var]], color = weight_biased))
-  
-  # Add vertical reference line first
-  if(!is.null(vline_at)) {
-    p <- p + geom_hline(yintercept = vline_at, linetype = "dashed", color = "black", alpha = 0.7)
-  }
-  
-  # First, add the faint min/max lines in the background
-  p <- p + geom_linerange(
-    stat = "summary",
-    fun.data = function(x) {
-      data.frame(ymin = min(x), ymax = max(x))
-    },
-    alpha = 0.2,
-    linewidth = 0.5
-  )
-  
-  # Add the actual 1% and 99% whiskers
-  p <- p + stat_summary(
-    fun.data = function(x) {
-      percentiles <- quantile(x, probs = c(0.01, 0.99))
-      return(data.frame(ymin = percentiles[1], ymax = percentiles[2]))
-    },
-    geom = "errorbar",
-    width = 0.5,
-    position = position_dodge(width = 0.75)
-  )
-  
-  # Add the custom boxplot for 10% to 90%
-  p <- p + stat_summary(
-    fun.data = function(x) {
-      r <- quantile(x, probs = c(0.1, 0.25, 0.5, 0.75, 0.9))
-      names(r) <- c("ymin", "lower", "middle", "upper", "ymax")
-      r
-    },
-    geom = "boxplot",
-    alpha = 0.7,
-    width = 0.5,
-    position = position_dodge(width = 0.75)
-  )
-  
-  # Complete the plot formatting
-  p <- p + labs(
-    title = title,
-    x = "",
-    y = y_label
-  ) +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(size = 8),
-    plot.title = element_text(hjust = 0.5),
-    panel.grid = element_blank()
-  ) +
-  coord_flip()
-  
-  # Apply log scale if requested
-  if(log_scale) {
-    p <- p + scale_y_log10()
-  }
-  
-  # Add the color scale
-  p <- p + scale_color_manual(
-    values = c(
-      "Cluster_0" = "darkblue", 
-      "Cluster_1" = "lightblue",
-      "Person_0" = "darkred", 
-      "Person_1" = "lightcoral"
-    ),
-    name = "Weight and Bias",
-    labels = c(
-      "Cluster_0" = "Cluster (Unbiased)",
-      "Cluster_1" = "Cluster (Biased)",
-      "Person_0" = "Person (Unbiased)",
-      "Person_1" = "Person (Biased)"
-    )
-  )
-  
-  return(p)
-}
-bias_plot <- create_custom_boxplot(
-  sruns.graph.bias, 
-  "bias.s.estimand", 
-  "Super Population Mean Bias by Method", 
-  "Mean Bias",
-  vline_at = 0
-)
+# Include method or not?
+form = as.formula( "SE.s ~ method + block_type + J.bar + size.impact.cor.school + 
+                                                 sd.school + ICC.school + variable.n + 
+                                                 cv.school + num.cov.school" )
+form
 
-print(bias_plot)
 
+# Initial fit with a low cp
+tree <- rpart(form, data = sruns.sub, cp = 0.001)
+
+
+  # Initial fit with statistical significance as the splitting criterion
+  tree <- rpart(form, data = sruns.sub, 
+                control = rpart.control(cp = 0, minsplit = 10),
+                method = "anova")
+  tree
+  
+  # Extract p-values for splits
+  cp_table <- tree$cptable
+  significant_cp <- cp_table[cp_table[, "xerror"] - cp_table[, "xstd"] <= 
+                            min(cp_table[, "xerror"]) + cp_table[which.min(cp_table[, "xerror"]), "xstd"], "CP"]
+  
+  # Prune using highest CP value that gives significant splits
+  pruned_tree <- prune(tree, cp = max(significant_cp))
+  pruned_tree
+  
+  return(pruned_tree)
+
+
+    cp_table <- tree$cptable
+head( cp_table, 10 )
+    cp_table[10,]
+  
+  tree_p <-  prune( tree, cp = cp_table[15,1] )
+  tree_p
+  
+  
+  # Prune to get desired number of leaves
+  if (nrow(cp_table) > 1) {
+    # Find appropriate cp for pruning
+    for (i in 1:nrow(cp_table)) {
+      pruned <- prune(tree, cp = cp_table[i, "CP"])
+      if (sum(pruned$frame$var == "<leaf>") == num_leaves) {
+        return(pruned)
+      }
+    }
+  }
+  
+
+  library(rpart.plot)
+  
+  # Create a nicer visualization of the tree
+
+  plot( tree_p )
+  
+  rpart.plot(tree_p, 
+             type = 3,           # Type of plot
+             fallen.leaves = TRUE, # Put leaves at bottom
+             branch = 0.5,       # Branch shape
+             under = TRUE,       # Write text under the node
+             box.palette = "RdBu", # Color palette  
+             shadow.col = "gray",
+             cex = 0.5) # Shadow color
+  prp( tree_p )
+
+
+  library(partykit)
+  
+  # Convert rpart object to partykit format
+  party_tree <- as.party(tree_p)
+  party_tree
+  
+  # Plot using ggparty
+  library(ggparty)
+  
+  ggparty(party_tree) +
+    geom_edge() +
+    geom_edge_label() +
+    geom_node_label(aes(label = splitvar),
+                    ids = "inner") +
+    geom_node_label(aes(label = splitvar),
+                  ids = "inner") +
+    geom_node_label(ids = "terminal",
+                   aes(label = paste0("Mean: ", 
+                                      round(info_node$prediction, 2))),
+                   size = 3.8,
+                   nudge_y = -0.1) +
+    theme_minimal() +
+    theme(text = element_text(size = 12))
+  
+  prp( tree_p )
+  
 ```
 
 ```{r biasmodel, include=TRUE, echo=FALSE, results='asis'}
-
-# Create a list to store models
-models_by_method <- list()
-model_summaries <- list()
-
-# Run separate models for each method
-for (m in core.methods) {
-  # Subset data for this method
-  method_data <- sruns.clean %>% filter(method == m)
-  
-  # Run the model for this method
-  # Note: I'm using bias.s.estimand as you specified in your formula
-  # Make sure this column exists or replace with the correct one
-  models_by_method[[m]] <- lm(bias.s.estimand.mag~ (block_type + J.bar + size.impact.cor.school + 
-                                                 sd.school + ICC.school + variable.n + 
-                                                 cv.school + num.cov.school)^2, 
-                              data = method_data)
-  
-  # Store summary statistics
-  model_summaries[[m]] <- broom::tidy(models_by_method[[m]])
-  
-}
-
-
-# Helper function to add significance stars
-  add_stars <- function(p_value) {
-    if (is.na(p_value)) return("")
-    if (p_value < 0.001) return("***")
-    if (p_value < 0.01) return("**") 
-    if (p_value < 0.05) return("*")
-    if (p_value < 0.1) return(".")
-    return("")
-  }
-
-
-# Function to create a coefficient table with wrapped term names
-create_coefficient_table <- function(model_list) {
-  # Get all unique terms across all models
-  all_terms <- unique(unlist(lapply(model_list, function(m) {
-    coef_names <- names(coef(m))
-    return(coef_names)
-  })))
-  
-  # Create extraction functions
-  extract_coef <- function(model, term) {
-    if(term %in% names(coef(model))) {
-      return(coef(model)[term])
-    } else {
-      return(NA)
-    }
-  }
-  
-  extract_p <- function(model, term) {
-    if(term %in% rownames(summary(model)$coefficients)) {
-      return(summary(model)$coefficients[term, "Pr(>|t|)"])
-    } else {
-      return(NA)
-    }
-  }
-  
-  # Function to wrap long term names
-  wrap_term <- function(term, width = 25) {
-    if (nchar(term) <= width) {
-      return(term)
-    }
-    
-    # For interaction terms (with :), try to break at the colon
-    if (grepl(":", term)) {
-      # Replace ":" with newline character
-      wrapped <- gsub(":", ":\n", term)
-      return(wrapped)
-    }
-    
-    # Otherwise, use general text wrapping logic
-    # Find a good breaking point
-    break_point <- width
-    while (break_point > 0 && substr(term, break_point, break_point) != " " && 
-           substr(term, break_point, break_point) != "_") {
-      break_point <- break_point - 1
-    }
-    
-    if (break_point == 0) {
-      # If no good breaking point, just break at width
-      break_point <- width
-    }
-    
-    # Insert newline character
-    wrapped <- paste0(
-      substr(term, 1, break_point),
-      "\n",
-      substr(term, break_point + 1, nchar(term))
-    )
-    
-    return(wrapped)
-  }
-  
-  # Create result dataframe
-  result <- data.frame(Term = sapply(all_terms, wrap_term), 
-                       stringsAsFactors = FALSE)
-
-  # Add coefficients for each method with shorter formatting
-
-  for(m in names(model_list)) {
-
-    coefs <- sapply(all_terms, function(t) extract_coef(model_list[[m]], t))
-    p_vals <- sapply(all_terms, function(t) extract_p(model_list[[m]], t))
-    stars <- sapply(p_vals, add_stars)
-coef_strings <- ifelse(
-  !is.na(coefs),
-  ifelse(
-    round(coefs,3) == 0,
-    paste0("<.001", stars),  # Just "0" for zero values
-    paste0(
-      # Drop leading zero for values between -1 and 1
-      sub("^(-?)0\\.", "\\1.", sprintf("%.3f", coefs)),
-      stars
-    )
-  ),
-  "")
-    
-    
-    # Use abbreviated method names if they're too long
-   method_name <- ifelse(nchar(m) > 15, 
-                          paste0(substr(m, 1, 14), "."), 
-                        m)
-    
-    # Add to result
-    result[[method_name]] <- coef_strings
-  }
-  
-  return(result)
-}
-
-# Generate the coefficient table
-coef_table <- create_coefficient_table(models_by_method)
-
-# Set row names to NULL
-row.names(coef_table) <- NULL
-
-# Set pander options
-panderOptions('table.split.table', Inf)  # Allow table to split across pages
-panderOptions('table.style', 'multiline')  # More compact style
-panderOptions('p.wrap', TRUE)  # Enable text wrapping - CHANGED FROM FALSE TO TRUE
-panderOptions('keep.trailing.zeros', FALSE)
-panderOptions('digits', 3)
-
-# Create header for the table
-cat("\n")
-cat("### The Effect of Different Data Generating Parameters on the Magnitude of Mean Bias \n\n")
-
-# Create a custom alignment vector - LEFT justify the first column, RIGHT justify all others
-justify <- c('left', rep('center', ncol(coef_table)-1))
-
-# For PDF output - wrap pander table in font size commands
-cat("\\begingroup\n")
-cat("\\footnotesize\n")  # This will make the font smaller
-
-pander(coef_table, 
-       justify = justify,
-       style = 'multiline',
-       split.tables = Inf)
-# Add significance note
-cat("\n*Significance: '\\*\\*\\*' 0.001 '\\*\\*' 0.01 '\\*' 0.05 '.' 0.1*\n")
-cat("\\endgroup\n")  # This restores the previous font size
-
-
-# Add a footnote explaining significance levels
-add_significance_footnote <- function(table_object) {
-  footnote(table_object,
-    general = "Significance codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1",
-    general_title = "Note: "
-  )
-}
-
-# Create comparison table with significance stars - MODIFIED to make narrower output
-create_star_comparison_table <- function(model_list) {
-  # Initialize a list to store tidy model outputs
-  tidy_models <- list()
-  
-  # Process each model
-  for (m in names(model_list)) {
-    # Get model coefficients and p-values
-    model_stats <- tidy(model_list[[m]]) %>%
-      # Create a column with coefficient and stars - USING SHORTER FORMAT
-      mutate(
-        stars = sapply(p.value, add_stars),
-        # Reduce number of decimal places from 3 to 2 to save space
-        coef_stars = ifelse(!is.na(estimate),
-                            sprintf("%.2f%s", estimate, stars),
-                            "")
-      )
-    
-    # Add to our list
-    tidy_models[[m]] <- model_stats
-  }
-  
-  # Combine all models into a single data frame
-  all_terms <- unique(unlist(lapply(tidy_models, function(x) x$term)))
-  
-  # Initialize result dataframe
-  result <- data.frame(term = all_terms)
-  
-  # Add each method's coefficients as a column
-  for (m in names(model_list)) {
-    temp_df <- tidy_models[[m]] %>% 
-      select(term, coef_stars)
-    
-    # Rename to method name - USING SHORTER METHOD NAMES if needed
-    # If method names are long, you could abbreviate them here
-    # For example: names(temp_df)[2] <- substr(m, 1, 3)  # First 3 chars only
-    names(temp_df)[2] <- m
-    
-    # Join to result
-    result <- result %>% 
-      left_join(temp_df, by = "term")
-  }
-  
-  return(result)
-}
 
 create_top_n_table <- function(data, 
                               column_to_rank_by, 
