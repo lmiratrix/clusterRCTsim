@@ -3,8 +3,7 @@ title: "Simulation Analysis"
 author: "Sophie Litschwartz"
 date: '2025-04-19'
 output:
-  pdf_document:
-    keep_tex: true
+  pdf_document
 header-includes:
    - \usepackage{longtable}
    - \usepackage{booktabs}
