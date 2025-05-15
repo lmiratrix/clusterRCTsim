@@ -18,7 +18,6 @@ test_that( "single block DGP code works", {
                                                 tau.11.star = 0.1^2,
                                                 ICC = 0.20,
                                                 p = 0.70,
-                                                variable.n = TRUE,
                                                 variable.p = FALSE,
                                                 cluster.rand = TRUE,
                                                 size.impact.correlate = TRUE,
@@ -42,14 +41,12 @@ test_that( "district generation function works", {
     ATE.district = 0.3,
     sd.district = 0.2,
     ICC.district = 0.3,
-    variable.J = TRUE,
     variable.p = TRUE,
     
     # cluster-level params
     n.bar = 30, 
     sd.school = 0.4, 
     ICC.school = 0.2,
-    variable.n = TRUE,
     
     # size and correlation params
     cv.district = 1,
@@ -154,7 +151,7 @@ test_that( "build_disticts() works", {
                            ATE = 0.2, sd.ATE = 0.1,
                            n.bar = 20,
                            ICC = 0.2,
-                           variable.J = TRUE, variable.p = FALSE, 
+                           variable.p = FALSE, 
                            R2 = 0.7)
   
   
@@ -173,7 +170,8 @@ test_that( "build_disticts() works", {
   grid <- build_districts( K = 10, J.bar = 100, p.bar = 0.7,
                            ATE = 0.2, sd.ATE = 0.1,
                            ICC = 0,
-                           variable.J = TRUE, variable.p = TRUE,
+                           cv.district = 0.6,
+                           variable.p = TRUE,
                            n.bar = 40,
                            num.cov.district = 5,
                            proptx.impact.cor = 1.0 )
@@ -200,8 +198,8 @@ test_that( "limiting variation of districts works", {
                            ATE = 0.2, sd.ATE = 0.1,
                            ICC = 0.2,
                            n.bar = 35,
-                           variable.J = FALSE, variable.p = FALSE,
-                           cv.district = 0.1 )
+                           variable.p = FALSE,
+                           cv.district = 0 )
   
   expect_true( sd( grid$J ) == 0 )
   
@@ -210,7 +208,7 @@ test_that( "limiting variation of districts works", {
                            ATE = 0.2, sd.ATE = 0.1,
                            n.bar = 35,
                            ICC = 0.2,
-                           variable.J = TRUE, variable.p = FALSE,
+                           variable.p = FALSE,
                            cv.district = 0.5 )
   
   expect_true( sd( grid$J ) > 0 )
@@ -224,15 +222,13 @@ test_that( "limiting variation of districts works", {
     ATE.district = 0.3,
     sd.district = 0,
     ICC.district = 0,
-    variable.J = TRUE,
     variable.p = TRUE,
     
     # cluster-level params
     n.bar = 30, 
     sd.school = 0.4, 
     ICC.school = 0.2,
-    variable.n = TRUE,
-    
+
     # size and correlation params
     cv.district = 1,
     cv.school = 1,
@@ -264,7 +260,6 @@ test_that( "overall variation is 1", {
     ATE.district = 0.2, 
     sd.district = 0.1,
     ICC.district = 0.5,
-    variable.J = T,
     variable.p = T,
     
     # correlation params at cluster level
@@ -277,7 +272,6 @@ test_that( "overall variation is 1", {
     n.bar = 50, 
     sd.school = 0.1, 
     ICC.school = 0.2,
-    variable.n = T,
     
     # correlation params at individual level
     cv.school = 0.6,
@@ -304,7 +298,6 @@ test_that( "School- and individual-level covariates generate", {
     ATE.district = 0.2, 
     sd.district = 0.1,
     ICC.district = 0.5,
-    variable.J = T,
     variable.p = T,
     
     num.cov.district = 5,
@@ -324,7 +317,6 @@ test_that( "School- and individual-level covariates generate", {
     n.bar = 50, 
     sd.school = 0.1, 
     ICC.school = 0.2,
-    variable.n = T,
     
     # correlation params at individual level
     cv.school = 0.6,
@@ -357,12 +349,12 @@ test_that( "School- and individual-level covariates generate", {
     
     K = 25, J.bar = 50, p.bar = 0.5,
     ATE.district = 0.2, sd.district = 0.1,
-    variable.J = T, variable.p = T,
+    variable.p = T,
     cv.district = 0.6, 
     size.impact.cor.district = 0.2,
     proptx.impact.cor.district = 0.2,
     size.intercept.cor.district = 0.2,
-    n.bar = 50, sd.school = 0.1, variable.n = T,
+    n.bar = 50, sd.school = 0.1, 
     cv.school = 0.6,
     size.impact.cor.school = 0  )
   
@@ -403,12 +395,12 @@ test_that( "School- and individual-level covariates capture ICC and R2", {
                           
                           K = 40, J.bar = 40, p.bar = 0.5,
                           ATE.district = 0.2, sd.district = 0.1,
-                          variable.J = T, variable.p = T,
+                          variable.p = T,
                           cv.district = 0.6, 
                           size.impact.cor.district = 0.2,
                           proptx.impact.cor.district = 0.2,
                           size.intercept.cor.district = 0.2,
-                          n.bar = 50, sd.school = 0.1, variable.n = T,
+                          n.bar = 50, sd.school = 0.1, 
                           cv.school = 0.6,
                           size.impact.cor.school = 0 )
                         
@@ -492,7 +484,6 @@ test_that( "ICC = 0 works", {
                                                 tau.11.star = 0.1^2,
                                                 ICC = 0,
                                                 p = 0.70,
-                                                variable.n = TRUE,
                                                 variable.p = TRUE,
                                                 size.impact.correlate = TRUE,
                                                 proptx.impact.correlate = TRUE,
@@ -512,7 +503,6 @@ test_that( "ICC = 0 works", {
     ATE.district = 0.2, 
     sd.district = 0.1,
     ICC.district = 0.5,
-    variable.J = T,
     variable.p = T,
     
     # correlation params at cluster level
@@ -525,7 +515,6 @@ test_that( "ICC = 0 works", {
     n.bar = 50, 
     sd.school = 0.1, 
     ICC.school = 0,
-    variable.n = T,
     
     # correlation params at individual level
     cv.school = 0.6,

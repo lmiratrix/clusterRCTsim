@@ -329,9 +329,7 @@ describe_district_grid <- function( grid ) {
 build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
                              ATE = 0, sd.ATE = 0,
                              ICC = 0,
-                             variable.J = FALSE,
                              variable.p = FALSE,
-                             variable.nbar = FALSE,
                              cv.district = 0.6, 
                              cv.nbar = 0,
                              min.size = 4,
@@ -344,7 +342,6 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
                              
                              # school-level params
                              sd.school = 0, ICC.school = 0.20,
-                             variable.n = FALSE,
                              R2.school = NULL,
                              num.cov.school = 0 + !is.null(R2.school),
                              
@@ -375,8 +372,7 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
   
   
   # district J values
-  if (variable.J) {
-    stopifnot( cv.district > 0 )
+  if (cv.district > 0) {
     num_clusters <- cluster_distn( K = K, 
                                    J.bar = J.bar, 
                                    cv=cv.district,
@@ -416,14 +412,15 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
   #  - uses some magic hacks; idea is to keep order of district.tau,
   #    and to reorder num_clusters & prop_tx_clusters, to avoid automatically
   #    correlating the two of them
-  if (size.impact.cor != 0 || (variable.J && empirical) ) {
+  if (size.impact.cor != 0 || (cv.district>0 && empirical) ) {
     stopifnot("Cannot correlate district sizes and average impacts if sizes do not vary" = 
-                variable.J)
+                cv.district > 0)
     num_clusters <- induce_cor( x = grid$district.tau,
                                 y = num_clusters,
                                 cor = size.impact.cor,
                                 empirical = empirical )
   }
+  
   if (proptx.impact.cor != 0 || (variable.p && empirical)) {
     stopifnot("Cannot correlate district proportions treated and average impacts if proportions treated do not vary" = 
                 variable.p)
@@ -452,7 +449,7 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
   
   
   # Make average cluster sizes for districts
-  if (variable.nbar) {
+  if (cv.nbar > 0 ) {
     n.bar <- cluster_distn(K, n.bar, cv=cv.nbar)
     if ( nbar.J.cor != 0 ) {
       n.bar <- induce_cor( x = num_clusters,
@@ -461,7 +458,7 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
                            empirical = empirical )
     }
   } else {
-    stopifnot( "cannot correlate number of clusters and average cluster size if average cluster sizes (variable.nbar) do not vary" = 
+    stopifnot( "cannot correlate number of clusters and average cluster size if average cluster sizes (cv.nbar) do not vary" = 
                  (nbar.J.cor==0) )
   }
   grid$n.bar = n.bar
@@ -491,7 +488,6 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
   # Add in the school level stuff
   grid$sd.school = sd.school
   grid$ICC.school = ICC.school
-  grid$variable.n = variable.n
   grid$num.cov.school = num.cov.school
   grid$R2.school = R2.school
   if ( num.cov.school > 0 && is.null( R2.school ) ) {
@@ -514,7 +510,7 @@ if ( FALSE ) {
   grid <- build_districts( K = 10, J.bar = 20, n.bar = 20, p.bar = 0.5,
                            ATE = 0.2, sd.ATE = 0.1,
                            ICC = 0.2,
-                           variable.J = TRUE, variable.p = TRUE, 
+                           variable.p = TRUE, 
                            num.cov.district = 3 )
   
   grid
@@ -552,7 +548,6 @@ generate_data_for_districts <- function(
         R2.X = R2.indiv,
         num.W = num.cov.school,
         num.X = num.cov.indiv,
-        variable.n = variable.n,
         finite.model = FALSE,
         size.impact.correlate = sign( size.impact.cor.school ),
         correlate.strength = size.impact.cor.school,
@@ -590,7 +585,7 @@ if (FALSE) {
   grid <- build_districts( K = 10, J.bar = 20, n.bar = 20, p.bar = 0.5,
                            ATE = 0.2, sd.ATE = 0.1,
                            ICC = 0.2,
-                           variable.J = TRUE, variable.p = TRUE, 
+                           variable.p = TRUE, 
                            num.cov.district = 3,
                            
                            # correlation params at cluster level
@@ -602,8 +597,7 @@ if (FALSE) {
                            # school-level params
                            sd.school = 0.5, 
                            ICC.school = 0.7,
-                           variable.n = TRUE,
-                           
+
                            # correlation params at individual level
                            cv.school = 0.1,
                            size.impact.cor.school = 0.75 )
@@ -639,9 +633,7 @@ generate_districts <- function(
   K, J.bar, p.bar=0.5,
   ATE.district, sd.district,
   ICC.district,
-  variable.J = FALSE,
   variable.p = FALSE,
-  variable.nbar = FALSE,
   R2.district = NULL,
   num.cov.district = 0 + !is.null(R2.district),
   
@@ -654,7 +646,6 @@ generate_districts <- function(
   
   # school-level params
   n.bar, sd.school, ICC.school = 0.20,
-  variable.n = FALSE,
   R2.school = NULL,
   num.cov.school = 0 + !is.null(R2.school),
   
@@ -672,9 +663,7 @@ generate_districts <- function(
                            p.bar = p.bar,
                            ATE = ATE.district, sd = sd.district,
                            ICC = ICC.district,
-                           variable.J = variable.J, 
                            variable.p = variable.p, 
-                           variable.nbar = variable.nbar,
                            cv.district = cv.district,
                            cv.nbar = cv.nbar,
                            size.impact.cor = size.impact.cor.district,
@@ -685,7 +674,6 @@ generate_districts <- function(
                            
                            # school-level params
                            sd.school = sd.school, ICC.school = ICC.school,
-                           variable.n = variable.n,
                            R2.school = R2.school,
                            num.cov.school = num.cov.school,
                            cv.school = cv.school,
@@ -716,7 +704,6 @@ if (FALSE) {
     ATE.district = 0.2, 
     sd.district = 0.1,
     ICC.district = 0.5,
-    variable.J = T,
     variable.p = T,
     
     # correlation params at cluster level
@@ -729,7 +716,6 @@ if (FALSE) {
     n.bar = 50, 
     sd.school = 0.1, 
     ICC.school = 0.2,
-    variable.n = T,
     
     # correlation params at individual level
     cv.school = 0.6,

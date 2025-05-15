@@ -10,6 +10,17 @@ editor_options:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 
+
+my_t = theme_tufte() + 
+  theme( legend.position="bottom", 
+         legend.direction="horizontal",
+         legend.key.width=unit(1,"cm"),
+         panel.border = element_blank(), 
+         axis.title=element_text(size=12))
+theme_set( my_t )
+
+
+
 source( here::here( "fingerprint/load_master_fingerprint_results.R" ) )
 ```
 
@@ -35,7 +46,7 @@ The structure of the data, the relationship of covariates to outcome, etc., is a
 We didn't run the simulation on all the empirical datasets due to privacy restrictions and computational feasibility.  The datasets dropped are the following:
 
 ```{r}
-filter( studies, UniqueID %in% miss_sets ) %>%
+miss_sets %>%
   dplyr::select( UniqueID, n, J ) %>%
   knitr::kable( caption = "Dropped Datasets" ) %>%
   print()
@@ -46,7 +57,7 @@ filter( studies, UniqueID %in% miss_sets ) %>%
 
 # How do the simulation estimated SEs compare to the actual simulation SE?
 
-Within the simulation, we can compare the estimated SE to the standard deviation of estimates across the simulations (including the actual empirical data as a "simulation trial").
+Within the simulation, we can compare the average estimated SE to the standard deviation of point estimates across the permutations.  We include the actual empirical data as one of the "simulation permutations."
 
 ```{r}
 
@@ -58,12 +69,23 @@ ggplot( meth_dat, aes( SE, ESEhat ) ) +
 
 ```
 
+Some methods do not have standard errors, so they are not in the above plot.
+Counts of the methods with and without standard errors are below.
+
+```{r}
+meth_dat %>%
+  group_by( method ) %>%
+  summarise( n = n(),
+             SE_def = sum( !is.na( SE ) ),
+             ESEhat_def = sum( !is.na( ESEhat ) ) ) %>%
+  arrange( desc( ESEhat_def ), method ) %>%
+  knitr::kable()
+```
 
 
 # The actual vs. permutation estimates
 
-For each outcome, and across the simulation runs we can look at the actual ATE range vs. the ranges we get from the permutation.
-Weirdly, for the curated data, all the actual ranges are quite low.  We also see notable differences between the two sets of data, with curated having much wider ranges in general.
+For each study, we can look at the actual ATE range from the empirical data (red dot) vs. the ranges we get from the permutations (the boxplot).
 
 ```{r}
 if ( FALSE ) {
@@ -75,24 +97,29 @@ if ( FALSE ) {
     knitr::kable( digits = 2 )
 }
 
-emp_dat <- filter( range_dat, runID == "empirical",
-                   Estimand == "Overall")
+range_dat_o = range_dat %>%
+  filter( Estimand == "Overall" ) 
 
-range_dat %>%
-  filter( Estimand == "Overall" ) %>%
-  ggplot( aes( UniqueID, rangeATE ) ) +
+emp_dat <- range_dat_o %>%
+  filter( runID == "empirical" )
+
+# Plot the ranges of ATE estimates (over all estimators)
+ggplot( range_dat_o, aes( UniqueID, rangeATE ) ) +
   geom_boxplot() +
   geom_point( data=emp_dat, color="red" ) +
   coord_flip()
 ```
 
+Weirdly, for the curated data, all the actual ranges are quite low.  We also see notable differences between the two sets of data, with curated having much wider ranges in general.
 
-We can look at the studies by size (number of clusters):
+
+We can look at the range of ATE estimates vs size of study (number of clusters):
+
 ```{r}
-rr <- range_dat %>%
-  filter( Estimand == "Overall" ) %>%
+rr <- range_dat_o %>%
   left_join( studies, by="UniqueID" )
 rr_emp = filter( rr, runID == "empirical" )
+
 ggplot( rr, aes( n, rangeATE, color=Collection, group=UniqueID ) ) +
   geom_boxplot( outliers = FALSE ) +
   facet_wrap( ~ Collection ) +
@@ -101,8 +128,11 @@ ggplot( rr, aes( n, rangeATE, color=Collection, group=UniqueID ) ) +
   labs( x = "Number of clusters",
         y = "Range of ATE estimates",
         title = "Range of ATE estimates by number of clusters" )
+```
 
+For reference, here are the set of empirical results:
 
+```{r}
 ggplot( rr_emp, aes( J, rangeATE, color=Collection, group=UniqueID ) ) +
   geom_point() +
   facet_wrap( ~ Collection ) +
@@ -125,28 +155,21 @@ range_dat %>%
   ggplot( aes( UniqueID, ratioSE ) ) +
   geom_boxplot() +
   geom_point( data=emp_dat, color="red" ) +
-  coord_flip()
+  coord_flip() +
+  labs( title = "Variation in Ratio of maxSE to minSE" )
 ```
 
+We again look by number of clusters (the dots are the empirical values):
 
 ```{r}
-ggplot( rr, aes( n, ratioSE, color=Collection, group=UniqueID ) ) +
+ggplot( rr, aes( J, ratioSE, color=Collection, group=UniqueID ) ) +
   geom_boxplot( outliers = FALSE ) +
+  geom_point( data=rr_emp, col="red", size=0.5 ) +
   facet_wrap( ~ Collection ) +
  # geom_point( data=rr_emp, color="red" ) +
   scale_x_log10() +
   labs( x = "Number of clusters",
         y = "Range of ATE estimates",
-        title = "Ratio of SE estimates by number of clusters" )
-
-
-ggplot( rr_emp, aes( J, ratioSE, color=Collection, group=UniqueID ) ) +
-  geom_point() +
-  facet_wrap( ~ Collection ) +
- # geom_point( data=rr_emp, color="red" ) +
-  scale_x_log10() +
-  labs( x = "Number of clusters",
-        y = "Ratio of SEs",
         title = "Ratio of SE estimates by number of clusters" )
 
 ```
@@ -161,8 +184,8 @@ We then insert the real estimated values as an "imposter" so we could see if the
 
 ```{r, fig.width = 8, fig.height = 6, out.width="100%"}
 
-aterange_plot
-seratio_plot
+#aterange_plot
+#seratio_plot
 ```
 
 ## Aggregate statistics
@@ -172,15 +195,15 @@ For each run, we can look at the mean and standard deviation of the ranges of es
 ```{r}
 
 
-ggplot( ranges, aes( mn_rngATE, fill = real ) ) +
-  facet_wrap( ~ Estimand ) +
-  geom_dotplot( method="histodot", stackgroups=TRUE, binwidth = 0.005 ) +
-  labs( title="Average of the range of estimates across datasets" )
-
-ggplot( ranges, aes( mn_ratSE, fill = real ) ) +
-  facet_wrap( ~ Estimand ) +
-  geom_dotplot( method="histodot", stackgroups=TRUE, binwidth = 0.05 ) +
-  labs( title="Average of the ratio of SE estimates across datasets" )
+# ggplot( ranges, aes( mn_rngATE, fill = real ) ) +
+#   facet_wrap( ~ Estimand ) +
+#   geom_dotplot( method="histodot", stackgroups=TRUE, binwidth = 0.005 ) +
+#   labs( title="Average of the range of estimates across datasets" )
+# 
+# ggplot( ranges, aes( mn_ratSE, fill = real ) ) +
+#   facet_wrap( ~ Estimand ) +
+#   geom_dotplot( method="histodot", stackgroups=TRUE, binwidth = 0.05 ) +
+#   labs( title="Average of the ratio of SE estimates across datasets" )
 
 ```
 

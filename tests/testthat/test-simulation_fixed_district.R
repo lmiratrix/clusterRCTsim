@@ -17,7 +17,8 @@ test_that( "single.CRT.fixed.district() works", {
   grid <- build_districts( K = 10, J.bar = 20, n.bar = 20, p.bar = 0.5,
                            ATE = 0.2, sd.ATE = 0.1,
                            ICC = 0.2,
-                           variable.J = TRUE, variable.p = TRUE, variable.nbar = TRUE,
+                           cv.district = 0.2,
+                           variable.p = TRUE, cv.nbar = 0.2,
                            num.cov.school = 3, size.intercept.cor = -0.8,
                            size.impact.cor = 0.75, proptx.impact.cor = 0.75, nbar.J.cor = 0.9, 
                            empirical = TRUE )
@@ -28,7 +29,8 @@ test_that( "single.CRT.fixed.district() works", {
   grid <- build_districts( K = 10, J.bar = 20, n.bar = 20, p.bar = 0.5,
                            ATE = 0.2, sd.ATE = 0.1,
                            ICC = 0.2,
-                           variable.J = TRUE, variable.p = TRUE, variable.nbar = TRUE,
+                           cv.district = 0.2,
+                           variable.p = TRUE, cv.nbar = 0.2,
                            num.cov.district = 3, size.intercept.cor = -0.8,
                            size.impact.cor = 0.75, proptx.impact.cor = 0.75, nbar.J.cor = 0.9, 
                            empirical = TRUE )
