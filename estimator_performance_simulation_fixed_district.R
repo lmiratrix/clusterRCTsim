@@ -36,9 +36,9 @@ library( purrr )
 #VARIABLE_P = FALSE
 
 if ( exists( "index" ) ) {
-  scat( "Warning: Index already set!  Set to:\n" )
-  print( index )
+  scat( "Warning: Index already set!  Set to %s\n", index )
   rm( index )
+  scat( "NOW DELETING SET INDEX" )
 }
 
 
@@ -76,6 +76,7 @@ if ( exists( "TESTING" ) || !exists( "index" ) || is.na( index ) ) {
   
   NUM_TRIALS_PER_SCENARIO = 2  
   
+  scat( "index now set to %s\n", index )
 } else {
   cat( "Not testing, setting file names and approx num trials\n" )
   
@@ -111,9 +112,9 @@ scat( "Running simulation job %d\n", index )
 ptm = proc.time()
 
 
-#load in the simulations
+# load in the simulations
 # What simulation are we running?
-# 'scenarios.rds' is generated via 'generate_grid'
+# 'scenarios.rds' is generated via 'generate_grids.R'
 scenarios = readRDS( "scenarios.rds" )
 nrow( scenarios )
 
@@ -165,8 +166,8 @@ scenarios = mutate( scenarios,
 
 # Rearrange and foreground relevant columns
 scenarios = dplyr::select( scenarios, 
-                           ID, K, J.bar, p.bar, sd.ATE, ICC, variable.J,
-                           variable.p, n.bar, sd.school, ICC.school, variable.n,
+                           ID, K, J.bar, p.bar, sd.ATE, ICC.district, 
+                           variable.p, n.bar, sd.school, ICC.school,
                            size.impact.cor, size.impact.cor.school,
                            proptx.impact.cor,
                            

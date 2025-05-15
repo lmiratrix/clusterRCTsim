@@ -150,7 +150,7 @@ test_that( "build_disticts() works", {
   grid <- build_districts( K = 10, J.bar = 200, p.bar = 0.7,
                            ATE = 0.2, sd.ATE = 0.1,
                            n.bar = 20,
-                           ICC = 0.2,
+                           ICC.district = 0.2,
                            variable.p = FALSE, 
                            R2 = 0.7)
   
@@ -169,7 +169,7 @@ test_that( "build_disticts() works", {
   
   grid <- build_districts( K = 10, J.bar = 100, p.bar = 0.7,
                            ATE = 0.2, sd.ATE = 0.1,
-                           ICC = 0,
+                           ICC.district = 0,
                            cv.district = 0.6,
                            variable.p = TRUE,
                            n.bar = 40,
@@ -196,7 +196,7 @@ test_that( "limiting variation of districts works", {
   set.seed( 40404 )
   grid <- build_districts( K = 10, J.bar = 200, p.bar = 0.7,
                            ATE = 0.2, sd.ATE = 0.1,
-                           ICC = 0.2,
+                           ICC.district = 0.2,
                            n.bar = 35,
                            variable.p = FALSE,
                            cv.district = 0 )
@@ -207,7 +207,7 @@ test_that( "limiting variation of districts works", {
   grid <- build_districts( K = 10, J.bar = 200, p.bar = 0.7,
                            ATE = 0.2, sd.ATE = 0.1,
                            n.bar = 35,
-                           ICC = 0.2,
+                           ICC.district = 0.2,
                            variable.p = FALSE,
                            cv.district = 0.5 )
   

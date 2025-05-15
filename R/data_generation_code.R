@@ -328,7 +328,7 @@ describe_district_grid <- function( grid ) {
 #' @return dataframe, one row per district.
 build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
                              ATE = 0, sd.ATE = 0,
-                             ICC = 0,
+                             ICC.district = 0,
                              variable.p = FALSE,
                              cv.district = 0.6, 
                              cv.nbar = 0,
@@ -367,8 +367,8 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
               size.intercept.cor >= -1 & size.intercept.cor <= 1)
   stopifnot("nbar.J.cor must be in (-1,1)" = 
               nbar.J.cor >= -1 & nbar.J.cor <= 1)
-  stopifnot("ICC must be in [0,1]" = 
-              ICC >= 0 & ICC <= 1)
+  stopifnot("ICC.district must be in [0,1]" = 
+              ICC.district >= 0 & ICC.district <= 1)
   
   
   # district J values
@@ -403,7 +403,7 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
       district.tau = MASS::mvrnorm(K, mu=ATE, Sigma=sd.ATE^2, 
                                    empirical=empirical) %>% 
         as.vector(),
-      district.alpha = MASS::mvrnorm(K, mu=0, Sigma=ICC,
+      district.alpha = MASS::mvrnorm(K, mu=0, Sigma=ICC.district,
                                      empirical=empirical) %>% 
         as.vector())
   }
@@ -433,9 +433,9 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
     #     (1-proptx.impact.cor^2) * rnorm(K, sd=sd(prop_tx_clusters)) )]
     # prop_tx_clusters <- p_temp[ order(order(sign(proptx.impact.cor)*grid$district.tau)) ]
   }
-  if (size.intercept.cor != 0 || (ICC!=0 && empirical)) {
-    stopifnot("Cannot correlate district sizes and intercepts if ICC = 0" = 
-                (ICC != 0))
+  if (size.intercept.cor != 0 || (ICC.district!=0 && empirical)) {
+    stopifnot("Cannot correlate district sizes and intercepts if ICC.district = 0" = 
+                (ICC.district != 0))
     grid$district.alpha <- induce_cor(x = num_clusters,
                                       y = grid$district.alpha,
                                       cor = size.intercept.cor,
@@ -479,7 +479,7 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
       R2 = 0
     }
     cov_block <- generate_covariate_block( grid$district.alpha,
-                                           ICC, R2, k = num.cov.district, 
+                                           ICC.district, R2, k = num.cov.district, 
                                            var_prefix = "Xd" )
     grid = bind_cols( grid, cov_block )
   }
@@ -509,7 +509,7 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
 if ( FALSE ) {
   grid <- build_districts( K = 10, J.bar = 20, n.bar = 20, p.bar = 0.5,
                            ATE = 0.2, sd.ATE = 0.1,
-                           ICC = 0.2,
+                           ICC.district = 0.2,
                            variable.p = TRUE, 
                            num.cov.district = 3 )
   
@@ -584,7 +584,7 @@ if (FALSE) {
   
   grid <- build_districts( K = 10, J.bar = 20, n.bar = 20, p.bar = 0.5,
                            ATE = 0.2, sd.ATE = 0.1,
-                           ICC = 0.2,
+                           ICC.district = 0.2,
                            variable.p = TRUE, 
                            num.cov.district = 3,
                            
@@ -637,15 +637,18 @@ generate_districts <- function(
   R2.district = NULL,
   num.cov.district = 0 + !is.null(R2.district),
   
-  # correlation params at district level
+  # variation in number of clusters and average cluster size
   cv.district = 0.6,
   cv.nbar = 0,
+
+  # correlation params at district level
   size.impact.cor.district = 0,
   proptx.impact.cor.district = 0,
   size.intercept.cor.district = 0,
   
   # school-level params
-  n.bar, sd.school, ICC.school = 0.20,
+  n.bar, sd.school,
+  ICC.school = 0.20,
   R2.school = NULL,
   num.cov.school = 0 + !is.null(R2.school),
   
@@ -662,7 +665,7 @@ generate_districts <- function(
   grid <- build_districts( K = K, J.bar = J.bar, n.bar = n.bar, 
                            p.bar = p.bar,
                            ATE = ATE.district, sd = sd.district,
-                           ICC = ICC.district,
+                           ICC.district = ICC.district,
                            variable.p = variable.p, 
                            cv.district = cv.district,
                            cv.nbar = cv.nbar,
