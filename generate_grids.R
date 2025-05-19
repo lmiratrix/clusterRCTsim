@@ -99,14 +99,22 @@ scenarios <- scenarios %>%
 
 scenarios$ID = 1:nrow(scenarios)
 
-scenarios <- merge(scenarios, blockvars, by="blocktype", all = T) %>% 
-  select(-blocktype) %>% 
+scenarios <- left_join(scenarios, blockvars, by="blocktype") %>% 
+#  select(-blocktype) %>% 
+  relocate( ID ) %>%
   as_tibble()
 
 
 #make the grid 
-scenarios$grid <- pmap( dplyr::select( scenarios, -ID ), build_districts)
+scenarios$grid <- pmap( dplyr::select( scenarios, -ID, -blocktype ),
+                        build_districts )
 
+scenarios
+
+scenarios[131,] %>%
+  dplyr::select( blocktype, grid ) %>%
+  unnest( cols = grid ) %>%
+  dplyr::select( -did, -R2.school )
 
 #scenarios$run = map(scenarios$grid, run.scenario.fixed.district, R=1 , parallel=F)
 

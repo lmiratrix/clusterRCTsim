@@ -11,7 +11,7 @@
 # C) sigma2 > mean: negative binomial
 #
 # For (A) the variance is initially approximate.  In order to get the
-# exact variance, we need to spike in a two-size distribution
+# exact variance, we need to spike in a distribution on the two integers
 # surrounding the target mean.  This spike reduces the variance to the
 # desired level.  (It appears as if the approximation from the
 # binomial always gives a variance a bit too high, making this work.)
