@@ -30,6 +30,7 @@ group="fullfactor"
 source( "R/data_generation_code.R" )
 source( "R/simulation_support_code_fixed_district.R" )
 
+#blocktype=c("messy","same","reasonable")
 
 #Blocks all the same: 
 btype1<-data.frame( cv.district=0,
@@ -38,16 +39,35 @@ btype1<-data.frame( cv.district=0,
                     nbar.J.cor = 0,   
                     proptx.impact.cor = 0,
                     size.intercept.cor = 0, 
+<<<<<<< HEAD
                     variable.p=F )
 
 #Blocks all messy: 
 #blocktype=c("messy","same","reasonable")
+=======
+                    cv.nbar = 0,
+                    variable.p=F )
+
+
+#Blocks vaguely reasonable
+btype3<-data.frame( cv.district=.33,
+                    sd.ATE=0.2, 
+                    size.impact.cor = .2, 
+                    nbar.J.cor = .3,   
+                    proptx.impact.cor = 0,
+                    size.intercept.cor = .3,
+                    cv.nbar = 0.4,
+                    variable.p=F )
+
+#Blocks all messy: 
+>>>>>>> 4641dacb334631ae49099e0fe4b9dde28c39390e
 btype2<-data.frame( cv.district=.85, 
                     sd.ATE=.6, 
                     size.impact.cor = .8, 
                     nbar.J.cor = .8,   
                     proptx.impact.cor = .8, 
                     size.intercept.cor = .8, 
+<<<<<<< HEAD
                     variable.p=T )
 
 #variable.nbar=T, variable.p=F
@@ -58,10 +78,20 @@ btype3<-data.frame( cv.district=.33,
                     proptx.impact.cor = 0,
                     size.intercept.cor = .1,
                     variable.p=F )
+=======
+                    cv.nbar = 0.6,
+                    variable.p=TRUE )
+
+>>>>>>> 4641dacb334631ae49099e0fe4b9dde28c39390e
 
 #variables for the block scenarios
-blockvars <- bind_rows( same = btype1, messy = btype2, reasonable = btype3,
+blockvars <- bind_rows( same = btype1, 
+                        reasonable = btype3,
+                        messy = btype2, 
                         .id = "blocktype" )
+
+# How do district characteristics vary?
+blockvars
 
 #This the parameters that need to go in it
 scenarios = expand.grid( 
@@ -70,9 +100,8 @@ scenarios = expand.grid(
   n.bar=20, 
   p.bar=0.5,
   ATE = .2,
-  ICC = .2,
+  ICC.district = .2,
   num.cov.district = 0,
-  cv.nbar =0,
   blocktype=c("messy","same","reasonable"),
   
   # school-level params
