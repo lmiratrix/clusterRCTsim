@@ -17,7 +17,7 @@ library( tidyverse )
 library( lme4 )
 library( lmerTest )
 library( future )
-library("furrr")
+library(furrr)
 
 
 set.seed( 40444 )
@@ -39,16 +39,20 @@ btype1<-data.frame( cv.district=0,
                     nbar.J.cor = 0,   
                     proptx.impact.cor = 0,
                     size.intercept.cor = 0, 
-<<<<<<< HEAD
-                    variable.p=F )
+                    variable.p=F,
+                    cv.nbar= 0)
 
 #Blocks all messy: 
-#blocktype=c("messy","same","reasonable")
-=======
-                    cv.nbar = 0,
-                    variable.p=F )
+btype2<-data.frame( cv.district=.85, 
+                    sd.ATE=.6, 
+                    size.impact.cor = .8, 
+                    nbar.J.cor = .8,   
+                    proptx.impact.cor = .8, 
+                    size.intercept.cor = .8, 
+                    variable.p=T,
+                    cv.nbar= .33)
 
-
+                
 #Blocks vaguely reasonable
 btype3<-data.frame( cv.district=.33,
                     sd.ATE=0.2, 
@@ -56,33 +60,9 @@ btype3<-data.frame( cv.district=.33,
                     nbar.J.cor = .3,   
                     proptx.impact.cor = 0,
                     size.intercept.cor = .3,
-                    cv.nbar = 0.4,
-                    variable.p=F )
+                    variable.p=F,
+                    cv.nbar= .33)
 
-#Blocks all messy: 
->>>>>>> 4641dacb334631ae49099e0fe4b9dde28c39390e
-btype2<-data.frame( cv.district=.85, 
-                    sd.ATE=.6, 
-                    size.impact.cor = .8, 
-                    nbar.J.cor = .8,   
-                    proptx.impact.cor = .8, 
-                    size.intercept.cor = .8, 
-<<<<<<< HEAD
-                    variable.p=T )
-
-#variable.nbar=T, variable.p=F
-btype3<-data.frame( cv.district=.33,
-                    sd.ATE=.1, 
-                    size.impact.cor = .2, 
-                    nbar.J.cor = .1,   
-                    proptx.impact.cor = 0,
-                    size.intercept.cor = .1,
-                    variable.p=F )
-=======
-                    cv.nbar = 0.6,
-                    variable.p=TRUE )
-
->>>>>>> 4641dacb334631ae49099e0fe4b9dde28c39390e
 
 #variables for the block scenarios
 blockvars <- bind_rows( same = btype1, 
@@ -96,9 +76,9 @@ blockvars
 #This the parameters that need to go in it
 scenarios = expand.grid( 
   K=5, 
-  J.bar=c(7,10,16),
+  J.bar=c(5,10,20),
   n.bar=20, 
-  p.bar=0.5,
+  p.bar=c(0.5,0.7),
   ATE = .2,
   ICC.district = .2,
   num.cov.district = 0,
