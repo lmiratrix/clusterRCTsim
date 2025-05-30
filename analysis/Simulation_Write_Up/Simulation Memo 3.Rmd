@@ -1,9 +1,12 @@
 ---
 title: "Simulation Analysis"
 author: "Sophie Litschwartz"
-date: '2025-04-19'
+date: '2025-05-30'
 output:
-  pdf_document
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
 header-includes:
    - \usepackage{longtable}
    - \usepackage{booktabs}
@@ -13,7 +16,6 @@ header-includes:
    - \usepackage[utf8]{inputenc}
    - \usepackage{newunicodechar}
    - \newunicodechar{−}{\textminus}
-
 geometry:
   - margin=1in
 ---
@@ -21,14 +23,10 @@ geometry:
 ```{r todo, include=FALSE, echo=FALSE}
 
 #To-Do Notes:
-#re-write all the summary sections
-#include in the stuff to answer paper questions
+#edit the DGP section 
+#turn all the regression tables into trees
+#move all the tables to the end of the memo 
 
-#What drives bias and is it different for different models 
-#Move extra stuff to the end of this memo
-
-
-#what is the next round of simulations 
 
 ```
 
@@ -39,10 +37,11 @@ knitr::opts_chunk$set(
   echo = FALSE,          # Don't show code in output by default
   message = FALSE,       # Suppress messages
   warning = FALSE,       # Suppress warnings
-  fig.width = 8,         # Default figure width
-  fig.height = 6,        # Default figure height
+  fig.width = 7,         # Default figure width
+  fig.height = 5,        # Default figure height
   fig.align = "center"   # Center figures
 )
+
 
 require(tidyverse)
 require(rlang)
@@ -54,96 +53,133 @@ require(kableExtra)
 require(patchwork)
 require(gridExtra)
 require(pander)
-
+require(rpart)
+require( rpart.plot )
+require(RColorBrewer)
 
 
 select <- dplyr::select
 
+
 my_t = theme_tufte() + 
   theme( legend.position="bottom", 
-                              legend.direction="horizontal", legend.key.width=unit(1,"cm"),
-                              panel.border = element_blank(), axis.title=element_text(size=12))
+         legend.direction="horizontal",
+         legend.key.width=unit(1,"cm"),
+         panel.border = element_blank(), 
+         axis.title=element_text(size=12))
 theme_set( my_t )
- 
 
-
-DGP_vars <- c("K", "J.bar", "p.bar", "sd.ATE", "ICC", "variable.J", 
-                 "variable.p", "n.bar", "sd.school", "ICC.school", "variable.n", 
+DGP_vars <- c("K", "J.bar", "p.bar", "sd.ATE", "ICC", "variable.p", "n.bar", "sd.school", "ICC.school", 
                  "size.impact.cor", "num.cov.district","cv.nbar", "R2.school", 
                  "num.cov.school", "cv.school", "num.cov.indiv", 
-                 "empirical", "cv.district", "nbar.J.cor", "size.intercept.cor", 
-                 "variable.nbar")
+                 "empirical", "cv.district", "nbar.J.cor", "size.intercept.cor")
 
 source( here::here( "analysis/Simulation_Write_Up/load_and_prep_data.R" ) )
 
 source( here::here( "analysis/Simulation_Write_Up/create_custom_boxplot.R" ) )
+
+source( here::here( "analysis/Simulation_Write_Up/create_analysis_tree.R" ) )
+
+
 ```
 
+# How to read this document
+
+This document is divided into sections based on specific topics. In each section there is a set of summary main bullet points, a description of the analysis done in that section to support those bullet points, and the output from the analysis done in that section. The main bullet points cover a combination of answering the questions in the empirical paper and the overall questions about how each of the estimators perform under different conditions. The analysis descriptions need to be moved to be under the piece of analysis they describe, but for now I thought it was better to have it all up top. 
+
+\newpage 
+
+# Data Generating Process
+
+The simulations are a fully factored experiment with the following data generating parameters.
+
+\begin{table}[H]
+\centering
+\caption{Simulation Data Generating Parameters}
+\renewcommand{\arraystretch}{2.0}
+\begin{tabular}{|p{8cm}|p{6cm}|}
+\hline
+\rule{0pt}{4ex}\parbox[c]{8cm}{\centering\textbf{Parameter}}\rule[-2ex]{0pt}{0pt} & \parbox[c]{6cm}{\centering\textbf{Values}}\rule[-2ex]{0pt}{0pt} \\
+\hline
+\multicolumn{2}{|c|}{\textbf{Block-Level Fixed}} \\
+\hline
+Number of Blocks & 5 \\
+\hline
+Average Treatment Effect & .2 \\
+\hline
+Block-Level ICC & .2 \\
+\hline
+Average Number of Observations Per Cluster & 20 \\
+\hline
+Number of Block Level Covariates & 0 \\
+\hline
+\multicolumn{2}{|c|}{\textbf{Block-Level Varying}} \\
+\hline
+Block Type & Same, Messy, Reasonable \\
+\hline
+Average Number of Clusters per Block & 5, 10, 20 \\
+\hline
+Proportion of Clusters Treated & .5, .7 \\
+\hline
+\multicolumn{2}{|c|}{\textbf{Cluster-Level Varying}} \\
+\hline
+Correlation of Impact and Size of Cluster & 0, .8 \\
+\hline
+Cluster Level Treatment Effect Standard Deviation & 0, .3 \\
+\hline
+Cluster Level ICC & 0, .2 \\
+\hline
+How much does the size of clusters vary (coefficient of variation)? & 0, .33, .6 \\
+\hline
+Number of Cluster-Level Covariates & 0, 1, 5 [$R^2$ Always .5] \\
+\hline
+\end{tabular}
+\end{table}
 
 
-## Introduction and Overview
+\begin{table}[H]
+\centering
+\caption{Block-Type Parameters}
+\renewcommand{\arraystretch}{2.0}
+\begin{tabular}{|p{6cm}|p{2.5cm}|p{2.5cm}|p{2.5cm}|}
+\hline
+\rule{0pt}{4ex}\parbox[c]{6cm}{\centering\textbf{Parameter}}\rule[-2ex]{0pt}{0pt} & \parbox[c]{2.5cm}{\centering\textbf{Blocks All The Same}}\rule[-2ex]{0pt}{0pt} & \parbox[c]{2.5cm}{\centering\textbf{Blocks All Messy}}\rule[-2ex]{0pt}{0pt} & \parbox[c]{2.5cm}{\centering\textbf{Blocks All Reasonable}}\rule[-2ex]{0pt}{0pt} \\
+\hline
+How much do number clusters per block vary (coefficient of variation)? & 0 (none) & .85 (big) & .33 (average) \\
+\hline
+Block-Level Average Treatment Effect Standard Deviation & 0 & .6 & .1 \\
+\hline
+Correlation Between Treatment Effect and Cluster Size & 0 & .8 & .2 \\
+\hline
+Correlation Between Average Number of Observations Per Cluster and Total Number of Clusters & 0 & .8 & .1 \\
+\hline
+Correlation of Proportion of Clusters Treated per Block and Impact & 0 & .8 & 0 \\
+\hline
+Correlation Between Outcome Intercept and Cluster Size & 0 & .8 & .1 \\
+\hline
+\end{tabular}
+\end{table}
 
-*I need to write this once I figure out what goes here 
-
-## Data Generating Process
-
-The simulations are a fully factored experiment. 
-
-**Block Level Fixed Covariates**  
-Number of Blocks: 5;  ATE: .2; ICC: .2; Average Number of Observations Per Cluster: 20; Proportion of Clusters Treated: .5 (this is fixed across blocks); Number of District Level Covariates: 0; How much does the average cluster size vary across blocks (coefficient of variation)?: 0
-
-**Block Level Varying Covariates (Factors that are varied across simulations)**
-
-Three groups of block level parameters Blocks all the same, Blocks all messy, and Blocks all reasonable
-
-Blocks all the same: How much do number clusters per block vary (coefficient of variation)?: 0 (none);  ATE SD: 0; Correlation Between Treatment Effect and Cluster Size: 0; Correlation Between Average Number of Observations Per Cluster and Total Number of Clusters: 0; Correlation of Proportion of Clusters Treated per Block and Impact: 0; Correlation Between Outcome Intercept and Cluster Size: 0
-
-Blocks all messy: How much do number clusters per block vary (coefficient of variation)?: .85 (big); ATE SD: .6; Correlation Between Treatment Effect and Cluster Size: .8; Correlation Between Average Number of Observations Per Cluster and Total Number of Clusters: .8; Correlation of Proportion of Clusters Treated per Block and Impact: .8; Correlation Between Outcome Intercept and Cluster Size: .8
-
-Blocks all reasonable: How much do number clusters per block vary (coefficient of variation)?: .33 (average); ATE SD: .1; Correlation Between Treatment Effect and Cluster Size: .2; Correlation Between Average Number of Observations Per Cluster and Total Number of Clusters: .1; Correlation of Proportion of Clusters Treated per Block and Impact: 0; Correlation Between Outcome Intercept and Cluster Size: .1
-
-Each of the rest of these factors don't vary as a group but vary each individually and are fully factored with all other factors:
-
-Average Number of Clusters per Block: 7,10,16
-
-**Cluster Level Varying Parameters**
-
-Correlation of Impact and Size of Cluster: 0, .8
-
-Cluster Level Treatment Effect Standard Deviation: 0, .3
-
-Cluster Level ICC: 0, .2
-
-Number of Observations Per Cluster Varies: True, False 
-
-How much does the size of clusters vary (coefficient of variation)?: 0, .33, .6 
-
-Number of School-Level Covariates: 0, 1, 5
-
-[School Level Covariate R Squared is always .5]
+# What does the bias look like for each estimator 
 
 
-## What does the bias look like for each estimator 
+## Main Bullet Points:
 
+- The estimators theory says are unbiased do indeed have no bias (or have very low bias) across the full range of simulations
 
-*The next thing to do is to move all the simulation questions I'm answering to my emails and also to attach the page numbers to the analysis 
+- For most of the estimators that are biased, the mean bias is mostly driven by large differences across blocks. With the largest bias in cases with large differences across blocks, 10 or 20 clusters, and unbalanced assignment to treatment (mean p =.7).
 
-Main Bullet Points:
+- The LRapw−FIpw−db has bias as large as -.033, which from the regression tree is an driven by a correlation between the treatment effect and cluster size and then variance in cluster size and treatment effect. This is consistent with theory.  
 
-*The estimators theory says are unbiased are indeed consistently unbiased (or have very low bias across the full range of simulations)
+## Description of Analysis
 
-*The LRapw−FIpw−db has bias as large as -.025, which seems from the statistical model to be driven by the interactions of a large treatment effect standard deviation across clusters, high variability in cluster size, and correlations between treatment effect and cluster size. This is consitent with theory. 
+- The first graph is a boxplot of mean bias across the different scenarios by method. The faint horizontal lines go out to the full range, the bars are the 1% to 99%, and the boxes are the 10% to 90%.
 
-*For the various estimators that are biased, the mean bias is mostly driven by the different blocks being different from each other  
+- The second graph is a regression tree which predicts the magnitude of the mean bias using different data generating parameters and also flags for if the method is an MLM, is fully interacted, is cluster weighted, or is person weighted.
 
+- The third graph is a the same regression tree above, but just for the LRapw−FIpw−db. The indicators for MLM, FI, cluster weighted, and person weighted are dropped for this regression.   
 
-Description of Analysis
-
-*The graph is a boxplot of mean bias across the different scenarios by method. The faint horizontal lines go out to the full range, the bars are the 1% to 99%, and the boxes are the 10% to 90%.
-
-*The first table contains the regression coefficients from a regression that predicts the magnitude of the mean bias using different data generating parameters. Each regression is run separately by estimator and mean bias is the mean bias against the targeted estimator. 
-
-*The second table contains the DGPs that produce that largest magnitude of mean bias for each method, conditional on the magnitude of the mean bias being at least .1 . Where again mean bias is the mean bias against the targeted estimator. 
+- The first table contains the DGPs that produce that largest magnitude of mean bias for each method, conditional on the magnitude of the mean bias being at least .1 . Where again mean bias is the mean bias against the targeted estimator. 
 
 
 ```{r bias, include=TRUE, echo=FALSE}
@@ -162,8 +198,50 @@ bias_plot <- create_custom_boxplot(
 print(bias_plot)
 
 ```
+```{r biastree, include=TRUE, echo=FALSE, results='asis'}
 
-```{r biasmodel, include=TRUE, echo=FALSE, results='asis'}
+
+
+tree1<-create_analysis_tree(sruns.graph.bias, "bias.s.estimand.mag", tree_title = "Decision Tree for Magnitude of Bias for Targeted Estimand")
+
+tree2<-create_analysis_tree(sruns.graph.bias %>% filter(method=="LRapw-FIpw-db"), "bias.s.estimand.mag", 
+                         predictor_vars = c("blk_type", "J.bar", "cor_J_tau", "sd.sch", "ICC.sch", 
+                                                 "cv.sch", "num.cov", "p.bar"),
+                         tree_title = "Regression Tree, Magnitude of Bias for LRapw-FIpw-db Method")
+
+
+result <- create_top_n_table(
+  data = sruns.clean,
+  column_to_rank_by = "bias.s.estimand.mag",
+  methods_to_include = core.methods,
+  n = 5,
+  abs_value = TRUE,
+  descending = TRUE,
+  min_threshold = 0.02,
+  columns_to_display = c("method", "bias.s.estimand", "J.bar", "sd.school", 
+                        "ICC.school", "cv.school", "num.cov.school", 
+                        "size.impact.cor.school", "block_type","p.bar")
+)
+
+# The result contains both the raw data frame and the formatted pander table
+# You can access the formatted table directly
+
+
+cat("\n")
+cat("### Top Five Scenarios with Most Bias by Method \n\n")
+
+  # Create justification vector - left for first column, center for others
+  justify <- c('left', rep('center', ncol(result)-1))
+  
+  # Use pander to format the table
+  pander(result, 
+        justify = justify,
+        style = 'multiline',
+        split.tables = Inf)
+
+```
+
+```{r biasmodel, include=FALSE, echo=FALSE, results='asis'}
 
 # Create a list to store models
 models_by_method <- list()
@@ -178,7 +256,7 @@ for (m in core.methods) {
   # Note: I'm using bias.s.estimand as you specified in your formula
   # Make sure this column exists or replace with the correct one
   models_by_method[[m]] <- lm(bias.s.estimand.mag ~ (block_type + J.bar + size.impact.cor.school + 
-                                                 sd.school + ICC.school + variable.n + 
+                                                 sd.school + ICC.school + 
                                                  cv.school + num.cov.school)^2, 
                               data = method_data)
   
@@ -384,166 +462,42 @@ create_star_comparison_table <- function(model_list) {
   return(result)
 }
 
-create_top_n_table <- function(data, 
-                              column_to_rank_by, 
-                              methods_to_include = NULL,
-                              n = 5, 
-                              abs_value = TRUE, 
-                              descending = TRUE,
-                              min_threshold = NULL,
-                              columns_to_display = NULL) {
-  
-  # Make a copy of the data
-  df <- data
-  
-  # Convert column_to_rank_by to symbol for dplyr operations
-  col_sym <- sym(column_to_rank_by)
-  
-  # Filter methods if specified
-  if (!is.null(methods_to_include)) {
-    df <- df %>% filter(method %in% methods_to_include)
-  }
-  
-  # Setup ranking
-  if (abs_value) {
-    # Use absolute value for ranking
-    df <- df %>%
-      group_by(method) %>%
-      arrange(desc(abs(!!col_sym))) %>%
-      slice_head(n = n)
-  } else {
-    # Use actual value for ranking
-    if (descending) {
-      df <- df %>%
-        group_by(method) %>%
-        arrange(desc(!!col_sym)) %>%
-        slice_head(n = n)
-    } else {
-      df <- df %>%
-        group_by(method) %>%
-        arrange(!!col_sym) %>%
-        slice_head(n = n)
-    }
-  }
-  
-  # Sort methods alphabetically
-  df <- df %>% arrange(method)
-  
-  # Apply threshold if specified
-  if (!is.null(min_threshold)) {
-    if (abs_value) {
-      df <- df %>% filter(abs(!!col_sym) > min_threshold)
-    } else {
-      if (descending) {
-        df <- df %>% filter(!!col_sym > min_threshold)
-      } else {
-        df <- df %>% filter(!!col_sym < min_threshold)
-      }
-    }
-  }
-  
-  # Select columns to display
-  if (!is.null(columns_to_display)) {
-    df <- df %>% select(all_of(columns_to_display))
-  }
-  
-  # Convert to data frame
-  df <- as.data.frame(df)
-  
-  # Wrap column names
-  current_names <- names(df)
-  for (i in 1:length(current_names)) {
-    if (nchar(current_names[i]) > 7) {  # If name is longer than 7 characters
-      # Find a good breaking point (space, underscore, etc.)
-      mid_point <- ceiling(nchar(current_names[i]) / 2)
-      
-      # Look for a space near the middle
-      space_pos <- as.numeric(regexpr("[ \\._]", substr(current_names[i], mid_point-2, mid_point+2)))
-      
-      if (space_pos > 0) {
-        # Break at the space
-        break_point <- mid_point - 3 + space_pos
-        names(df)[i] <- paste0(
-          substr(current_names[i], 1, break_point-1),
-          "\n",
-          substr(current_names[i], break_point+1, nchar(current_names[i]))
-        )
-      } else {
-        # No space found, just break in the middle
-        names(df)[i] <- paste0(
-          substr(current_names[i], 1, mid_point),
-          "\n",
-          substr(current_names[i], mid_point+1, nchar(current_names[i]))
-        )
-      }
-    }
-  }
-  
-  
-  # Return the data frame
-  return(df)
-}
 
 
-result <- create_top_n_table(
-  data = sruns.clean,
-  column_to_rank_by = "bias.s.estimand.mag",
-  methods_to_include = core.methods,
-  n = 5,
-  abs_value = TRUE,
-  descending = TRUE,
-  min_threshold = 0.10,
-  columns_to_display = c("method", "bias.s.estimand", "J.bar", "sd.school", 
-                        "ICC.school", "cv.school", "num.cov.school", 
-                        "size.impact.cor.school", "block_type")
-)
-
-# The result contains both the raw data frame and the formatted pander table
-# You can access the formatted table directly
-
-
-cat("\n")
-cat("### Top Five Scenarios with Most Bias by Method \n\n")
-
-  # Create justification vector - left for first column, center for others
-  justify <- c('left', rep('center', ncol(result)-1))
-  
-  # Use pander to format the table
-  pander(result, 
-        justify = justify,
-        style = 'multiline',
-        split.tables = Inf)
   
 ```
 
 
-## What does the error look like for each estimator 
+# What does the standard error look like for each estimator 
 
-Main Bullet Points:
+## Main Bullet Points:
 
-*For the person weighted estimators, the unbiased estimator both has less error and is more stable than the biased estimator. 
+- For the person weighted estimators, the unbiased estimator both has less error and is more stable than the biased estimator. 
 
-*For the cluster weighted estimators, the unbiased estimator generally has less error than the biased estimators but more instablity. 
+- For the cluster weighted estimators, the unbiased estimator generally has less error than the biased estimators but more instablity. 
 
-*The MLM estimators are the most stable, which fits with theory. 
+- The MLM estimators are the most stable, which fits with theory. 
 
-*High RMSE and estimate instability is driven by a low number of clusters, the interaction of a low number of clusters and high cluster level ICC, and high cluster level treatment effect variance. 
+- High RMSE and estimate instability is driven by a cluster ICC and a low number of clusters
 
-*Re the question on pg. 39, looking at the second boxplot shows that true S.E. do vary across estimators with the true standard error in a given DGP often 40% bigger for some estimates than the median estimate in that DPG. 
+## Answers to Questions In the Emperical Paper 
 
-Description of Analysis:
+- Re the question on pg. 39, looking at the second boxplot shows that true S.E. do vary across estimators with the true standard error in a given DGP often 40% bigger for some estimates than the median estimate in that DPG. 
 
-*The first graph is a boxplot of the normalized RMSE across the different scenarios by method. The normalized RMSE is the RMSE for given method divided by the median RMSE across methods within a given simulation scenario. Therefore each data point is adjusted for the underlying base RMSE from a given set of DGPs and represents the RMSE driven by the estimation method.
+## Description of Analysis:
 
-*The second graph is a boxplot of the normalized estimate standard deviation across the different scenarios by method. This is also normalized by dividing by the median estimate standard deviation within a given simulation scenario. 
+- The first graph is a boxplot of the normalized RMSE across the different scenarios by method. The normalized RMSE is the RMSE for given method divided by the median RMSE across methods within a given simulation scenario. Therefore each data point is adjusted for the underlying base RMSE from a given set of DGPs and represents the RMSE driven by the estimation method.
 
-*The first table contains the regression coefficients from a regression that predicts the RMSE using different data generating parameters and the second table is from regressions predicting the estimate standard deviation. Each regression is run separately by estimator and the RMSE is against the targeted estimator. 
+- The second graph is a boxplot of the normalized estimate standard deviation across the different scenarios by method. This is also normalized by dividing by the median estimate standard deviation within a given simulation scenario. 
 
-*The second table contains the DGPs that produce the normalized RMSE (against the targeted estimator) for each method, conditional on the magnitude of the being at least 1.10. 
+- The third graph is a regression tree which predicts the root mean squared error (RMSE) against the targeted estimand using different data generating parameters and also flags for if the method is an MLM, is fully interacted, is cluster weighted, or is person weighted.
 
-*The third table contains the regression coefficients from a regression that predicts the true superpopulation estimate standard error using different data generating parameters.
 
-*The fourth table contains the five DGPs that produce the most normalized super population estimator standard error for each method, conditional on the magnitude of the being at least 1.10. 
+- The fourth graph is a regression tree which predicts the true super population standard error using different data generating parameters and also flags for if the method is an MLM, is fully interacted, is cluster weighted, or is person weighted.
+
+- The first table contains the five DGPs that produce the five most normalized RMSE (against the targeted estimator) for each method, conditional on the magnitude of the being at least 1.10. 
+
+- The fourth table contains the five DGPs that produce the most normalized super population standard error for each method, conditional on the magnitude of the being at least 1.10. 
 
 
 ```{r rmse, include=TRUE, echo=FALSE, results='asis'}
@@ -581,6 +535,80 @@ print(stab_plot)
 
 #RMSE prediction models table 
 
+
+tree2<-create_analysis_tree(sruns.graph.rmse, outcome_var = "RMSE.s.estimand", tree_title = "Decision Tree for RMSE Against Targeted Estimand")
+
+tree3<-create_analysis_tree(sruns.graph.rmse, outcome_var = "SE.s", tree_title = "Decision Tree for Super Population True Standard Error")
+
+
+
+result <- create_top_n_table(
+  data = sruns.graph.rmse,
+  column_to_rank_by = "RMSE.s.estimand.norm",
+  methods_to_include = core.methods,
+  n = 5,
+  abs_value = TRUE,
+  descending = TRUE,
+  min_threshold = 1.10,
+  columns_to_display = c("method", "RMSE.s.estimand.norm","RMSE.s.estimand", "J.bar", "sd.school", 
+                        "ICC.school", "cv.school", "num.cov.school", 
+                        "size.impact.cor.school", "block_type")
+)
+
+# The result contains both the raw data frame and the formatted pander table
+# You can access the formatted table directly
+
+
+cat("\n")
+cat("### Top Five Scenarios with Largest Normalized RMSE by Method \n\n")
+
+  # Create justification vector - left for first column, center for others
+  justify <- c('left', rep('center', ncol(result)-1))
+  
+  # Use pander to format the table
+  pander(result, 
+        justify = justify,
+        style = 'multiline',
+        split.tables = Inf)
+
+
+result <- create_top_n_table(
+  data = sruns.graph.stab,
+  column_to_rank_by = "SE.s.norm",
+  methods_to_include = core.methods,
+  n = 5,
+  abs_value = TRUE,
+  descending = TRUE,
+  min_threshold = 1.10,
+  columns_to_display = c("method", "SE.s.norm","SE.s", "J.bar", "sd.school", 
+                        "ICC.school", "cv.school", "num.cov.school", 
+                        "size.impact.cor.school", "block_type")
+)
+
+# The result contains both the raw data frame and the formatted pander table
+# You can access the formatted table directly
+
+
+cat("\n")
+cat("### Top Five Scenarios with Largest Normalized Estimate Standard Error by Method \n\n")
+
+  # Create justification vector - left for first column, center for others
+  justify <- c('left', rep('center', ncol(result)-1))
+  
+  # Use pander to format the table
+  pander(result, 
+        justify = justify,
+        style = 'multiline',
+        split.tables = Inf)
+
+```
+
+```{r rmsemodels, include=FALSE, echo=FALSE, results='asis'}
+
+
+
+#RMSE prediction models table 
+
 # Create a list to store models
 models_by_method <- list()
 model_summaries <- list()
@@ -595,7 +623,7 @@ for (m in core.methods) {
   # Note: I'm using bias.s.estimand as you specified in your formula
   # Make sure this column exists or replace with the correct one
   models_by_method[[m]] <- lm(RMSE.s.estimand~ (block_type + J.bar + size.impact.cor.school + 
-                                                 sd.school + ICC.school + variable.n + 
+                                                 sd.school + ICC.school + 
                                                  cv.school + num.cov.school)^2, 
                               data = method_data)
   
@@ -646,21 +674,6 @@ result <- create_top_n_table(
 # You can access the formatted table directly
 
 
-cat("\n")
-cat("### Top Five Scenarios with Largest Normalized RMSE by Method \n\n")
-
-  # Create justification vector - left for first column, center for others
-  justify <- c('left', rep('center', ncol(result)-1))
-  
-  # Use pander to format the table
-  pander(result, 
-        justify = justify,
-        style = 'multiline',
-        split.tables = Inf)
-
-
-
-
 #Instability prediction models table 
 # Create a list to store models
 models_by_method <- list()
@@ -677,7 +690,7 @@ for (m in core.methods) {
   # Note: I'm using bias.s.estimand as you specified in your formula
   # Make sure this column exists or replace with the correct one
   models_by_method[[m]] <- lm(SE.s~ (block_type + J.bar + size.impact.cor.school + 
-                                                 sd.school + ICC.school + variable.n + 
+                                                 sd.school + ICC.school + 
                                                  cv.school + num.cov.school)^2, 
                               data = method_data)
   
@@ -710,77 +723,46 @@ pander(coef_table,
 cat("\n*Significance: '\\*\\*\\*' 0.001 '\\*\\*' 0.01 '\\*' 0.05 '.' 0.1*\n")
 cat("\\endgroup\n")  # This restores the previous font size
 
-
-result <- create_top_n_table(
-  data = sruns.graph.stab,
-  column_to_rank_by = "SE.s.norm",
-  methods_to_include = core.methods,
-  n = 5,
-  abs_value = TRUE,
-  descending = TRUE,
-  min_threshold = 1.10,
-  columns_to_display = c("method", "SE.s.norm","SE.s", "J.bar", "sd.school", 
-                        "ICC.school", "cv.school", "num.cov.school", 
-                        "size.impact.cor.school", "block_type")
-)
-
-# The result contains both the raw data frame and the formatted pander table
-# You can access the formatted table directly
-
-
-cat("\n")
-cat("### Top Five Scenarios with Largest Normalized Estimate Standard Error by Method \n\n")
-
-  # Create justification vector - left for first column, center for others
-  justify <- c('left', rep('center', ncol(result)-1))
-  
-  # Use pander to format the table
-  pander(result, 
-        justify = justify,
-        style = 'multiline',
-        split.tables = Inf)
-
 ```
 
-## What do the estimated standard errors look like for each estimator
 
-Main Bullet Points:
+# What do the estimated standard errors look like for each estimator
 
-*This section answers the rest of the questions from pg.39 (i.e. are certain SE estimators more accurate than others) 
+## Main Bullet Points:
 
-*For the cluster targeted estimates the unbiased estimators produce more accurate standard errors than the biased estimators (graph one). The unbiased estimators produce more unstable estimates than the biased estimators, but in 90% of the DGP we looked at they aren't a lot more unstable (graph four).
+- This section answers the rest of the questions from pg.39 (i.e. are certain SE estimators more accurate than others) 
 
-*For the person targeted estimates the unbiased estimators produce more accurate standard errors than the biased estimators (graph one), except when the school ICC is zero and the blocks are all very dissimilar from each other and their is high variance in the cluster sizes. if all three of these risk factors are not present than the unbiased estimator standard estimates are generally fine (graph two). The unbiased estimators produce more unstable estimates than the biased estimators unless all three of these factors are present (graphs four and five). However they aren't a lot more unstable, 90% of the time they're within about 10% of the median instability. 
+- For the cluster targeted estimates the fully interacted estimators produce more accurate standard errors than the other estimators (graph one). The unbiased estimators produce more unstable estimates than the biased estimators, but in 90% of the DGP we looked at they aren't a lot more unstable (graph four).
 
-*This section also answers the question from pg. 38 about the instability of the estimated standard erros for the fully interacted models, what I've been calling hte unbiased estimators. The simulations do not really show that the standard errors from the fully interacted models are lot more unstable than the other standard errors. We should talk about this more, and what would be helpful for me to dig into more. 
+- For the person targeted estimates the fully interacted estimators produce more accurate standard errors than the other estimators (graphs one, two and three). The fully interacted estimators produce more unstable estimates than the other estimators (graph four). However they aren't a lot more unstable, 90% of the time they're within about 10% of the median instability and fully interacted doesn't come up in the regression tree (graph five). 
+
+- This section also answers the question from pg. 38 about the instability of the estimated standard errors for the fully interacted models. The simulations do not really show that the standard errors from the fully interacted models are lot more unstable than the other standard errors. We should talk about this more, and what would be helpful for me to dig into more. 
 
 
-Description of Analysis:
+## Description of Analysis:
 
-*The first graph is a boxplot of the estimated standard error accuracy across the different scenarios by method. Standard error accuracy is quantified as the estimated standard error over the true super population standard error. Estimated standard errors are most accurate if the number is close to one. Numbers below one represent under estimated standard errors and numbers above one represent over estimated standard errors. 
+- The first graph is a boxplot of the estimated standard error accuracy across the different scenarios by method. Standard error accuracy is quantified as the estimated standard error over the true super population standard error. Estimated standard errors are most accurate if the number is close to one. Numbers below one represent under estimated standard errors and numbers above one represent over estimated standard errors. [Luke had a comment on this graph that I couldn't read and need to follow up on]
 
-*The second graph is the same as the first but for just the person weighted fully interacted estimators broken out by identified "risk factors" for poorly estimated standard errors. In the graph on the left the school level ICC is zero, the blocks are all messy, and there is high variance in the cluster size and the graph on the right does not have all three of these things at the same time. 
+- The second graph is a regression tree which predicts the standard error inflation (estimated standard error over the true super population standard error) using different data generating parameters and also flags for if the method is an MLM, is fully interacted, is cluster weighted, or is person weighted.
 
-*The third graph is a boxplot of the standard deviation of the estimated standard error across the different replications by method. 
+-  For the third graph, I was having trouble conceptualizing the scale of standard error inflation, so I made a regression tree where I converted it to percentage inaccuracy. The regression tree here is therefore predicting the magnitude of ((Mean Estimated SE - True Super Population SE) / True Super Population SE) * 100.  
 
-*The forth graph is a boxplot of the normalized standard deviation of the estimated standard error across the different replications by method. 
+- The first table contains the five DGPs that produce the most inaccurate standard error estimates for each method, conditional on the magnitude of the inaccuracy being at least .1. 
 
-*The fifth graph is the same as the fourth graph but broken by the same risk factors as before. 
+- The fourth graph is a boxplot of the standard deviation of the estimated standard error across the different replications divided by the true estimate standard error by method. 
 
-* I was having trouble conceptualizing the scale of standard error inflation, so for the regression I converted it to percentage inaccuracy. The regression's for table one are therefore predicting the magnitude of ((Mean Estimated SE - True Super Population SE) / True Super Population SE) * 100.  
+- The fifth graph is a boxplot of the normalized standard deviation of the estimated standard error across the different replications by method. 
 
-*The second table contains the five DGPs that produce the most inaccurate standard error estimates for each method, conditional on the magnitude of the inaccuracy being at least .1. 
+- The sixth graph is a regression tree which predicts instability in the standard error estimate using different data generating parameters and also flags for if the method is an MLM, is fully interacted, is cluster weighted, or is person weighted.  Here  instability in the standard error estimate is quantified as the standard deviation of the estimated standard error across the different replications divided by the true estimate standard error by method
 
-*The third table contains the regression coefficients from a regression that predicts the standard deviation of the standard errors across simulations using different data generating parameters.
+- The second table contains the five DGPs that produce the largest standard deviation in the standard error estimates for each method, conditional on the magnitude being at least .05. 
 
-*The fourth table contains the five DGPs that produce the largest standard deviation in the standard error estimates for each method, conditional on the magnitude being at least .05. 
-
-*The fifth table contains the five DGPs that produce the largest normalized standard deviation in the standard error estimates for each method, conditional on the magnitude being at least 1.10. 
+- The third table contains the five DGPs that produce the largest normalized standard deviation in the standard error estimates for each method, conditional on the magnitude being at least 1.10. 
 
 
 ```{r infl, include=TRUE, echo=FALSE, results='asis'}
 
-inf_plot <- create_custom_boxplot(
+inf_plot <- create_custom_boxplot2(
   plot_data, 
   "inflate.s", 
   "Super Population Estimated Standard Error Accuracy by Method", 
@@ -793,6 +775,129 @@ inf_plot <- create_custom_boxplot(
 )
 print(inf_plot)
 
+
+
+tree4<-create_analysis_tree( plot_data,  "inflate.s", tree_title = "Decision Tree of Ratio of Estimated SE over True Super SE")
+
+plot_data<-plot_data %>% mutate(perc.off.SE.s=abs((mean.SE.hat-SE.s)/SE.s))
+
+tree5<-create_analysis_tree( plot_data,"perc.off.SE.s",tree_title = "Decision Tree of Percentage Estimated SE is Off")
+
+sruns.inflate<-sruns.clean %>% mutate(perc.S.error=abs((mean.SE.hat-SE.s)/SE.s))
+
+result <- create_top_n_table(
+  data = sruns.inflate,
+  column_to_rank_by = "perc.S.error",
+  methods_to_include = core.methods.se,
+  n = 5,
+  abs_value = TRUE,
+  descending = TRUE,
+  min_threshold = 0.1,
+  columns_to_display = c("method", "inflate.s","J.bar", "sd.school", 
+                        "ICC.school", "cv.school", "num.cov.school", 
+                        "size.impact.cor.school", "block_type")
+)
+
+# The result contains both the raw data frame and the formatted pander table
+# You can access the formatted table directly
+
+
+cat("\n")
+cat("### Top Five Scenarios with Most SE Estimate Inaccuracy by Method \n\n")
+
+  # Create justification vector - left for first column, center for others
+  justify <- c('left', rep('center', ncol(result)-1))
+  
+  # Use pander to format the table
+  pander(result, 
+        justify = justify,
+        style = 'multiline',
+        split.tables = Inf)
+
+
+#standard deviation of se hat across replications
+#it's sd.SE.hat.s
+#normalized se stability 
+sruns.graph.sdstab.norm <-plot_data  %>% mutate(sd.SE.hat.s.norm=(sd.SE.hat.s/sd.SE.hat.s.median),
+                                                adj.sd.SE.hat.s=sd.SE.hat.s/SE.s)
+
+
+sdstab_plot <- create_custom_boxplot2(
+  sruns.graph.sdstab.norm, 
+  "adj.sd.SE.hat.s", 
+ "Stability of Standard Error Estimate by Method", 
+  "Standard Deviation of Estimated Standard Error Across Replications over True Standard Error"
+)
+print(sdstab_plot)
+
+sdstabnorm_plot <- create_custom_boxplot2(
+  sruns.graph.sdstab.norm, 
+  "sd.SE.hat.s.norm", 
+ "Comparative Stability of Standard Error Estimate by Method", 
+  "Normalized Standard Deviation of Estimated Standard Error Across Replications",
+ vline_at = 1,
+ log_scale=TRUE
+) + scale_y_log10(
+  limits = c(0.25, 2.5),  # Sets the min and max values shown on the axis
+  breaks = c(.3,0.5,.7,1.0,1.3,1.7,2.0,2.5)
+)
+
+
+print(sdstabnorm_plot)
+
+tree6<-create_analysis_tree(sruns.graph.sdstab.norm , "adj.sd.SE.hat.s",  tree_title = "Decision Tree of Ratio of SD of Estimated SE over True Super SE")
+
+
+cat("\n")
+cat("### Top Five Scenarios with Most SE Estimate Instability by Method \n\n")
+
+  # Create justification vector - left for first column, center for others
+  justify <- c('left', rep('center', ncol(result)-1))
+  
+  # Use pander to format the table
+  pander(result, 
+        justify = justify,
+        style = 'multiline',
+        split.tables = Inf)
+
+#most relative instability
+  
+  result <- create_top_n_table(
+  data =  sruns.graph.sdstab.norm,
+  column_to_rank_by = "sd.SE.hat.s.norm",
+  methods_to_include = core.methods.se,
+  n = 5,
+  abs_value = TRUE,
+  descending = TRUE,
+  min_threshold = 1.10,
+  columns_to_display = c("method", "sd.SE.hat.s.norm","sd.SE.hat.s","J.bar", "sd.school", 
+                        "ICC.school", "cv.school", "num.cov.school", 
+                        "size.impact.cor.school", "block_type")
+)
+
+# The result contains both the raw data frame and the formatted pander table
+# You can access the formatted table directly
+
+
+cat("\n")
+cat("### Top Five Scenarios with Most Normalized SE Estimate Instability by Method \n\n")
+
+  # Create justification vector - left for first column, center for others
+  justify <- c('left', rep('center', ncol(result)-1))
+  
+  # Use pander to format the table
+  pander(result, 
+        justify = justify,
+        style = 'multiline',
+        split.tables = Inf)
+
+
+```
+
+
+```{r semodel, include=FALSE, echo=FALSE, results='asis'}
+
+
 cat("\n")
 cat("### The Risk Factors are School Level ICC = 0 & Blocks All Different & High Variance in Cluster Size\n\n")
 
@@ -804,7 +909,6 @@ plot_data %>% filter(ICC.school=="0"& block_type=="L" & cv.school=="L" & method 
   vline_at=1,
     log_scale = TRUE
 )
-
 
 inf_plot.ICC<- create_custom_boxplot(
 plot_data %>% filter(!(ICC.school=="0" & block_type=="L" & cv.school=="L") & method %in% c("LRapw-FIpw-db","LRapw-FIpw-het","LRi-FIpw-crve","LRi-FIpw-db")), 
@@ -821,68 +925,6 @@ grid.arrange(inf_plot.noICC+ scale_y_log10(
   ncol = 2)
 
 
-#standard deviation of se hat across replications
-#it's sd.SE.hat.s
-
-sdstab_plot <- create_custom_boxplot(
-  plot_data, 
-  "sd.SE.hat.s", 
- "Stability of Standard Error Estimate by Method", 
-  "Standard Deviation of Estimated Standard Error Across Replications"
-)
-print(sdstab_plot)
-
-#normalized se stability 
-sruns.graph.sdstab.norm <-plot_data  %>% mutate(sd.SE.hat.s.norm=(sd.SE.hat.s/sd.SE.hat.s.median))
-
-sdstabnorm_plot <- create_custom_boxplot(
-  sruns.graph.sdstab.norm, 
-  "sd.SE.hat.s.norm", 
- "Comparative Stability of Standard Error Estimate by Method", 
-  "Normalized Standard Deviation of Estimated Standard Error Across Replications",
- vline_at = 1,
- log_scale=TRUE
-) + scale_y_log10(
-  limits = c(0.25, 2.5),  # Sets the min and max values shown on the axis
-  breaks = c(.3,0.5,.7,1.0,1.3,1.7,2.0,2.5)
-)
-
-
-print(sdstabnorm_plot)
-
-
-cat("\n")
-cat("### The Risk Factors are School Level ICC = 0 & Blocks All Different & High Variance in Cluster Size\n\n")
-
-inf_plot.noICC<- create_custom_boxplot(
-sruns.graph.sdstab.norm %>% filter(ICC.school=="0"& block_type=="L" & cv.school=="L"), 
-  "sd.SE.hat.s.norm", 
-  "All Three Risk Factors", 
-  "",
-  vline_at=1,
-    log_scale = TRUE
-)
-
-
-inf_plot.ICC<- create_custom_boxplot(
-sruns.graph.sdstab.norm %>% filter(!(ICC.school=="0" & block_type=="L" & cv.school=="L") ), 
-  "sd.SE.hat.s.norm", 
-  "No More than Two Risk Factors", 
-   "Normalized Standard Deviation of Estimated Standard Error Across Replications",
-  vline_at=1,
-    log_scale = TRUE
-)
-
-grid.arrange(inf_plot.noICC+ scale_y_log10(
-  breaks = c(.3,.5,0.7,1,1.5,2.0),limits=c(.2,2.4))+theme(legend.position = "none"), 
-  inf_plot.ICC+theme(legend.position = "none")+scale_y_log10(breaks = c(.3,.50,.7,1,1.5,2.0),limits=c(.2,2.4)),
-  ncol = 2)
-
-
-
-```
-
-```{r semodel, include=TRUE, echo=FALSE, results='asis'}
 
 #error inflation model
 # Create a list to store models
@@ -897,7 +939,7 @@ for (m in core.methods.se) {
   # Run the model for this method
   # Make sure this column exists or replace with the correct one
   models_by_method[[m]] <- lm(abs((mean.SE.hat-SE.s)/SE.s)*100~ (block_type + J.bar + size.impact.cor.school + 
-                                                 sd.school + ICC.school + variable.n + 
+                                                 sd.school + ICC.school + 
                                                  cv.school + num.cov.school)^2, 
                               data = method_data)
   
@@ -1034,37 +1076,35 @@ pander(coef_table,
 cat("\n*Significance: '\\*\\*\\*' 0.001 '\\*\\*' 0.01 '\\*' 0.05 '.' 0.1*\n")
 cat("\\endgroup\n")  # This restores the previous font size
 
-sruns.inflate<-sruns.clean %>% mutate(perc.S.error=abs((mean.SE.hat-SE.s)/SE.s))
 
-result <- create_top_n_table(
-  data = sruns.inflate,
-  column_to_rank_by = "perc.S.error",
-  methods_to_include = core.methods.se,
-  n = 5,
-  abs_value = TRUE,
-  descending = TRUE,
-  min_threshold = 0.1,
-  columns_to_display = c("method", "inflate.s","J.bar", "sd.school", 
-                        "ICC.school", "cv.school", "num.cov.school", 
-                        "size.impact.cor.school", "block_type")
-)
-
-# The result contains both the raw data frame and the formatted pander table
-# You can access the formatted table directly
 
 
 cat("\n")
-cat("### Top Five Scenarios with Most SE Estimate Inaccuracy by Method \n\n")
+cat("### The Risk Factors are School Level ICC = 0 & Blocks All Different & High Variance in Cluster Size\n\n")
 
-  # Create justification vector - left for first column, center for others
-  justify <- c('left', rep('center', ncol(result)-1))
-  
-  # Use pander to format the table
-  pander(result, 
-        justify = justify,
-        style = 'multiline',
-        split.tables = Inf)
+inf_plot.noICC<- create_custom_boxplot(
+sruns.graph.sdstab.norm %>% filter(ICC.school=="0"& block_type=="L" & cv.school=="L"), 
+  "sd.SE.hat.s.norm", 
+  "All Three Risk Factors", 
+  "",
+  vline_at=1,
+    log_scale = TRUE
+)
 
+
+inf_plot.ICC<- create_custom_boxplot(
+sruns.graph.sdstab.norm %>% filter(!(ICC.school=="0" & block_type=="L" & cv.school=="L") ), 
+  "sd.SE.hat.s.norm", 
+  "No More than Two Risk Factors", 
+   "Normalized Standard Deviation of Estimated Standard Error Across Replications",
+  vline_at=1,
+    log_scale = TRUE
+)
+
+grid.arrange(inf_plot.noICC+ scale_y_log10(
+  breaks = c(.3,.5,0.7,1,1.5,2.0),limits=c(.2,2.4))+theme(legend.position = "none"), 
+  inf_plot.ICC+theme(legend.position = "none")+scale_y_log10(breaks = c(.3,.50,.7,1,1.5,2.0),limits=c(.2,2.4)),
+  ncol = 2)
 
 
 
@@ -1081,7 +1121,7 @@ for (m in core.methods.se) {
   # Run the model for this method
   # Make sure this column exists or replace with the correct one
   models_by_method[[m]] <- lm(sd.SE.hat.s~ (block_type + J.bar + size.impact.cor.school + 
-                                                 sd.school + ICC.school + variable.n + 
+                                                 sd.school + ICC.school + 
                                                  cv.school + num.cov.school)^2, 
                               data = method_data)
   
@@ -1134,85 +1174,44 @@ result <- create_top_n_table(
 # You can access the formatted table directly
 
 
-cat("\n")
-cat("### Top Five Scenarios with Most SE Estimate Instability by Method \n\n")
-
-  # Create justification vector - left for first column, center for others
-  justify <- c('left', rep('center', ncol(result)-1))
-  
-  # Use pander to format the table
-  pander(result, 
-        justify = justify,
-        style = 'multiline',
-        split.tables = Inf)
-
-#most relative instability
-  
-  result <- create_top_n_table(
-  data =  sruns.graph.sdstab.norm,
-  column_to_rank_by = "sd.SE.hat.s.norm",
-  methods_to_include = core.methods.se,
-  n = 5,
-  abs_value = TRUE,
-  descending = TRUE,
-  min_threshold = 1.10,
-  columns_to_display = c("method", "sd.SE.hat.s.norm","sd.SE.hat.s","J.bar", "sd.school", 
-                        "ICC.school", "cv.school", "num.cov.school", 
-                        "size.impact.cor.school", "block_type")
-)
-
-# The result contains both the raw data frame and the formatted pander table
-# You can access the formatted table directly
-
-
-cat("\n")
-cat("### Top Five Scenarios with Most Normalized SE Estimate Instability by Method \n\n")
-
-  # Create justification vector - left for first column, center for others
-  justify <- c('left', rep('center', ncol(result)-1))
-  
-  # Use pander to format the table
-  pander(result, 
-        justify = justify,
-        style = 'multiline',
-        split.tables = Inf)
-
 ```
 
-## Are the estimated standard errors targeting the finite or super population
+# Are the estimated standard errors targeting the finite or super population
 
-*This section answers the questions on page 8.
+## Main Bullet Points:
 
-*As long as the school level ICC isn't zero, than the true finite and super population standard errors are very similar to each other (graph 2). 
+- This section answers the questions on page 8.
 
-*I was having a little trouble visualizing whether the standard errors were targeting the finite population or super population standard errors, so I made up this metric: difference in % inaccuracy. This is calculated as the magnitude of ((Mean Estimated SE - True Super Population SE) / True Super Population SE) x 100 minus the magnitude of  ((Mean Estimated SE - True Finite Population SE) / True Finite Population SE) x 100. When this number is positive the estimated standard errors are closer to the true super population standard errors and when this number is negative the estimated standard errors are closer to the finite population. 
+- As long as the school level ICC isn't zero, than the true finite and super population standard errors are very similar to each other (graph 2). 
 
-*The only estimators with standard errors that are ever really significantly closer to the finite standard errors than the super population standard errors are the person weighted fully interacted one's and the fully interacted MLMs (graphs three and four). It does look like the person weighted fully interacted estimators are targeting the finite standard errors when the ICC is zero, the blocks are very dissimilar, and there is high variance in the cluster sizes. Otherwise these estimators are also targetting super population standard errors (graph five).  
+- I was having a little trouble visualizing whether the standard errors were targeting the finite population or super population standard errors, so I made up this metric: difference in % inaccuracy. This is calculated as the magnitude of ((Mean Estimated SE - True Super Population SE) / True Super Population SE) x 100 minus the magnitude of  ((Mean Estimated SE - True Finite Population SE) / True Finite Population SE) x 100. When this number is positive the estimated standard errors are closer to the true super population standard errors and when this number is negative the estimated standard errors are closer to the finite population. 
+
+- The only estimators with standard errors that are ever really significantly closer to the finite standard errors than the super population standard errors are the person weighted fully interacted ones and the fully interacted MLMs (graphs three and four). It does look like the person weighted fully interacted estimators are targeting the finite standard errors when the ICC is zero, the blocks are very dissimilar, and there is high variance in the cluster sizes. Otherwise these estimators are also targeting super population standard errors (graph five).  
 
 
 Description of Analysis:
 
-*The first graph is a boxplot of ratio of the true finite standard errors over the true super population standard errors across the different scenarios by method. When this metric is one the two standard errors are the same, when it's above one the finite population standard errors are bigger and when it's below one the super population standard errors are bigger. 
+- The first graph is a boxplot of ratio of the true finite standard errors over the true super population standard errors across the different scenarios by method. When this metric is one the two standard errors are the same, when it's above one the finite population standard errors are bigger and when it's below one the super population standard errors are bigger. 
 
-*The second graph is the same as the first but broken out by ICC. In the graph on the left the school level ICC is zero and on the right it's .20.
+- The second graph is the same as the first but broken out by ICC. In the graph on the left the school level ICC is .20 and on the right it's zero.
 
-*The third graph is a boxplot of the difference in % inaccuracy across methods. This is calculated as the magnitude of ((Mean Estimated SE - True Super Population SE) / True Super Population SE) x 100 minus the magnitude of  ((Mean Estimated SE - True Finite Population SE) / True Finite Population SE) x 100. When this number is positive the estimated standard errors are closer to the true super population standard errors and when this number is negative the estimated standard errors are closer to the finite population. 
+- The third graph is a boxplot of the difference in % inaccuracy across methods. This is calculated as the magnitude of ((Mean Estimated SE - True Super Population SE) / True Super Population SE) x 100 minus the magnitude of  ((Mean Estimated SE - True Finite Population SE) / True Finite Population SE) x 100. When this number is positive the estimated standard errors are closer to the true super population standard errors and when this number is negative the estimated standard errors are closer to the finite population. 
 
-*The fourth graph is the same as the third but broken out by ICC. In the graph on the left the school level ICC is zero and on the right it's .20.
+- The fourth graph is the same as the third but broken out by ICC. In the graph on the left the school level ICC is .20 and on the right it's zero.
 
-*The fifth graph is a boxplot of the difference in % inaccuracy across methods, but only for the methods that might be targeting the finite population standard errors and only when the school level ICC is zero, the blocks are all messy, and the cluster size coefficient of variation is large. 
+- The fifth graph is a boxplot of the difference in % inaccuracy across methods, but only for the methods that might be targeting the finite population standard errors and only when the school level ICC is zero, the blocks are all messy, and the cluster size coefficient of variation is large. 
 
-*The table contains the five DGPs that produce the largest difference in % inaccuracy for each method, conditional on the magnitude being at least five percentage points. 
+- The table contains the five DGPs that produce the largest difference in % inaccuracy for each method, conditional on the magnitude being at least five percentage points. 
 
 
 ```{r finite, include=TRUE, echo=FALSE, results='asis'}
 
 #plot true ratio  
 sruns.finite<-plot_data %>% mutate(dif=(abs((mean.SE.hat-SE.f)/SE.f)-abs((mean.SE.hat-SE.s)/SE.s)) * 100)
-sruns.finite.ICC<-sruns.finite %>% filter(ICC.school %in% c("L"))
+sruns.finite.ICC<-sruns.finite %>% filter(ICC.school %in% c("+"))
 sruns.finite.noICC<-sruns.finite %>% filter(ICC.school %in% c("0"))
 
-fin_plot <- create_custom_boxplot(
+fin_plot <- create_custom_boxplot2(
 sruns.finite, 
   "true.se.ratio", 
   "How Close True Finite SEs are to True Super SEs by Method", 
@@ -1222,7 +1221,7 @@ sruns.finite,
 )
 print(fin_plot)
 
-fin_plot.ICC <- create_custom_boxplot(
+fin_plot.ICC <- create_custom_boxplot2(
 sruns.finite.ICC, 
   "true.se.ratio", 
   "School Level ICC = .20", 
@@ -1231,7 +1230,7 @@ sruns.finite.ICC,
     log_scale = TRUE
 )
 
-fin_plot.noICC <- create_custom_boxplot(
+fin_plot.noICC <- create_custom_boxplot2(
 sruns.finite.noICC, 
   "true.se.ratio", 
   "School Level ICC = 0", 
@@ -1245,17 +1244,17 @@ grid.arrange(fin_plot.ICC + scale_y_log10(
   ncol = 2)
 
 
-fin_plot <- create_custom_boxplot(
+fin_plot <- create_custom_boxplot2(
   sruns.finite, 
   "dif", 
-  "How Much Closer the Estimated S.E. is to the True Super Population SE by Method", 
+  "How Much Closer the Estimated SE is to the True Super SE by Method", 
   "Percentage Points Difference",
   vline_at = 0
 )
 print(fin_plot) 
 
 
-fin_plot.ICC <- create_custom_boxplot(
+fin_plot.ICC <- create_custom_boxplot2(
 sruns.finite.ICC, 
   "dif", 
   "School Level ICC = .20", 
@@ -1263,7 +1262,7 @@ sruns.finite.ICC,
   vline_at=0
 )
 
-fin_plot.noICC <- create_custom_boxplot(
+fin_plot.noICC <- create_custom_boxplot2(
 sruns.finite.noICC, 
   "dif", 
   "School Level ICC = 0", 
@@ -1276,8 +1275,8 @@ sruns.finite.noICC,
 grid.arrange(fin_plot.ICC + theme(legend.position = "none")+scale_y_continuous(limits = c(-25,50)), 
   fin_plot.noICC+theme(legend.position = "none")+scale_y_continuous(limits = c(-25,50)),ncol = 2)
 
-fin_plot.noICC.2 <- create_custom_boxplot(
-sruns.finite.noICC %>% filter(block_type=="L" & cv.school=="L" & method %in% c("LRapw-FIpw-db","LRapw-FIpw-het","LRi-FIpw-crve","LRi-FIpw-db","MLM-FIcw")), 
+fin_plot.noICC.2 <- create_custom_boxplot2(
+sruns.finite.noICC %>% filter(block_type=="Mess" & cv.school=="L" & method %in% c("LRapw-FIpw-db","LRapw-FIpw-het","LRi-FIpw-crve","LRi-FIpw-db","MLM-FIcw")), 
   "dif", 
   "School Level ICC = 0 & Blocks All Different & High Variance in Cluster Size", 
   "Percentage Points Difference",
@@ -1332,23 +1331,23 @@ cat("\\endgroup\n")  # This restores the previous font size
 
 ```
 
-## What do the confidence intervals look like for each estimator 
+# What do the confidence intervals look like for each estimator 
 
-Main Bullet Points:
+## Main Bullet Points
 
-*Coverage is the percentage of simulation replications where the estimator is within the 95% confidence interval. We would like the number to 95% (the boxplots have a line there). The notable things are that the coverage for the MLM estimators is often very bad but other than that the coverage for the cluster weighted estimators is generally good. The coverage rates for the person weighted estimators however are pretty bad across methods,it's either very low (meaning the SEs are being underestimated) or too high (meaning the SEs are being overestimated within the same methods. 
+- Coverage is the percentage of simulation replications where the estimator is within the 95% confidence interval. We would like the number to be 95% (the boxplots have a line there). The notable things are that the coverage for the MLM estimators are often very bad but other than that the coverage for the cluster weighted estimators are generally good. The coverage rates for the person weighted estimators however are pretty bad across methods, it's either very low (meaning the SEs are being underestimated) or too high (meaning the SEs are being overestimated within the same methods. 
 
 Description of Analysis:
 
-*The first graph is a boxplot of the coverage by method. Coverage is the percentage of treatment effect estimates that fall in the 95% confidence interval. The vertical line is at 95%, which is what coverage should be.  
+- The first graph is a boxplot of the coverage by method. Coverage is the percentage of treatment effect estimates that fall in the 95% confidence interval. The vertical line is at 95%, which is what coverage should be.  
 
-*The second graph is a boxplot of the normalized 95% confidence interval length by method.
+- The second graph is a boxplot of the normalized 95% confidence interval length by method.
 
 
 ```{r cov, include=TRUE, echo=FALSE}
 sruns.cov<-plot_data %>% mutate(cover.s.estimand=cover.s.estimand*100,CI.length.norm= (CI.length/CI.length.median))
 
-cov_plot <- create_custom_boxplot(
+cov_plot <- create_custom_boxplot2(
   sruns.cov, 
   "cover.s.estimand", 
   "Coverage by Method", 
@@ -1368,20 +1367,20 @@ CI_plot <- create_custom_boxplot(
 print(CI_plot)
 
 ```
-## Is Low Degrees of Freedom Causing Problems because of Estimate Instability Driven or Bias  
+# Is Low Degrees of Freedom Causing Problems because of Estimate Instability Driven or Bias  
 
-Main Bullet Points:
+## Main Bullet Points
 
-*This is answering the question on page 35
+- This is answering the question on page 35
 
-*Low degrees of freedom is clearly causing problems because of estimate instability. There is clear increase in estimate instability for the low degrees of freedom DGPs (graph one) and no relation between degrees of freedom and mean bias (graph two).  
+- Low degrees of freedom is clearly causing problems because of estimate instability. There is clear increase in estimate instability for the low degrees of freedom DGPs (graph one) and no relation between degrees of freedom and mean bias (graph two).  
 
-Description of Analysis:
+## Description of Analysis:
 
-*The first graph is scatter plot of the true estimate standard error across replications against the model degrees of freedom, graphed sepparately for each method
+- The first graph is scatter plot of the true estimate standard error across replications against the model degrees of freedom, graphed sepparately for each method
 
 
-*The second graph is scatter plot of the mean bias across replications against the model degrees of freedom, graphed sepparately for each method
+- The second graph is scatter plot of the mean bias across replications against the model degrees of freedom, graphed sepparately for each method
 
 
 ```{r degfree, include=TRUE, echo=FALSE, results='asis'}

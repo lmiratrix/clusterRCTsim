@@ -54,19 +54,19 @@ results <- results %>%
   ungroup() %>%
   
   # regroup data by scenario
-  group_by( ID, 
-            # keep all scenario-level data-generating parameters
-            K, J.bar, n.bar, p.bar, ICC, num.cov.district, 
-            cv.nbar, sd.school, ICC.school, variable.n, R2.school, 
-            num.cov.school, cv.school, size.impact.cor.school, num.cov.indiv, 
-            empirical,variable.J, cv.district, sd.ATE, 
-            size.impact.cor, nbar.J.cor, proptx.impact.cor, size.intercept.cor, 
-            variable.nbar, variable.p,
-            # superpop ATEs are scenario-level attributes, keep them
-            ATE.super.district, ATE.super.school, ATE.super.student,
-            ATE.super.dist.school, ATE.super.dist.student,
-            # scenario timing is scenario-level attribute, keep it
-            sim.per.min, R,group) %>% 
+  group_by(ID, 
+           # keep all scenario-level data-generating parameters
+           K, J.bar, n.bar, p.bar, ICC.district, num.cov.district, 
+           cv.nbar, sd.school, ICC.school, num.cov.school, 
+           cv.school, size.impact.cor.school, num.cov.indiv, 
+           empirical, cv.district, sd.ATE, 
+           size.impact.cor, nbar.J.cor, proptx.impact.cor, size.intercept.cor, 
+           variable.p,
+           # superpop ATEs are scenario-level attributes, keep them
+           ATE.super.district, ATE.super.school, ATE.super.student,
+           ATE.super.dist.school, ATE.super.dist.student,
+           # scenario timing is scenario-level attribute, keep it
+           sim.per.min, group,R)%>% 
   nest() %>% 
   rename(run = data)
 
