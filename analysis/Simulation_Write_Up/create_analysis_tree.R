@@ -8,12 +8,23 @@ create_analysis_tree <- function(data, outcome_var,
                                  plot_tree = TRUE, initial_cp = 0.001,
                                  tree_title = NULL) {
   
-  data <- data %>% rename( blk_type = block_type,
-                           cor_J_tau = size.impact.cor.school,
-                           num.cov = num.cov.school,
-                           cv.sch = cv.school,
-                           sd.sch = sd.school,
-                           ICC.sch = ICC.school )
+  
+  name_map <- c(
+    block_type = "blk_type",
+    size.impact.cor.school = "cor_J_tau",
+    num.cov.school = "num.cov",
+    cv.school = "cv.sch",
+    sd.school = "sd.sch",
+    ICC.school = "ICC.sch"
+  )
+  predictor_vars <- if_else(predictor_vars %in% names(name_map),
+                            name_map[predictor_vars],
+                            predictor_vars)
+  
+  name_map <- name_map[names(name_map) %in% names(data)]
+  name_map <- set_names(names(name_map), name_map)
+  data <- rename(data, !!!name_map)
+  
   
   
   # Create formula with the specified outcome variable and predictors

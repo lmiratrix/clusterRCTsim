@@ -1,6 +1,6 @@
 # Load and prep simulation results
 
-
+ 
 require(tidyverse)
 require(rlang)
 require(stargazer)
@@ -15,6 +15,8 @@ require(pander)
 
 
 load( here::here( "results_agg/processed_simulation_results_agg_full_factor_2025-05-21.RData" ) )
+
+
 
 DGP_vars <- c("K", "J.bar", "p.bar", "sd.ATE", "ICC.district", "variable.p", 
               "n.bar", "sd.school", "ICC.school", "size.impact.cor", "size.impact.cor.school", 
@@ -71,6 +73,34 @@ create_labeled_factor <- function(x) {
     }
   }
 }
+
+
+# Drop impossible combos ---
+
+# Check combos of simulations
+table( cv.school = sruns$cv.school, 
+       sd.school = sruns$sd.school,
+       size.impact.cor.school = sruns$size.impact.cor.school )
+
+
+table( sruns$variable.p, sruns$proptx.impact.cor )
+
+table( sruns$size.impact.cor, sruns$sd.school )
+
+
+sruns <- sruns %>%
+  filter( !(size.impact.cor.school != 0 & sd.school == 0) ) %>%
+  filter( !(size.impact.cor.school != 0 & cv.school == 0) ) 
+
+
+
+
+
+
+
+# Make clean set ----
+
+
 
 sruns.clean <- sruns %>%  
   mutate(block_type = case_when(
@@ -184,6 +214,8 @@ ordered_methods <- sruns.clean %>%
   )
 
 # Create the plot data with ordered methods
+# 
+# TODO: Just make this sruns.clean everywhere???
 plot_data <- sruns.clean %>%
   mutate(
     weight_biased = paste(weight, biased, sep = "_"),
@@ -197,7 +229,7 @@ group_estimators <- function( rps, var ) {
   
   wid <- rps %>% 
     dplyr::select( ID, method, all_of(var) ) %>% 
-    pivot_wider( names_from = method, values_from = var ) %>%
+    pivot_wider( names_from = method, values_from = all_of( var ) ) %>%
     dplyr::select( -ID )
   
   results <- combn(names(wid), 2, function(x) {
@@ -242,7 +274,7 @@ group_estimators <- function( rps, var ) {
   groups
 }
 
-groups <- group_estimators(sruns, var= "mean.ATE.hat")
+groups <- group_estimators(sruns, var = "mean.ATE.hat")
 
 
 # List the groups
@@ -262,9 +294,15 @@ core.methods <- c("LRa-FE-db", "LRa-FIcw-db", "LRapw-FE-db", "LRapw-FIpw-db", "M
 MLM.methods<-c( "MLM-FE", "MLM-FIcw", "MLM-RE" )
 
 #this is the list of methods that don't produce the same se estimates
-all.methods<-c("LRa-FE-db", "LRa-FE-het", "LRicw-FE-crve", "LRicw-FE-db","LRa-FIcw-db","LRa-FIcw-het", "LRicw-FIcw-crve", "LRicw-FIcw-db", "LRapw-FE-db", "LRapw-FE-het", "LRi-FE-crve", "LRi-FE-db","LRapw-FIpw-db", "LRapw-FIpw-het", "LRi-FIpw-crve", "LRi-FIpw-db", "MLM-FE", "MLM-FIcw","MLM-RE")
+all.methods<-c("LRa-FE-db", "LRa-FE-het", "LRicw-FE-crve", "LRicw-FE-db",
+               "LRa-FIcw-db","LRa-FIcw-het", "LRicw-FIcw-crve", 
+               "LRicw-FIcw-db", "LRapw-FE-db", "LRapw-FE-het", 
+               "LRi-FE-crve", "LRi-FE-db","LRapw-FIpw-db", 
+               "LRapw-FIpw-het", "LRi-FIpw-crve", "LRi-FIpw-db", 
+               "MLM-FE", "MLM-FIcw","MLM-RE")
 
-groups<-group_estimators(sruns, var= "mean.SE.hat")
+
+groups <- group_estimators(sruns, var = "mean.SE.hat")
 
 
 # List the groups
@@ -276,6 +314,14 @@ map_chr(groups, paste, collapse = ", ") %>%
   relocate(grp) %>%
   knitr::kable()
 
-core.methods.se <- c("LRa-FE-db", "LRa-FE-het", "LRa-FIcw-db", "LRapw-FE-db", "LRapw-FE-het", "LRapw-FIpw-db", "LRapw-FIpw-het", "LRicw-FE-crve", "LRicw-FIcw-crve", "MLM-FE", "MLM-FIcw", "MLM-RE")
+core.methods.se <- c("LRa-FE-db", "LRa-FE-het", "LRa-FIcw-db", "LRapw-FE-db", 
+                     "LRapw-FE-het", "LRapw-FIpw-db", "LRapw-FIpw-het", 
+                     "LRicw-FE-crve", "LRicw-FIcw-crve", "MLM-FE", "MLM-FIcw",
+                     "MLM-RE")
+
+
+# QUESTION: Can we delete these?
+rm( groups )
+rm( sruns )
 
 
