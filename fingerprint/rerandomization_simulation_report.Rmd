@@ -8,10 +8,13 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
+
+library( tidyverse )
+
 knitr::opts_chunk$set(echo = FALSE)
 
 
-my_t = theme_tufte() + 
+my_t = ggthemes::theme_tufte() + 
   theme( legend.position="bottom", 
          legend.direction="horizontal",
          legend.key.width=unit(1,"cm"),

@@ -7,17 +7,6 @@
 
 # Load the workspace ----
 
-
-knitr::opts_chunk$set(
-  echo = FALSE,          # Don't show code in output by default
-  message = FALSE,       # Suppress messages
-  warning = FALSE,       # Suppress warnings
-  fig.width = 7,         # Default figure width
-  fig.height = 5,        # Default figure height
-  fig.align = "center"   # Center figures
-)
-
-
 require(tidyverse)
 require(rlang)
 require(stargazer)
@@ -32,8 +21,6 @@ require(rpart)
 require( rpart.plot )
 require(RColorBrewer)
 
-
-select <- dplyr::select
 
 
 my_t = theme_tufte() + 
