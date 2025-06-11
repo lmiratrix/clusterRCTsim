@@ -88,7 +88,8 @@ run_sim <- function(proj, outcome, covars, covars_list, data, trt, clust, blk, p
   res$Pretest = NULL
   
   # This is the same ID as built in the bottom of 'master_analyze_all_data.R'
-  res$UniqueID     = str_remove_all(paste(proj, outcome, trt, sep = '_'), '_NA')
+  UniqueID     = str_remove_all(paste(proj, outcome, trt, sep = '_'), '_NA')
+  res$UniqueID = UniqueID
   
   write_rds( res, 
              here::here( glue::glue( "{RESULT_DIR}/{UniqueID}.rds" ) ) )

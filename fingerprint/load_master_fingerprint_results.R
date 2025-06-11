@@ -125,7 +125,7 @@ stopifnot( all( !is.na( simdat$ATE_hat[ok] ) ) )
 
 
 # Who is missing from the fingerprint simulation? ----
-table(simdat$UniqueID)
+table( simdat$UniqueID )
 length( unique( simdat$UniqueID ) )
 miss_sets <- setdiff( studies$UniqueID, simdat$UniqueID )
 

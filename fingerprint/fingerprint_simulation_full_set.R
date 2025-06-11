@@ -1,7 +1,7 @@
 
-# This simulation generates a single dataset for each fingerprint in
-# our file, and then calculates the range and whatnot of the
-# estimates.
+# This script is a simulation that generates a single dataset for each
+# fingerprint in our file, and then calculates the range and whatnot
+# of the estimates.
 
 library( tidyverse )
 library( furrr )

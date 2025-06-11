@@ -75,6 +75,7 @@ generate_data_from_fingerprint <- function( structure = NULL, parameters = NULL,
   if ( !all( c("blockID", "clusterID", "Z") %in% colnames( structure ) ) ) {
     stop( "structure must have columns blockID, clusterID, and Z" )
   }
+  
   if ( "n" %in% colnames( structure ) ) {
     structure = make_skeleton(structure)
   }
@@ -88,11 +89,23 @@ generate_data_from_fingerprint <- function( structure = NULL, parameters = NULL,
                        clusterID = as.character(clusterID ) )
   
   
-  # Generate block and cluster intercepts
-  block_int = rnorm( K, mean = 0, sd = sqrt( parameters$block_ICC ) )
+ 
+  
+  # beta_W = the fraction of level 2 variation we should explain
+  beta_W = sqrt( parameters$cluster_ICC * parameters$R2.2 )
+  
+  # beta_X = the fraction of level 1 variation that we should explain
+  beta_X = sqrt( (1-parameters$block_ICC-parameters$cluster_ICC) * parameters$R2.1 )
+  sigma_e = sqrt( ( 1 - parameters$block_ICC - parameters$cluster_ICC ) * (1-parameters$R2.1 ) )
+  
+  # Generate _residual_ block and cluster intercepts, not including
+  # variation explained by covariates
+  block_int = rnorm( K, mean = 0, 
+                     sd = sqrt( parameters$block_ICC ) )
   names( block_int ) = unique( structure$blockID )
   
-  cluster_int = rnorm( J, mean = 0, sd = sqrt( parameters$cluster_ICC ) )
+  cluster_int = rnorm( J, mean = 0,
+                       sd = sqrt( parameters$cluster_ICC * (1-parameters$R2.2) ) )
   names( cluster_int ) = unique( structure$clusterID )
   
   # Generate our covariates
@@ -100,13 +113,13 @@ generate_data_from_fingerprint <- function( structure = NULL, parameters = NULL,
   names(W) = names( cluster_int )
   X = rnorm( n )
   
-  beta_W = sqrt( parameters$R2.2 * parameters$cluster_ICC )
-  
-  beta_X = sqrt( (1-parameters$block_ICC-parameters$cluster_ICC) * parameters$R2.1 )
-  sigma_e = sqrt( ( 1 - parameters$block_ICC - parameters$cluster_ICC ) * (1-parameters$R2.1 ) )
-  
   if ( rerandomize ) {
     structure$Z = rerandomize( structure$Z, structure$clusterID, structure$blockID )
+  }
+  
+  sdY0 = 1
+  if ( "sdY0" %in% names(parameters) ) {
+    sdY0 = parameters$sdY0
   }
   
   # TODO: I am group mean centering the individual level covariate.
@@ -119,9 +132,12 @@ generate_data_from_fingerprint <- function( structure = NULL, parameters = NULL,
     ungroup() %>%
     mutate(
       Y0 = block_int[ blockID ] + cluster_int[ clusterID ] + e + W[clusterID] * beta_W + X * beta_X,
-      tau = tau,
-      Y1 = Y0 + tau,
-      Yobs = Z * Y1 + (1-Z) * Y0 )
+      tau = tau
+       ) %>%
+    mutate( Y0 = sdY0 * Y0,
+            tau = sdY0 * tau,
+            Y1 = Y0 + tau,
+            Yobs = Z * Y1 + (1-Z) * Y0 )
   
   # Make it so we end up with right number of covariates by combining
   # our covariates.  The compare code, etc., will then generate group

@@ -381,6 +381,15 @@ ggplot( jg_crt_6, aes( Estimator, SE_hat_std, col = Covariates ) ) +
 ```
 
 
+# What studies have few degrees of freedom, and why?
+
+```{r}
+studies %>%
+  filter( blocked == "Blocked", cons_df <= 30 ) %>%
+  dplyr::select( UniqueID, cons_df, n, J, K, Jbar, Jcv, ncov.1, ncov.2 ) %>%
+  arrange( cons_df ) %>%
+  knitr::kable( digits = 2 )
+```
 
 # The individual studies follow:
 
