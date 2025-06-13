@@ -139,4 +139,4 @@ scenarios[131,] %>%
 
 #scenarios$run = map(scenarios$grid, run.scenario.fixed.district, R=1 , parallel=F)
 
-saveRDS( scenarios, "scenarios_lowdf.rds" )
+saveRDS( scenarios, "scenarios.rds" )
