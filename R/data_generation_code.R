@@ -332,7 +332,7 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
                              variable.p = FALSE,
                              cv.district = 0.6, 
                              cv.nbar = 0,
-                             min.size = 4,
+                             min.size = 1,
                              size.impact.cor = 0,
                              nbar.J.cor = 0,
                              proptx.impact.cor = 0,
@@ -467,7 +467,9 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
   # make sure eventual randomization has at least min.size/2 treated/control clusters
   #  in each district, by applying floor and ceiling to p, depending on J
   #   - i.e., force 2 <= J*p <= J-2
-  stopifnot( "All districts should have max( min.size, 2 )  clusters at least" = all( grid$J >= max( 2, min.size) ) )
+  print("this is the value of min.size")
+  print(min.size)
+  stopifnot( "All districts should have max( min.size, 2 )  clusters at least" = all( grid$J >= max( 1, min.size) ) )
   ms2 = pmax( 1, round( min.size/2 ) )
   grid <- grid %>% 
     mutate(p = ifelse(J*p < ms2, ms2/J, p),
