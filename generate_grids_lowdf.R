@@ -130,6 +130,9 @@ scenarios <- scenarios %>%
 scenarios$grid <- pmap( dplyr::select( scenarios, -ID, -blocktype ),
                         build_districts )
 
+#save the true J.bar
+scenarios$J.bar.true <- map_dbl(scenarios$grid, ~ mean(.x$J))
+
 scenarios
 
 scenarios[131,] %>%

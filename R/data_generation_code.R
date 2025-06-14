@@ -442,7 +442,10 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
                                       empirical = empirical )
   }
   
-  grid$J <- num_clusters
+  #if num_clusters is less than 2 force it to be two 
+  grid$J <- pmax(num_clusters, 2)
+
+  
   
   # Make the proportions correspond to number of clusters
   grid$p = round( prop_tx_clusters * grid$J ) / grid$J
@@ -469,7 +472,7 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
   #   - i.e., force 2 <= J*p <= J-2
   print("this is the value of min.size")
   print(min.size)
-  stopifnot( "All districts should have max( min.size, 2 )  clusters at least" = all( grid$J >= max( 1, min.size) ) )
+  stopifnot( "All districts should have max( min.size, 2 )  clusters at least" = all( grid$J >= max( 2, min.size) ) )
   ms2 = pmax( 1, round( min.size/2 ) )
   grid <- grid %>% 
     mutate(p = ifelse(J*p < ms2, ms2/J, p),
