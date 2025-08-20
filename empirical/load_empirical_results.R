@@ -115,7 +115,28 @@ combined = filter( combined, blocked == 1 ) %>%
   dplyr::select( -blocked )
 
 
+# Drop CRVE FI SEs for singleton cases ----
 
+table( combined$Estimator )
+
+
+
+drp <- combined$Estimator %in% c( "LRicw-FIcw-crve",
+                                  "LRi-FIpw-crve" ) &
+  combined$num_singletons > 0
+table( drp )
+
+combined$SE_hat
+combined$SE_hat[ drp ] <- NA
+
+combined$SE_hat_std[ drp ] <- NA
+
+if ( FALSE ) {
+filter( combined, UniqueID == "jg_crt_6", Covariates == "best") %>%
+  dplyr::select( Estimator, num_singletons, ATE_hat_std, SE_hat, SE_hat_std )
+}
+
+rm( drp )
 
 # Make table of all the outcomes ----
 outs <- combined %>% 
@@ -129,5 +150,30 @@ outs %>%
   group_by( Collection ) %>%
   summarise( n_study = n_distinct(Project),
              n_outcome = n_distinct(UniqueID) )
+
+
+# Make studies table ----
+
+
+setdiff( names( combined ),
+         names( unblocked ) )
+setdiff(   names( unblocked ),
+           names( combined ))
+
+studies <- bind_rows( Blocked = combined, Unblocked = unblocked, .id="blocked" ) %>%
+  dplyr::filter( Covariates == "best" )
+
+n_defined <- studies %>% 
+  group_by( UniqueID ) %>%
+  summarise( n_ATE = sum( !is.na( ATE_hat ) ),
+             n_SE = sum( !is.na( SE_hat ) ) )
+
+studies <- studies %>%
+  dplyr::filter( Estimator %in% c( "LRi-crve", "LRi-FE-crve" ) ) %>%
+  dplyr::select( -c( Estimator:disfavored ) )
+
+studies <- left_join( studies, n_defined, by="UniqueID" )
+
+rm( n_defined )
 
 cat( "Data loaded\n" )

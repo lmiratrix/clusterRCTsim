@@ -1,0 +1,358 @@
+---
+title: "Fingerprint Simulation (not rerand simulation)"
+author: "Miratrix"
+date: "2025-08-05"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+In our first empirically calibrated simulation we simply permuted the treatment assignment labels to create new datasets (with no treatment effect).
+In those simulations we found that the estimated standard errors would be systematically too high or too low across permutations.
+We wanted to assess whether this was a finite-sample property of the individual datasets, and thus made a new simulation where we generated data according to the distribution of cluster and block sizes, along with a few other descriptive statistics.
+
+In these simulations, we are generating entirely new datasets with each iteration, so are adhering to a superpopulation model rather than a finite population one.
+
+
+
+```{r, include=FALSE}
+
+# Analyze the fingerprint simulations calibrated to the empirical
+# data.  These are NOT the rerandomization simulations, but the ones
+# based on the summary statistics.
+
+library( clusterRCT )
+library( tidyverse )
+library( cli )
+
+# Load study index and some listed core methods ----
+
+core.methods <- c("LRa-FE-db", "LRa-FIcw-db", "LRapw-FE-db", "LRapw-FIpw-db", "MLM-FE", "MLM-FIcw", "MLM-RE")
+
+
+core.methods.se <- c("LRa-FE-db", "LRa-FE-het", "LRa-FIcw-db", "LRapw-FE-db", 
+                     "LRapw-FE-het", "LRapw-FIpw-db", "LRapw-FIpw-het", 
+                     "LRicw-FE-crve", "LRicw-FIcw-crve", "MLM-FE", "MLM-FIcw",
+                     "MLM-RE")
+
+
+studies = read_csv( here::here( "empirical/results/study_descriptions.csv" ),
+                    show_col_types = FALSE )
+studies <- filter( studies,
+                   blocked == "Blocked" )
+studies
+
+
+
+# Load and examine data ----
+
+cli_h1( "!!! Loading and examining results" )
+
+if ( FALSE ) {
+  
+  # Read one example result file
+  res = read_rds( here::here( "fingerprint/results_fingerprint",
+                              paste0( studies$UniqueID[1], ".rds" ) ) )
+  res
+  table( res$runID )  
+}
+
+
+dat <- studies$UniqueID %>%
+  set_names() %>%
+  map( \(file) {
+    fname = here::here( "fingerprint/results_fingerprint", paste0( file, ".rds" ) )
+    # check if file exists
+    if ( file.exists( fname ) ) {
+      read_rds( fname )
+    } else {
+      NULL
+    }
+  } )  %>% 
+  bind_rows( .id = "UniqueID" )
+
+dim( dat )
+dat
+table( dat$runID )
+length( unique( dat$runID ) )
+
+
+# Who is missing?
+missing_sets <- setdiff( studies$UniqueID, dat$UniqueID )
+filter( studies, UniqueID %in% missing_sets ) %>%
+  dplyr::select( UniqueID, n, J )
+
+dat <- left_join( dat, select( studies, UniqueID, Collection ),
+                  by = "UniqueID" )
+
+
+
+studies <- filter( studies,
+                   UniqueID %in% unique( dat$UniqueID ) )
+
+# Calculate ranges, etc. ----
+
+range_dat <- dat %>%
+  group_by( Collection, UniqueID ) %>%
+  nest() %>%
+  mutate( data = map( data, summarize_simulation_results, "cross" ) ) %>%
+  unnest( data ) 
+
+
+ranges <- range_dat %>% 
+  rename( group = weight ) %>%
+  group_by( group, runID ) %>%
+  summarise( mn_rngATE = mean( rangeATE ),
+             sd_rngATE = sd( rangeATE ),
+             prob_10p = mean( rangeATE > 0.10 ),
+             mn_ratSE = mean( ratioSE ),
+             prob_2x = mean( ratioSE >= 2 ),
+             sd_ratSE = sd( ratioSE ),
+             mn_naATE = mean( na_ATE ),
+             sd_naATE = sd( na_ATE ),
+             mn_naSE = mean( na_SE ),
+             sd_naSE = sd( na_SE ),
+             n = n(),
+             .groups = "drop" )
+
+sub_dat <- range_dat %>% 
+  ungroup() %>%
+  filter( runID %in% sample( unique( ranges$runID ),  5 ) )
+
+sub_dat
+
+# Distribution of ATEs for all methods across studies
+if ( FALSE ) {
+  ggplot( dat, aes( UniqueID, ATE_hat ) ) +
+  geom_jitter( size=0.25, width=0.1, height=0 ) +
+  coord_flip()
+}
+```
+
+
+
+
+
+```{r}
+ggplot( sub_dat, aes( rangeATE ) ) +
+  facet_grid( weight ~ runID ) +
+  geom_dotplot( method="histodot", binwidth = 0.02 ) +
+  labs( title = "5 replicates of fingerprint for ATE range" ) +
+  theme_minimal()
+
+summary( sub_dat$ratioSE )
+sub_dat$ratioSE[ sub_dat$ratioSE > 5 ] = 5
+ggplot( sub_dat, aes( ratioSE ) ) +
+  facet_grid( weight ~ runID ) +
+  geom_dotplot( method="histodot" ) +
+  labs( title = "5 replicates of fingerprint for SE ratio",
+        subtitle = "(Ratios windsorized at 5x)" ) +
+  theme_minimal()
+
+
+# Calculate method performances ----
+
+table( dat$method, useNA="always" )
+
+meth_dat <- dat %>%
+  group_by( Collection, UniqueID ) %>%
+  nest() %>%
+  mutate( data = map( data, summarize_simulation_results, "method" ) ) %>%
+  unnest( data ) %>%
+  ungroup()
+
+meth_dat  
+
+nrow(studies)
+nrow(meth_dat) / nrow(studies)
+
+# Are the estimators SE estimates variously unstable? ----
+
+
+
+# Each method estimate for each study
+table( meth_dat$method )
+
+meth_dat <- meth_dat %>%
+  group_by( UniqueID ) %>%
+  mutate( cal = ESEhat / SE,
+          rel_SE = SE / median(SE, na.rm=TRUE),
+          stab = sdSEhat / median(SE, na.rm=TRUE) ) %>%
+  ungroup()
+
+
+ggplot( meth_dat, aes( method, cal )) +
+  geom_boxplot() +
+  coord_flip() +
+  labs( title = "Calibration of SE estimates",
+        subtitle = "Ratio of estimated SE to true SE" ) +
+  theme_minimal() +
+  geom_hline( yintercept = 1 ) 
+
+
+
+ggplot( meth_dat, aes( method, rel_SE )) +
+  geom_boxplot() +
+  coord_flip() +
+  labs( title = "Method true SE to median true SE within study" ) +
+  theme_minimal() +
+  geom_hline( yintercept = 1 ) 
+
+
+
+ggplot( meth_dat, aes( method, stab )) +
+  geom_boxplot() +
+  coord_flip() +
+  labs( title = "sd(SE-hat) / median(SE)" ) +
+  theme_minimal()
+
+
+
+filter( meth_dat, UniqueID == "TRIADScale-up_rema2" ) %>%
+  dplyr::select( -c( UniqueID, Collection, weight, biased ) ) %>%
+  knitr::kable( digits = 2 )
+
+
+
+
+# Looking at true SEs for person vs cluster weighting ----
+
+wts <- meth_dat %>%
+  group_by( Collection, UniqueID, weight ) %>%
+  summarise( meanSE = mean(SE, na.rm=TRUE),
+             sdSE = sd(SE, na.rm=TRUE), .groups = "drop" )
+
+ggplot( wts, aes( UniqueID, meanSE, col=weight ) ) +
+  facet_wrap( ~ Collection, scales="free" ) +
+  geom_point( size=1, position=position_dodge(width=0.5) ) +
+  geom_errorbar( aes( ymin=meanSE-sdSE, ymax=meanSE+sdSE ),
+                 width=0.2, position=position_dodge(width=0.5),
+                 alpha=0.5 ) +
+  coord_flip() +
+  theme_minimal()
+```
+
+
+
+# Which studies tend to have high ratios, etc?
+
+```{r}
+rng <- range_dat %>% 
+  mutate( ratioSE = pmin( ratioSE, 5 ) ) %>%
+  group_by( Collection, UniqueID ) %>%
+  summarise( across( rangeATE:na_SE, list( mn = mean, sd=sd,
+                                           Q95 = \(x) quantile(x,0.95),
+                                           Q05 = \(x) quantile(x,0.05) ) ),
+             .groups = "drop" )
+
+ggplot( rng, aes( UniqueID, rangeATE_mn ) ) +
+  geom_point() +
+  geom_errorbar( aes( ymin=rangeATE_Q05, ymax=rangeATE_Q95 ),
+                 width=0, alpha=0.5 ) +
+  coord_flip() +
+  labs( title = "Mean rangeATE across studies",
+        subtitle = "Range of ATEs for each study" ) +
+  theme_minimal()
+
+
+
+ggplot( rng, aes( UniqueID, ratioSE_mn ) ) +
+  geom_point() +
+  geom_errorbar( aes( ymin=ratioSE_Q05, ymax=ratioSE_Q95 ),
+                 width=0, alpha=0.5 ) +
+  coord_flip() +
+  labs( title = "Mean ratioSE across studies",
+        subtitle = "Range of ATEs for each study" ) +
+  theme_minimal()
+
+range_dat$ratioSE[ range_dat$ratioSE > 5 ] = 5
+range_dat$UniqueID = fct_reorder( range_dat$UniqueID, 
+                                   range_dat$ratioSE, 
+                                   .desc = TRUE )
+
+ggplot( range_dat, aes( UniqueID, ratioSE ) ) +
+  facet_wrap( ~ Collection, scales="free_y" ) +
+  geom_boxplot( fill="grey", outlier.size=0.3 ) +
+  coord_flip() +
+  labs( title = "ratio of SEs across simulation runs",
+        subtitle = "Windorizerd at ratio of 5" ) +
+  theme_minimal() +
+  scale_y_log10()
+```
+
+We see the ratio of SE across methods heavily depends on the average cluster size:
+```{r}
+rd = left_join( rng, studies, by="UniqueID" )
+rd
+ggplot( rd, aes( Jbar, ratioSE_mn ) ) +
+  scale_x_log10() +
+  geom_smooth( se=FALSE, span=1, method="loess" ) + 
+  geom_point()+
+  theme_minimal() +
+  labs( title = "Typical ratio of SEs across methods",
+        subtitle = "Windorizerd at ratio of 5",
+        x = "Average cluster size (Jbar)",
+        y = "Mean ratio" )
+```
+
+We next look more closely at studies where Jbar was less than 4.3:
+
+```{r}
+range_dat = left_join( range_dat, studies, by="UniqueID" )
+sb <- filter( range_dat, Jbar < 4.3 ) %>%
+  mutate( UniqueID = fct_reorder( UniqueID, Jbar, .desc = TRUE ) )
+
+rd %>% 
+  arrange( Jbar ) %>%
+  filter( Jbar < 4.3 ) %>%
+  dplyr::select( UniqueID, J, Jbar, K, ratioSE_mn, rangeATE_mn, na_SE_mn ) %>%
+  unique() %>%
+  print( n = 15 )
+
+ggplot( sb,
+        aes( UniqueID, ratioSE ) ) +
+  geom_boxplot( fill="grey", outlier.size=0.3 ) +
+  coord_flip() +
+  labs( title = "ratio of SEs across simulation runs",
+        subtitle = "Studies with Jbar < 4.3; Windorizerd at ratio of 5" ) +
+  theme_minimal() +
+  scale_y_log10()
+```
+
+
+
+
+# Who generates the highest SE ranges?
+
+uid = "jg_crt_17"
+clusterRCT:::print.clusterRCTstats( filter( studies, UniqueID == uid ) )
+
+clusterRCT:::print.clusterRCTstats( filter( studies, UniqueID == "TennStar_gktreadss" ) )
+
+
+range_dat
+triad_id = "TRIADScale-up_rema2"
+source( here::here( "create_analysis_tree.R" ) )
+create_analysis_tree( range_dat, "ratioSE",
+                      c("J", "Jbar", "K", "num_singletons",
+                        "num_doubletons", "ncv", "Jcv", "tx.cv", "na_SE" ),
+                      max_leaves = 7
+                      )
+
+
+create_analysis_tree( filter( range_dat, UniqueID != triad_id ), 
+                      "rangeATE",
+                      c("J", "Jbar", "K", "n", "nbar", "num_singletons",
+                        "num_doubletons", "ncv", "Jcv", "tx.cv", "na_SE" ),
+                      min_leaves = 10,
+                      max_leaves = 10
+)
+
+
+
+
+```

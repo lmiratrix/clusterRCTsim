@@ -29,10 +29,12 @@ source( here::here( "R/data_generation_code.R" ) )
 #' finite-sample ATE (person and site weighted).
 #'
 #' There are two ways to generate data: via the grid or via
-#' dgp_function (with possible additional dgp_args).  
-#' 
+#' dgp_function (with possible additional dgp_args).
+#'
 #' @inheritParams run.scenario.fixed.district
 #'
+#' @param dgp_function. Function to generate a single dataset, or a
+#'   dataframe that _is_ a dataset.
 #' @return Dataframe with the estimates along with the true baseline
 #'   values.
 single.CRT.fixed.district = function(
@@ -44,15 +46,24 @@ single.CRT.fixed.district = function(
     just.return.data = FALSE,
     dgp_function = NULL,
     dgp_args = NULL,
+    ICC.district = NULL,
     ...,
     .progress = FALSE ) {
   
   # Make the dataset
-  stopifnot( is.null( grid ) || is.null( dgp_function ) )
+  stopifnot( "Can't provide both grid and dgp function" = is.null( grid ) || is.null( dgp_function ) )
   if ( !is.null( dgp_function ) ) {
-    df <- do.call( dgp_function, dgp_args )
+    if ( is.data.frame( dgp_function ) ) {
+      df <- dgp_function
+    } else {
+      df <- do.call( dgp_function, dgp_args )
+    }
   } else if ( !is.null( grid ) ) {
-    df <- generate_data_for_districts( grid = grid )
+    if ( is.null( ICC.district ) ) {
+      ICC.district = var( grid$district.alpha )
+    }
+    df <- generate_data_for_districts( grid = grid, 
+                                       ICC.district=ICC.district )
   } else {
     stop( "Need to provide either a grid or a data generating function." )
   }
@@ -261,7 +272,7 @@ run.scenario.fixed.district = function(
   if ( "subrun" %in% colnames( rps ) ) {
     rps$subrun = paste0( rps$run, ".", rps$subrun )
   }
-
+  
   scat("**\n**\tTotal time elapsed:\n")
   tot.time = proc.time() - ptm
   print(tot.time)
@@ -320,8 +331,8 @@ if ( FALSE ) {
                              dgp_args = list( J = 10, n = 20, ICC = 0.2, tau = 0.3^2, cor.ICC.tau = 0.75, p = 0.5 ) )
   
   run.scenario.fixed.district( dgp_function = generate_clusterCRT, 
-                    dgp_args = list( J = 10, n = 20, ICC = 0.2, tau = 0.3^2, cor.ICC.tau = 0.75, p = 0.5 ),
-                    n.runs = 3, R = 10 )
+                               dgp_args = list( J = 10, n = 20, ICC = 0.2, tau = 0.3^2, cor.ICC.tau = 0.75, p = 0.5 ),
+                               n.runs = 3, R = 10 )
 }
 
 

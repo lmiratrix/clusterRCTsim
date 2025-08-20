@@ -1,0 +1,139 @@
+
+
+# This script runs a simulation that, for each row of study
+# characteristics, repeatedly generates data of that form and then
+# analyzes it with compare_methods.
+#
+# Each study is saved as a separate result file.
+#
+# This is NOT the rerandomization simulation, but instead a simulation
+# where the datasets are generated from whole cloth, using the
+# parameters estimated from the original empirical data.
+
+
+library( tidyverse )
+library( furrr )
+library( cli )
+
+source( "R/util.R" )
+source( "R/calibrated_simulation_code.R" )
+
+
+# create finger_result folder
+RESULT_DIR = here::here( "fingerprint/results_fingerprint" )
+dir.create( RESULT_DIR, showWarnings = FALSE )
+
+
+# List of studies found in the rerandomization effort -- this is so
+# this simulation is as similar as possible to the rerandomization
+# simulation as we were finding odd behavior in the rerand simulation.
+
+rerandomization_list <- c("Beacon_S8TGPA", "Beacon_S8TOTCR", "Beacon_SRPRST2", "EMERGE_team2__BB", "EMERGE_eclsb2_BB", "EMERGE_team2__BBSSR", "EMERGE_eclsb2_BBSSR", "MPC_eclsb2_scale", "MPC_wj_ap2", "PowerTeaching_TSTSSTAND", "Success_S14WJLWI_SCORE", "TennStar_gktmathss", "TennStar_gktreadss", "TRIAD_rema2", "TRIADScale-up_rema2", "jg_crt_2", "jg_crt_7", "jg_crt_8", "jg_crt_10", "jg_crt_11", "jg_crt_12", "jg_crt_16", "jg_crt_17", "jg_crt_18", "jg_crt_19", "jg_crt_23", "jg_crt_29", "jg_crt_30", "jg_crt_31", "jg_crt_34", "jg_crt_41", "jg_crt_56", "jg_crt_63", "jg_crt_68", "jg_crt_69")
+
+studies = read_csv( here::here( "empirical/results/study_descriptions.csv" ),
+                    show_col_types = FALSE )
+
+studies <- filter( studies,
+                   blocked == "Blocked",
+                   UniqueID %in% rerandomization_list,
+                   n < 30000 )
+
+studies
+
+
+
+cli_inform( "Working with {nrow(studies)} studies" )
+
+# Code to run single fingerprint for single study
+
+library( digest )
+
+string_to_seed <- function(str) {
+  ss <- digest(str, algo = "md5")
+  strtoi(substr(ss, 2, 7), base = 16)
+}
+
+
+run_one_finger <- function( k, R = 10, ... ) {
+  
+  # Load these things to ensure they are global variables in the
+  # future worlds
+  rerandomize
+  
+  # Grab relevant row of study
+  stud = studies[k,] 
+  
+  cli_h1( "Running fingerprint for {k}: {stud$UniqueID}" )
+  
+  # set seed
+  set.seed( string_to_seed( stud$UniqueID ) )
+  
+  # Force covariates to 1 to get "best"
+  stud$ncov.1 = 1
+  stud$ncov.2 = 1
+  
+  # Standardize outcome
+  stud$sdY0 = 1
+  
+  res <- run_fingerprint_simulation( structure = NULL,
+                                     parameters = stud, 
+                                     R = R,
+                                     parallel = FALSE, 
+                                     summarize_results = "none",
+                                     ... )
+  
+  # save results to file
+  fname = here::here( RESULT_DIR, paste0( stud$UniqueID, ".rds" ) )
+  saveRDS( as_tibble( res ), file = fname )
+  
+  # Success!
+  fname
+}
+
+if ( FALSE ) {
+  debug( run_fingerprint_simulation )
+  f <- run_one_finger( 5,
+                       control_formula = ~ X )
+  
+  res <- read_rds( f )
+  res
+  table( res$method )
+  table( res$weight )
+}
+
+
+# Run the simulation ----
+
+if ( TRUE ) {
+  # run all the fingerprints (in parallel)
+  
+  library( purrr )
+  library( future )
+  
+  plan(multisession, workers = parallel::detectCores() - 2 )
+  
+  cli_h3("Launching simulation to tackle {nrow(studies)} studies in parallel")
+  
+  # sort studies from large to small to roughly balance the cluster
+  # usage
+  studies <- arrange( studies, desc(sqrt(n)*J) )
+  
+  future_walk( 1:nrow(studies), run_one_finger, 
+               R = 50,
+               control_formula = ~ X,
+               .options = furrr_options( seed = NULL ),
+               .progress = TRUE )
+  
+  # close parallel
+  cli_h3("Closing multiple plans")
+  plan(sequential)
+  
+} else {
+  cli_h3("Sequential, not parallel, mode" )
+  
+  walk( 1:nrow(studies), run_one_finger, R = 20,
+        control_formula = ~ X,
+        .progress = TRUE )
+}
+
+cli_h1( "Script complete" )

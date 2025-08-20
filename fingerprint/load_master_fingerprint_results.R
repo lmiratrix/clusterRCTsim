@@ -1,10 +1,20 @@
 
 
-# Load all the empirical simulation results and put in unified dataset
-# with the empirical results as well
+# Load all the empirical permutation simulation results and put in
+# unified dataset along with the empirical results (on the og data) as
+# well
 
 library( tidyverse )
 library( clusterRCT )
+
+
+core.methods <- c("LRa-FE-db", "LRa-FIcw-db", "LRapw-FE-db", "LRapw-FIpw-db", "MLM-FE", "MLM-FIcw", "MLM-RE")
+
+
+core.methods.se <- c("LRa-FE-db", "LRa-FE-het", "LRa-FIcw-db", "LRapw-FE-db", 
+                     "LRapw-FE-het", "LRapw-FIpw-db", "LRapw-FIpw-het", 
+                     "LRicw-FE-crve", "LRicw-FIcw-crve", "MLM-FE", "MLM-FIcw",
+                     "MLM-RE")
 
 
 
@@ -23,7 +33,7 @@ studies
 # Simulation result directory
 # This directory holds the results of some simulation, with one file
 # per dataset.
-SIM_DIR = here::here( "fingerprint/rerand_sim_results/" )
+SIM_DIR = here::here( "fingerprint/results_rerand_sim_public/" )
 
 
 
@@ -47,10 +57,12 @@ simdat <- studies$UniqueID %>%
 # Our simulation results
 skimr::skim_without_charts( simdat )
 
+simdat$Covariates = "best"
+warning( "Setting public covariate to best by hand." )
 
 # Load MDRC side ----
 
-mdrc_dat <- read_rds( here::here( "fingerprint/results_master_finger/master_run_fingerprints.RDS" ) ) %>%
+mdrc_dat <- read_rds( here::here( "fingerprint/results_rerand_master/master_run_fingerprints.RDS" ) ) %>%
   as_tibble()
 
 skimr::skim_without_charts( mdrc_dat )
@@ -86,6 +98,9 @@ if ( FALSE ) {
   sd( t_agg$EATE, na.rm=TRUE )
 }
 
+
+
+
 # Combine and clean up ----
 
 names(simdat)
@@ -95,6 +110,7 @@ simdat = bind_rows( `Curated` = mdrc_dat, `Public` = simdat,
                     .id="Collection" )
 rm( mdrc_dat )
 
+# Clean up the unique IDs
 source( here::here( "empirical/R/clean_result_table.R" ) )
 simdat <- clean_result_table( simdat )
 
@@ -120,9 +136,10 @@ simdat <- left_join( simdat,
           SE_hat = SE_hat / sdY0 ) %>%
   dplyr::select( -sdY0 )
 
+# Make sure we have not introduced any NAs in our ATE_hat
 stopifnot( all( !is.na( simdat$ATE_hat[ok] ) ) )
 
-
+names( simdat )
 
 # Who is missing from the fingerprint simulation? ----
 table( simdat$UniqueID )
@@ -141,12 +158,12 @@ miss_sets <- filter( studies,
                      UniqueID %in% miss_sets )
 # rm( miss_sets )
 
-# Subset to our core fingerprinted studies
+# Subset list of studies to our core fingerprinted studies
 studies <- filter( studies,
                    UniqueID %in% simdat$UniqueID )
 
 
-# Some final cleanup -----
+# Remove unneeded variables -----
 rm( SIM_DIR )
 rm( clean_result_table, make_df_flags )
 
@@ -160,7 +177,7 @@ rm( clean_result_table, make_df_flags )
 
 
 range_dat <- simdat %>%
-  group_by( UniqueID ) %>%
+  group_by( Collection, UniqueID, Covariates ) %>%
   nest() %>%
   mutate( data = map( data, summarize_simulation_results, "cross" ) ) %>%
   unnest( data ) 
@@ -169,15 +186,30 @@ range_dat
 table(range_dat$runID )
 
 
+meths = unique( simdat$method )
+fi <- str_detect( meths, "-FI" )
+names(fi) <- meths
+sort(fi)
+range_dat_noFI <- simdat %>%
+  dplyr::filter( !str_detect( method, "-FI" ) ) %>%
+  group_by( Collection, UniqueID, Covariates ) %>%
+  nest() %>%
+  mutate( data = map( data, summarize_simulation_results, "cross" ) ) %>%
+  unnest( data )
+
+  
+
 # Calculate method performances ----
 
 table( simdat$method, useNA="always" )
 
 meth_dat <- simdat %>%
-  group_by( UniqueID ) %>%
+  filter( runID != "empirical" ) %>%
+  group_by( Collection, UniqueID, Covariates ) %>%
   nest() %>%
   mutate( data = map( data, summarize_simulation_results, "method" ) ) %>%
-  unnest( data ) 
+  unnest( data ) %>%
+  ungroup()
 
 meth_dat  
 

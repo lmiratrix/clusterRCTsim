@@ -216,6 +216,21 @@ compare
 
 table( compare$runID )
 
+simdat = compare
+
+range_dat <- simdat %>%
+  group_by( UniqueID ) %>%
+  nest() %>%
+  mutate( data = map( data, summarize_simulation_results, "cross" ) ) %>%
+  unnest( data ) 
+
+range_dat  
+range_dat %>%
+  dplyr::filter( weight == "Overall" ) %>%
+  arrange( rangeATE )
+
+
+
 
 
 

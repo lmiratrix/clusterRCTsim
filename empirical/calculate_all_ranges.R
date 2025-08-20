@@ -18,10 +18,12 @@ calculate_summary_statistics <- function(data,
       ATE_Nmiss = sum(is.na(.data[[ate_col]])),
       ATE_Min   = min(.data[[ate_col]], na.rm = TRUE),
       ATE_Max   = max(.data[[ate_col]], na.rm = TRUE),
+      ATE_avg   = mean(.data[[ate_col]], na.rm = TRUE),
       SE_N      = sum(!is.na(.data[[se_col]])),
       SE_Nmiss  = sum(is.na(.data[[se_col]])),
       SE_Min    = min(.data[[se_col]], na.rm = TRUE),
       SE_Max    = max(.data[[se_col]], na.rm = TRUE),
+      SE_avg    = mean(.data[[se_col]], na.rm = TRUE),
       .groups = "drop"
     ) %>%
     mutate(

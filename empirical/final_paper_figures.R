@@ -25,6 +25,28 @@ source( here::here( "empirical/calculate_all_ranges.R" ) )
 
 
 
+# Which studies are troublemakers? ----
+
+summary_stats
+
+summary_stats %>% 
+  ungroup() %>%
+  filter( Ratio > 2 ) %>%
+  dplyr::select( UniqueID, Covariates, Collection, low_df, has_single, Ratio ) %>%
+  arrange( Covariates, Ratio ) %>%
+  knitr::kable( digits = 1 )
+
+if ( FALSE ) {
+  filter( combined, UniqueID == "CARES_DC_CST_COMPTOT_PTH", Covariates == "best") %>%
+    dplyr::select( Estimator, num_singletons, ATE_hat_std, SE_hat_std ) %>%
+    arrange( SE_hat_std )
+  
+  summary_stats %>%
+    filter( UniqueID == "CARES_DC_CST_COMPTOT_PTH" ) %>%
+    dplyr::select( Covariates, Range, Ratio, low_df, has_single )
+}
+
+
 
 # Make Paper Figures ----
 
@@ -71,11 +93,12 @@ summary_stats_estimand %>%
               rmlegend = F,
               byest    = TRUE,
               xscale = c(0, 0.3)) 
-  # scale_x_continuous( limits=c(0, range_x_range ) )
+# scale_x_continuous( limits=c(0, range_x_range ) )
 
 
 
 ## Figure 3: The Ratio (across 19 estimators) of the Largest to Smallest Estimates of SE(β) for {n_outcomes} outcomes. ----
+
 summary_stats %>%
   filter(Covariates == "best") %>%
   makeDotplot(var      = 'Ratio',
@@ -93,6 +116,7 @@ summary_stats %>%
 
 
 ## Figure 4: The Ratio (across 19 estimators) of the Largest to Smallest Estimates of SE(β) among all estimators targeting a given estimand for {n_outcomes} outcomes ----
+
 summary_stats_estimand %>%
   filter(Covariates == "best") %>%
   makeDotplot(var      = 'Ratio',
@@ -107,6 +131,10 @@ summary_stats_estimand %>%
               coordratio = 1.5,
               tcratio  = T,
               tcbreaks = c(1:5))
+
+
+
+
 
 ## SE plots excluding fully interacted models ----
 
@@ -143,19 +171,6 @@ summary_stats_estimand_exclFI %>%
               coordratio = 2.2,
               tcratio  = T,
               tcbreaks = c(1:5))
-
-
-
-# Which studies are troublemakers? ----
-
-summary_stats_estimand
-summary_stats_estimand %>% 
-  ungroup() %>%
-  filter( Ratio > 4.5 ) %>%
-  dplyr::select( Estimand, Collection, low_df, has_single, Ratio ) %>%
-  arrange( Estimand, Ratio ) %>%
-  knitr::kable( digits = 1 )
-
 
 
 

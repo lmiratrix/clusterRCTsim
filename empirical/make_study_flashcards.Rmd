@@ -23,102 +23,7 @@ knitr::opts_chunk$set(echo = FALSE,
 options(list(dplyr.summarise.inform = FALSE))
 theme_set( theme_classic() )
 
-
-#j_studies = read_csv( here::here( "empirical/results/jg_describe.csv" ) )
-source( here::here( "empirical/load_empirical_results.R" ) )
-
-setdiff( names( combined ),
-         names( unblocked ) )
-setdiff(   names( unblocked ),
-           names( combined ))
-
-studies <- bind_rows( Blocked = combined, Unblocked = unblocked, .id="blocked" ) %>%
-  dplyr::filter( Covariates == "best" )
-
-n_defined <- studies %>% 
-  group_by( UniqueID ) %>%
-  summarise( n_ATE = sum( !is.na( ATE_hat ) ),
-             n_SE = sum( !is.na( SE_hat ) ) )
-
-studies <- studies %>%
-  dplyr::filter( Estimator %in% c( "LRi-crve", "LRi-FE-crve" ) ) %>%
-  dplyr::select( -c( Estimator:disfavored ) )
-
-studies <- left_join( studies, n_defined, by="UniqueID" )
-
-source( here::here( "empirical/final_paper_figures.R" ) )
-
-setdiff( summary_stats$UniqueID, summary_stats$UniqueID  )
-
-summary_stats$Estimand = "Overall"
-summary_stats_exclFI$Estimand = "Overall"
-summary_stats_exclFI$Estimand = paste0( summary_stats_exclFI$Estimand, "_noFI" )
-summary_stats_estimand_exclFI$Estimand = paste0( summary_stats_estimand_exclFI$Estimand, "_noFI" )
-
-ranges = bind_rows( all = summary_stats, 
-                    estimand = summary_stats_estimand,
-                    noFI = summary_stats_exclFI,
-                    noFI_estimand = summary_stats_estimand_exclFI,
-                    .id = "group" )
-
-table( ranges$group )
-
-ranges <- ranges %>%
-  dplyr::select( group, UniqueID, Covariates, Estimand, Range, Ratio ) %>%
-  pivot_longer( cols=c( Range, Ratio ),
-                names_to = "measure", values_to = "Range" ) %>%
-  mutate( measure = fct_recode( measure,
-                                ate = "Range",
-                                se = "Ratio" ) ) %>%
-  filter( Covariates == "best" ) 
-
-
-table( ranges$Estimand, ranges$measure )
-
-filter( summary_stats,  UniqueID == "TRIAD_rema2" )
-print( filter( ranges, UniqueID == "TRIAD_rema2" ), n = 30 )
-
-rm( summary_stats, summary_stats_estimand, summary_stats_estimand_exclFI, summary_stats_exclFI )
-
-ranges <- mutate( ranges,
-                  measure = paste0( measure, "_", Estimand ),
-                  measure = str_replace( measure, "_est", "" ),
-                  measure = str_replace( measure, "_Overall", "" ) )
-table( ranges$measure )
-
-ranges <- mutate( ranges,
-                  ate = str_detect(measure, "ate"),
-                  big = ifelse( Range > ifelse( ate, 0.10, 4 ), "***", "" ) ) 
-
-table( ranges$UniqueID )
-table( ranges$measure )
-
-rW <- ranges %>%
-  dplyr::select( UniqueID, measure, Range, big ) %>%
-  pivot_wider( names_from = measure, values_from = c(Range, big), names_vary = "slowest" )
-rW
-
-ranges <- left_join( ranges, studies, by="UniqueID" )
-
-# We only have blocked studies
-table( ranges$blocked )
-setdiff( studies$UniqueID, ranges$UniqueID )
-setdiff( ranges$UniqueID, studies$UniqueID )
-
-
-studies <- left_join( studies, rW, by="UniqueID" )
-
-names(studies)
-
-write_csv( studies, here::here( "empirical/results/study_descriptions.csv" ) )
-names( studies )
-nrow( studies )
-
-colnames(studies) <- str_replace( colnames(studies), "_Cluster", "_Clu" )
-colnames(studies) <- str_replace( colnames(studies), "_Person", "_Per" )
-colnames(studies) <- str_replace( colnames(studies), "_exclFI", "_noFI" )
-colnames(studies) <- str_replace( colnames(studies), "Range_", "R_" )
-
+source( here::here( "empirical/load_and_prep_empirical_results.R" ) )
 
 ```
 
@@ -348,9 +253,12 @@ ggplot( cc, aes(Estimator, ATE_hat_std, color = Estimand ) ) +
 
 ## High range of SE estimates
 
+Here are all the studies with an SE range above 1.75.
+
 ```{r}
+CUT = 1.75
 ss <- studies %>%
-  filter( blocked == "Blocked", R_se > 4 | R_se_Clu > 4 | R_se_Per > 4 ) %>%
+  filter( blocked == "Blocked", R_se > CUT | R_se_Clu > CUT | R_se_Per > CUT ) %>%
   dplyr::select( Project, UniqueID, K, J, n, cons_df, R_se, R_se_Clu, R_se_Per )
 
 ss %>%
@@ -368,31 +276,34 @@ combined %>%
   knitr::kable( digits = 4 )
 ```
 
+The SEs for the troublesome studies:
+
 ```{r}
-jg_crt_6 <- filter( combined, UniqueID == "jg_crt_6" ) %>%
-  dplyr::filter( !is.na( SE_hat_std ) ) %>%
-  mutate( Estimator = factor(Estimator),
-          Estimator = fct_reorder(Estimator, SE_hat_std,.na_rm=TRUE) )
-ggplot( jg_crt_6, aes( Estimator, SE_hat_std, col = Covariates ) ) +
-  geom_point() +
-  coord_flip() +
-  labs( title = "jg_crt_6 SE estimates",
-        subtitle = "(For defined estimators)" )
+  stud <- combined |>
+    filter(UniqueID %in% ss$UniqueID, !is.na(SE_hat_std), Covariates =="best" ) |>
+    mutate(
+      Estimator = factor(Estimator),
+      Estimator = fct_reorder(Estimator, SE_hat_std, .na_rm = TRUE)
+    )
+  
+  ggplot(stud, aes(Estimator, SE_hat_std, pch=Estimand, col = Covariates)) +
+    facet_wrap( ~ UniqueID, scales="free" ) +
+    geom_point() +
+    geom_hline( yintercept = 0 ) +
+    coord_flip() +
+    labs(
+      title = paste(stud_name, "SE estimates"),
+      subtitle = "(For defined estimators)"
+    )
+
 ```
 
 
-# What studies have few degrees of freedom, and why?
 
-```{r}
-studies %>%
-  filter( blocked == "Blocked", cons_df <= 30 ) %>%
-  dplyr::select( UniqueID, cons_df, n, J, K, Jbar, Jcv, ncov.1, ncov.2 ) %>%
-  arrange( cons_df ) %>%
-  knitr::kable( digits = 2 )
-```
 
-# The individual studies follow:
 
+# Individual studies
+The following pages give stats for each study (and outcome) in turn.
 
 
 ```{r, results="asis"}
