@@ -20,12 +20,12 @@ knitr::opts_chunk$set(echo = FALSE,
 options(list(dplyr.summarise.inform = FALSE))
 theme_set( theme_classic() )
 
-source( here::here( "fingerprint/fingerprint_and_empirical_analysis.R" ) )
+source( here::here( "fingerprint/load_master_permutation_results.R" ) )
 
 range_dat <- filter( range_dat, Covariates=="best" )
 ```
 
-We extend our rerandomization simulation to examine how the estimators function for specific scenarios.
+We extend our rerandomization simulation analysis to examine how the estimators function for specific scenarios when we operate within estimand.
 See the main rerandomizartion report for how the range of estimates across the simulation scenarios changes.
 
 This report shows how the ranges go down when we go from looking at ranges across all estimators to looking at the ranges within the Person or Cluster targeting estimators.
@@ -37,7 +37,7 @@ This report shows how the ranges go down when we go from looking at ranges acros
 For each outcome, we can see how the range of the ATE or SE estimates goes down when looking within each estimand (Person or Cluster).
 We do this first for the ATE, and then for the SE estimates.
 
-```{r}
+```{r, include=FALSE}
 simW <- range_dat %>%
   ungroup() %>%
   dplyr::select( UniqueID, Estimand, runID, ratioSE, rangeATE ) %>%
@@ -62,6 +62,9 @@ fin_res
 names( fin_res ) <- str_replace( names( fin_res ), "Cluster", "C" )
 names( fin_res ) <- str_replace( names( fin_res ), "Person", "P" )
 names( fin_res ) <- str_replace( names( fin_res ), "Overall", "All" )
+```
+
+```{r}
 fin_res %>%
   dplyr::select( UniqueID, contains("ATE") ) %>%
   rename_with(~ str_remove(., "ATE_")) %>%

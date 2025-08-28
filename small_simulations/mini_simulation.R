@@ -1,10 +1,10 @@
 
 
-
-# Simple simulation as sanity check of SEs etc
+# Simple simulation as sanity check of SEs etc.
 #
 # This sim has equal sized blocks and clusters and all that.
-
+#
+# Results: Treatment variation at the block level means the SEs are all too small!  
 
 
 set.seed( 1039 )
@@ -39,6 +39,8 @@ if ( FALSE ) {
     class( sim.data )
     sd( sim.data$Yobs )
     mean( sim.data$Y1 - sim.data$Y0 ) / sd( sim.data$Yobs )
+    
+    describe_clusterRCT( Yobs ~ T.x | S.id | D.id, data=sim.data )
 }
 
 

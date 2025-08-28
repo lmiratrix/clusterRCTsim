@@ -119,8 +119,6 @@ combined = filter( combined, blocked == 1 ) %>%
 
 table( combined$Estimator )
 
-
-
 drp <- combined$Estimator %in% c( "LRicw-FIcw-crve",
                                   "LRi-FIpw-crve" ) &
   combined$num_singletons > 0
@@ -137,6 +135,10 @@ filter( combined, UniqueID == "jg_crt_6", Covariates == "best") %>%
 }
 
 rm( drp )
+
+
+
+
 
 # Make table of all the outcomes ----
 outs <- combined %>% 
