@@ -34,18 +34,16 @@ single.CRT = function( # district-level params
   K, J.bar, p.bar=0.5,
   ATE.district, sd.district,
   ICC.district,
-  variable.J = FALSE,
   variable.p = FALSE,
   
   # correlation params at cluster level
-  cv..district = 0.6, 
+  cv.district = 0.6, 
   size.impact.cor.district = 0,
   proptx.impact.cor.district = 0,
   size.intercept.cor.district = 0,
   
   # school-level params
   n.bar, sd.school, ICC.school = 0.20,
-  variable.n = FALSE,
   
   # correlation params at individual level
   cv.school = 0.6,
@@ -65,14 +63,12 @@ single.CRT = function( # district-level params
     ATE.district = ATE.district, 
     sd.district = sd.district,
     ICC.district = ICC.district,
-    variable.J = variable.J,
     variable.p = variable.p,
     
     # cluster-level params
     n.bar = n.bar, 
     sd.school = sd.school, 
     ICC.school = ICC.school,
-    variable.n = variable.n,
     
     # size and correlation params
     cv.district = cv.district, 
@@ -162,7 +158,7 @@ if ( FALSE ) {
   #  fewer than two tx and co clusters in any district
   res <- single.CRT(
     K=10, J.bar=20, p.bar=0.5,
-    variable.J=F, variable.p=F,
+    variable.p=F,
     ATE.district=0.2, sd.district=0.1, 
     ICC.district=0.2,
     
@@ -170,7 +166,6 @@ if ( FALSE ) {
     proptx.impact.cor.district = -0,
     
     n.bar=50, sd.school=0.1, ICC.school=0.3,
-    variable.n=TRUE,
     include_method_characteristics=F)
   
   head(res)
@@ -193,7 +188,6 @@ run.scenario = function(
   K, J.bar, p.bar,
   ATE.district, sd.district,
   ICC.district,
-  variable.J,
   variable.p,
   
   # correlation params at cluster level
@@ -204,7 +198,6 @@ run.scenario = function(
   
   # school-level params
   n.bar, sd.school, ICC.school = 0.2,
-  variable.n,
   
   # correlation params at individual level
   cv.school = 0.6,
@@ -259,14 +252,12 @@ run.scenario = function(
     ATE.district = ATE.district, 
     sd.district = sd.district,
     ICC.district = ICC.district,
-    variable.J = variable.J,
     variable.p = variable.p,
     
     # cluster-level params
     n.bar = n.bar, 
     sd.school = sd.school, 
     ICC.school = ICC.school,
-    variable.n = variable.n,
     
     # size and correlation params
     cv.district = cv.district, 
@@ -301,14 +292,12 @@ if ( FALSE ) {
                      ATE.district = 0.2, 
                      sd.district = 0.1,
                      ICC.district = 0.2,
-                     variable.J = F,
                      variable.p = T,
                      
                      # cluster-level params
                      n.bar = 50, 
                      sd.school = 0.1, 
                      ICC.school = 0.2,
-                     variable.n = T,
                      
                      # size and correlation params
                      size.impact.cor.district = 0,
@@ -323,346 +312,4 @@ if ( FALSE ) {
 }
 
 
-
-#### Make scenario configurations #####
-
-#base.values
-#function to replicate base values across the rows and only change one variable
-expand.fixed.one<-function(manip.var.name, manip.var.vals, base.values) {
-  
-  base.comp<-base.values %>% 
-    dplyr::select(!sim.id)
-  
-  scenarios<- base.comp %>% 
-    slice(rep(1:n(),each=length(manip.var.vals))) %>%
-    select(-all_of(manip.var.name)) %>%
-    mutate(!!manip.var.name:=manip.var.vals) %>% 
-    filter(!pmap_lgl(.,~all(c(...)==base.comp))) %>% 
-    mutate (sim.id=manip.var.name)
-}
-
-
-#set base.values
-base.values<-data.frame(K=10, 
-                        J.bar = 10,
-                        p.bar = 0.5,
-                        ATE.district = 0.2, 
-                        sd.district = 0.1,
-                        ICC.district = 0.2,
-                        variable.J = T,
-                        variable.p = F,
-                        n.bar=25,
-                        sd.school = 0.1, 
-                        ICC.school = 0.2,
-                        variable.n = T,
-                        size.impact.cor.district = 0,
-                        size.impact.cor.school = 0,
-                        proptx.impact.cor.district = 0,
-                        size.intercept.cor.district = 0,
-                        cor.strength.school=0,  
-                        sim.id="base.values")
-
-base.values.variable.p<- base.values %>% mutate(variable.p = T,sim.id="base.values.variable.p")
-base.values.sch.cor<- base.values %>% mutate( size.impact.cor.school = 1,sim.id="base.values.sch.cor")
-base.values.sch.cor.neg<- base.values %>% mutate( size.impact.cor.school = -1,sim.id="base.values.sch.cor.neg")  
-base.values.estimand<- base.values %>% mutate( size.impact.cor.school = 1,cor.strength.school=.75,sim.id="base.values.estimand")
-base.values.estimand.variable.p<- base.values.estimand %>% mutate(variable.p = T,sim.id="base.values.estimand.variable.p")
-base.values.estimand.2<-base.values.estimand %>% mutate(sd.district=.3,sd.school=.3,sim.id="base.values.estimand.2")
-base.values.estimand.variable.p.2<- base.values.estimand.2 %>% mutate(variable.p = T,sim.id="base.values.estimand.variable.p.2")
-base.values.performance<- base.values %>% mutate(size.impact.cor.district = .2, 
-                                                 size.impact.cor.school =1, cor.strength.school=.2,sim.id="base.values.performance")
-base.values.performance.variable.p<- base.values.performance %>% mutate(variable.p = T,sim.id="base.values.performance.variable.p")
-base.values.performance.sch.cor<- base.values.performance %>% mutate( size.impact.cor.school = 1,sim.id="base.values.performance.sch.cor")
-base.values.performance.sch.cor.neg<- base.values.performance %>% mutate( size.impact.cor.school = -1,sim.id="base.values.performance.sch.cor.neg")  
-
-
-
-
-make.scenario.list = function( group = "main" ) {
-  
-  if ( group == "main" ) {
-    scenarios = expand.grid( 
-      K = c(5,10,20), 
-      J.bar = c(10,20,40,80),
-      p.bar = c(0.5),
-      ATE.district = 0.2, 
-      sd.district = 0.1,
-      ICC.district = 0.2,
-      variable.J = c(T,F),
-      variable.p = c(T,F),
-      
-      # cluster-level params
-      n.bar = c(25,50,100), 
-      sd.school = c(0.1, 0.2), 
-      ICC.school = 0.2,
-      variable.n = c(T,F),
-      
-      # size and correlation params
-      size.impact.cor.district = c(0,0.75),
-      size.impact.cor.school = c(0,1),
-      proptx.impact.cor.district = c(0, 0.75))
-  } 
-  else if ( group == "sim_base_1" ) {
-    scenarios<-bind_rows(expand.fixed.one(manip.var.name="size.impact.cor.district",
-                                          manip.var.vals<-seq(-1,1,.1),base.values),
-                         expand.fixed.one(manip.var.name="size.impact.cor.school",
-                                          manip.var.vals<-c(-1,0,1),base.values),
-                         expand.fixed.one(manip.var.name="proptx.impact.cor.district",
-                                          manip.var.vals<-seq(-1,1,.1),base.values.variable.p),
-                         expand.fixed.one(manip.var.name="size.intercept.cor.district",
-                                          manip.var.vals<-seq(-1,1,.1),base.values),
-                         expand.fixed.one(manip.var.name="ICC.district",
-                                          manip.var.vals<-seq(.05,.7,.05),base.values),
-                         expand.fixed.one(manip.var.name="ICC.school",
-                                          manip.var.vals<-seq(.05,.7,.05),base.values), 
-                         expand.fixed.one(manip.var.name="sd.district",
-                                          manip.var.vals<-seq(0,.5,.02),base.values), 
-                         expand.fixed.one(manip.var.name="sd.school",
-                                          manip.var.vals<-seq(0,.5,.02),base.values),
-                         expand.fixed.one(manip.var.name="cor.strength.school",
-                                          manip.var.vals<-seq(0,1,.1),base.values.sch.cor),
-                         expand.fixed.one(manip.var.name="cor.strength.school",
-                                          manip.var.vals<-seq(0,1,.1),base.values.sch.cor.neg),
-                         base.values,base.values.variable.p,base.values.sch.cor,base.values.sch.cor.neg)
-    
-  } 
-  else if ( group == "estimators_estimand" ) {
-    scenarios<-bind_rows(
-      expand.fixed.one(manip.var.name="ICC.district",
-                       manip.var.vals<-seq(.05,.7,.05),base.values.estimand),
-      expand.fixed.one(manip.var.name="ICC.school",
-                       manip.var.vals<-seq(.05,.7,.05),base.values.estimand), 
-      expand.fixed.one(manip.var.name="sd.district",
-                       manip.var.vals<-seq(0,.5,.02),base.values.estimand), 
-      expand.fixed.one(manip.var.name="sd.school",
-                       manip.var.vals<-seq(0,.5,.02),base.values.estimand),
-      expand.fixed.one(manip.var.name="size.intercept.cor.district",
-                       manip.var.vals<-seq(-1,1,.1),base.values.estimand),
-      expand.fixed.one(manip.var.name="proptx.impact.cor.district",
-                       manip.var.vals<-seq(-1,1,.1),base.values.estimand.variable.p),
-      base.values.estimand,base.values.estimand.variable.p)
-  }
-  else if ( group == "estimators_estimand_2" ) {
-    scenarios<-bind_rows(
-      expand.fixed.one(manip.var.name="ICC.school",
-                       manip.var.vals<-seq(.03,.5,.01),base.values.estimand.2), 
-      expand.fixed.one(manip.var.name="ICC.district",
-                       manip.var.vals<-seq(0,.5,.01),base.values.estimand.2),
-      expand.fixed.one(manip.var.name="sd.district",
-                       manip.var.vals<-seq(0,.5,.02),base.values.estimand.2), 
-      expand.fixed.one(manip.var.name="sd.school",
-                       manip.var.vals<-seq(0,.5,.02),base.values.estimand.2),
-      expand.fixed.one(manip.var.name="size.intercept.cor.district",
-                       manip.var.vals<-seq(-1,1,.1),base.values.estimand.2),
-      expand.fixed.one(manip.var.name="proptx.impact.cor.district",
-                       manip.var.vals<-seq(-1,1,.1),base.values.estimand.variable.p.2),
-      base.values.estimand.2,base.values.estimand.variable.p.2)
-  }
-  else if ( group == "performance_1" ) {
-    scenarios<-bind_rows(
-      expand.fixed.one(manip.var.name="ICC.district",
-                       manip.var.vals<-seq(0,.4,.02),base.values.performance),
-      expand.fixed.one(manip.var.name="ICC.school",
-                       manip.var.vals<-seq(.03,.4,.02),base.values.performance), 
-      expand.fixed.one(manip.var.name="sd.district",
-                       manip.var.vals<-seq(0,.5,.02),base.values.performance), 
-      expand.fixed.one(manip.var.name="sd.school",
-                       manip.var.vals<-seq(0,.5,.02),base.values.performance),
-      expand.fixed.one(manip.var.name="size.intercept.cor.district",
-                       manip.var.vals<-seq(-1,1,.1),base.values.performance),
-      expand.fixed.one(manip.var.name="K",
-                       manip.var.vals<-seq(5,80,5),base.values.performance),
-      expand.fixed.one(manip.var.name="J.bar",
-                       manip.var.vals<-seq(7,30,2),base.values.performance),
-      expand.fixed.one(manip.var.name="n.bar",
-                       manip.var.vals<-seq(10,100,5),base.values.performance),
-      expand.fixed.one(manip.var.name="p.bar",
-                       manip.var.vals<-seq(.2,.8,.1),base.values.performance),
-      expand.fixed.one(manip.var.name="proptx.impact.cor.district",
-                       manip.var.vals<-seq(-1,1,.1),base.values.performance.variable.p),
-      expand.fixed.one(manip.var.name="cor.strength.school",
-                       manip.var.vals<-seq(0,1,.1),base.values.performance.sch.cor),
-      expand.fixed.one(manip.var.name="cor.strength.school",
-                       manip.var.vals<-seq(0,1,.1),base.values.performance.sch.cor.neg),
-      expand.fixed.one(manip.var.name="size.impact.cor.district",
-                       manip.var.vals<-seq(-1,1,.1),base.values.performance),
-      base.values.performance, base.values.performance.variable.p,base.values.performance.sch.cor,base.values.performance.sch.cor.neg)}
-  else if ( group == "initial" ) {
-    scenarios = expand.grid( 
-      K = c(10), 
-      J.bar = c(20,50),
-      p.bar = c(0.5),
-      ATE.district = 0.2, 
-      sd.district = 0.1,
-      ICC.district = 0.2,
-      variable.J = c(T,F),
-      variable.p = c(T,F),
-      
-      # cluster-level params
-      n.bar = c(50), 
-      sd.school = c(0.1), 
-      ICC.school = 0.2,
-      variable.n = c(T,F),
-      
-      # size and correlation params
-      size.impact.cor.district = c(0,0.75),
-      size.impact.cor.school = c(0,1),
-      proptx.impact.cor.district = c(0,0.75))
-    
-  } else if ( group == "sim2" ) {
-    scenarios = expand.grid( 
-      K = c(10), 
-      J.bar = c(25),
-      p.bar = c(0.5),
-      ATE.district = 0.2, 
-      sd.district = 0.1,
-      ICC.district = 0.2,
-      variable.J = c(T),
-      variable.p = c(F),
-      
-      # cluster-level params
-      n.bar = c(25,100), 
-      sd.school = c(0.1), 
-      ICC.school = 0.2,
-      variable.n = c(T),
-      
-      # size and correlation params
-      size.impact.cor.district = c(-0.75,0,0.75),
-      size.impact.cor.school = c(-1,0,1),
-      proptx.impact.cor.district = c(0))
-    
-  } else if ( group == "sim3" ) {
-    scenarios = expand.grid( 
-      K = c(5,10,20), 
-      J.bar = c(10,25,80),
-      p.bar = c(0.5),
-      ATE.district = 0.2, 
-      sd.district = 0.1,
-      ICC.district = 0.2,
-      variable.J = c(T),
-      variable.p = c(T),
-      
-      # cluster-level params
-      n.bar = c(25,50,100), 
-      sd.school = c(0.1), 
-      ICC.school = 0.2,
-      variable.n = c(T),
-      
-      # size and correlation params
-      size.impact.cor.district = c(0,0.75),
-      size.impact.cor.school = c(0,1),
-      proptx.impact.cor.district = c(0))
-    
-  } else if ( group == "sim_icc" ) {
-    scenarios = expand.grid( 
-      K = c(10), 
-      J.bar = c(20),
-      p.bar = c(0.5),
-      ATE.district = 0.2, 
-      sd.district = 0.1,
-      ICC.district = c(0.1, 0.25, 0.4),
-      variable.J = c(T),
-      variable.p = c(T),
-      
-      # cluster-level params
-      n.bar = c(50), 
-      sd.school = c(0.1), 
-      ICC.school = c(0.1, 0.25, 0.4),
-      variable.n = c(T),
-      
-      # size and correlation params
-      size.impact.cor.district = c(0,0.75),
-      size.impact.cor.school = c(0,1),
-      proptx.impact.cor.district = c(0))
-    
-  } else if ( group == "sim_interceptcor" ) {
-    scenarios = expand.grid( 
-      K = c(15), 
-      J.bar = c(15),
-      p.bar = c(0.75),       # higher pbar
-      ATE.district = 0.2, 
-      sd.district = 0.1,
-      ICC.district = c(0.2),
-      variable.J = c(T),
-      variable.p = c(T),
-      
-      # cluster-level params
-      n.bar = c(50), 
-      sd.school = c(0.1), 
-      ICC.school = c(0.2),
-      variable.n = c(T),
-      
-      # size and correlation params
-      size.impact.cor.district = c(0, 0.8),
-      size.impact.cor.school = c(0, 1),
-      proptx.impact.cor.district = c(0, 0.8),
-      size.intercept.cor.district = c(0, 0.8))
-    
-  } else if ( group == "sim_small" ) {
-    scenarios = expand.grid( 
-      K = c(4), 
-      J.bar = c(6),
-      p.bar = c(0.75),
-      ATE.district = 0.2, 
-      sd.district = 0.1,
-      ICC.district = c(0.2),
-      variable.J = c(T),
-      variable.p = c(T),
-      
-      # cluster-level params
-      n.bar = c(50), 
-      sd.school = c(0.1), 
-      ICC.school = c(0.2),
-      variable.n = c(T),
-      
-      # size and correlation params
-      size.impact.cor.district = c(0, 0.75),
-      size.impact.cor.school = c(0, 1),
-      proptx.impact.cor.district = c(0, 0.75),
-      size.intercept.cor.district = c(0, 0.75))
-    
-  } else {
-    error( "No defined group in make.scenario.list" )
-  }
-  
-  nrow( scenarios )
-  
-  # filter out replicated correlation rows (if no room for variation)
-  scenarios <- scenarios %>% 
-    filter(
-      variable.J | size.impact.cor.district==0,
-      variable.J | size.intercept.cor.district==0,
-      variable.p | proptx.impact.cor.district==0,
-      sd.district!=0 | (size.impact.cor.district == 0 & proptx.impact.cor.district == 0),
-      variable.n | size.impact.cor.school == 0,
-      sd.school != 0 | size.impact.cor.school == 0
-    )
-  
-  # convert n.bar from totals to people per site
-  
-  scenarios$ID = 1:nrow( scenarios )
-  
-  scenarios  
-}
-
-
-# Given an Id 'index' return the characteristics of the given generated scenario.
-# 
-# This is so we don't have to store all the factors of the experiment in all the dataframes.
-get.scenario.by.id = function( index, group = "main" ) {
-  scenarios = make.scenario.list( group=group )
-  scenarios[ index, ]
-}
-
-
-##### Testing code #####
-
-# Testing code
-if ( FALSE ) {
-  sc = make.scenario.list(group="main")
-  nrow( sc )
-  head( sc )
-  
-  get.scenario.by.id(12, group="main")
-}
 

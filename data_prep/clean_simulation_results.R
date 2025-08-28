@@ -257,6 +257,10 @@ sruns = mutate( sruns,
 
 
 ##### Save #####
+#manually fix group because I didn't in the simulation program, this doesn't effect anything but the label 
+sruns$group<-"lowdf"
+scenarios$group<-"lowdf"
+
 group=unique(sruns$group)
 #group=unique(simdata$group)
 
@@ -264,19 +268,22 @@ group=unique(sruns$group)
 #for now just save the aggregate results in an agg folder
 
 file_name=paste("results_agg/processed_simulation_results_agg_",group,"_",Sys.Date(),".RData",sep="")
-save(scenarios,sruns, file=file_name )
+
+
+#rename sruns so that it can be combined with other sruns data 
+sruns.name<-paste("sruns",group,sep=".")
+assign(sruns.name,sruns)
+
+save(scenarios,list=c(sruns.name), file=file_name )
 
 
 #old save code 
   #file_name=paste("results/processed_simulation_results_",group,"_",Sys.Date(),".RData",sep="")
   #file_name=paste("processed_simulation_results_",group,"_",Sys.Date(),".RData",sep="")
-  #rename sruns so that it can be combined with other sruns data 
-  #sruns.name<-paste("sruns",group,sep=".")
-  #assign(sruns.name,sruns)
   #rename the range data 
   #range.dat.name<-paste("range.dat",group,sep=".")
   #assign(range.dat.name,range.dat)
-  
+
   #save(scenarios, simdata, list=c(sruns.name,range.dat.name), file=file_name )
   
     

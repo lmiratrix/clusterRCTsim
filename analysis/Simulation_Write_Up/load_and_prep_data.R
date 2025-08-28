@@ -1,6 +1,6 @@
 # Load and prep simulation results
 
-
+ 
 require(tidyverse)
 require(rlang)
 require(stargazer)
@@ -14,16 +14,15 @@ require(pander)
 
 
 
-load( here::here( "results_agg/processed_simulation_results_agg_full_factor_2025-04-03.RData" ) )
+load( here::here( "results_agg/processed_simulation_results_agg_full_factor_2025-05-21.RData" ) )
 
 
-DGP_vars <- c("K", "J.bar", "p.bar", "sd.ATE", "ICC", "variable.J", 
-              "variable.p", "n.bar", "sd.school", "ICC.school", "variable.n", 
-              "size.impact.cor", "num.cov.district","cv.nbar", "R2.school", 
-              "num.cov.school", "cv.school", "num.cov.indiv", 
-              "empirical", "cv.district", "nbar.J.cor", "size.intercept.cor", 
-              "variable.nbar")
 
+DGP_vars <- c("K", "J.bar", "p.bar", "sd.ATE", "ICC.district", "variable.p", 
+              "n.bar", "sd.school", "ICC.school", "size.impact.cor", "size.impact.cor.school", 
+              "proptx.impact.cor", "num.cov.district", "num.cov.school", "cv.school", 
+              "num.cov.indiv", "empirical", "cv.district", "nbar.J.cor", 
+              "size.intercept.cor", "cv.nbar", "R")
 
 
 # Function to create labeled factors with zero as base level
@@ -75,45 +74,82 @@ create_labeled_factor <- function(x) {
   }
 }
 
-#dropping repeats caused by cv.school and variable.n
-#dropping variable nbar
 
-sruns<- sruns %>% select(-variable.nbar) 
+# Drop impossible combos ---
+
+# Check combos of simulations
+table( cv.school = sruns$cv.school, 
+       sd.school = sruns$sd.school,
+       size.impact.cor.school = sruns$size.impact.cor.school )
+
+
+table( sruns$variable.p, sruns$proptx.impact.cor )
+
+table( sruns$size.impact.cor, sruns$sd.school )
+
+
+sruns <- sruns %>%
+  filter( !(size.impact.cor.school != 0 & sd.school == 0) ) %>%
+  filter( !(size.impact.cor.school != 0 & cv.school == 0) ) 
+
+
+
+# Make clean set ----
+
 
 sruns.clean <- sruns %>%  
   mutate(block_type = case_when(
-    variable.J == FALSE & sd.ATE == 0 & 
+    # Blocks all the same (btype1)
+    cv.district == 0 &
+      sd.ATE == 0 & 
       size.impact.cor == 0 & 
-      proptx.impact.cor == 0 & size.intercept.cor == 0 ~ 1,
+      nbar.J.cor == 0 &
+      proptx.impact.cor == 0 & 
+      size.intercept.cor == 0 &
+      !variable.p &
+      cv.nbar == 0 ~ 1,
     
-    variable.J == TRUE & sd.ATE == 0.6 & 
+    # Blocks all messy (btype2)
+    cv.district == 0.85 &
+      sd.ATE == 0.6 & 
       size.impact.cor == 0.8 & 
-      proptx.impact.cor == 0.8 & size.intercept.cor == 0.8 ~ 3,
+      nbar.J.cor == 0.8 &
+      proptx.impact.cor == 0.8 & 
+      size.intercept.cor == 0.8 &
+      variable.p &
+      cv.nbar == 0.33 ~ 3,
     
-    variable.J == TRUE & sd.ATE == 0.1 & 
+    # Blocks vaguely reasonable (btype3)
+    cv.district == 0.33 &
+      sd.ATE == 0.2 & 
       size.impact.cor == 0.2 & 
-      proptx.impact.cor == 0 & size.intercept.cor == 0.1 ~ 2,
+      nbar.J.cor == 0.3 &
+      proptx.impact.cor == 0 & 
+      size.intercept.cor == 0.3 &
+      !variable.p &
+      cv.nbar == 0.33 ~ 2,
     
-    TRUE ~ NA  # Catch any other combinations
-  ) ) %>% mutate(
+    TRUE ~ NA_real_  # Catch any other combinations
+  )) %>% 
+  mutate(
     bias.s.estimand = case_when(
       weight == "Cluster" ~ bias.s.sch,
       weight == "Person" ~ bias.s.stu
-    ))%>% 
-  mutate(
+    ),
     cover.s.estimand = case_when(
       weight == "Cluster" ~ cover.s.sch,
       weight == "Person" ~ cover.s.stu
-    ))%>%
-  mutate(
+    ),
     RMSE.s.estimand = case_when(
       weight == "Cluster" ~ RMSE.s.sch,
       weight == "Person" ~ RMSE.s.stu
-    ))%>%
+    )
+  ) %>%
   mutate(
     sd.ATE = create_labeled_factor(sd.ATE),
     size.impact.cor = create_labeled_factor(size.impact.cor),
     J.bar = create_labeled_factor(J.bar),
+    p.bar = create_labeled_factor(p.bar),
     sd.school = create_labeled_factor(sd.school),
     ICC.school = create_labeled_factor(ICC.school),
     cv.school = create_labeled_factor(cv.school),
@@ -126,17 +162,26 @@ sruns.clean <- sruns %>%
                                labels = c("Same", "Reas", "Mess")),
     bias.s.estimand.mag=abs(bias.s.estimand),
     method = reorder(method, -biased),
-    bias.ratio.sch=(round(bias.f.sch/bias.s.sch,4)),
-    bias.ratio.stu=(round(bias.f.stu/bias.s.stu,4)),
-    RMSE.ratio.sch=(round(RMSE.f.sch/RMSE.s.sch,4)),
-    RMSE.ratio.stu=(round(RMSE.f.stu/RMSE.s.stu,4)),
-    cover.ratio.stu=(round(cover.f.stu/cover.s.stu,4)),
-    cover.ratio.sch=(round(cover.f.sch/cover.s.sch,4)),    
-    true.se.ratio=(round(SE.f/SE.s,2))
-  )
+    bias.ratio.sch = round(bias.f.sch/bias.s.sch, 4),
+    bias.ratio.stu = round(bias.f.stu/bias.s.stu, 4),
+    RMSE.ratio.sch = round(RMSE.f.sch/RMSE.s.sch, 4),
+    RMSE.ratio.stu = round(RMSE.f.stu/RMSE.s.stu, 4),
+    cover.ratio.stu = round(cover.f.stu/cover.s.stu, 4),
+    cover.ratio.sch = round(cover.f.sch/cover.s.sch, 4),    
+    true.se.ratio = round(SE.f/SE.s, 2)
+  )  %>%
+  mutate(
+    is_FI = str_detect(method, "FI"),
+    is_MLM = str_detect(method, "MLM"),
+    is_cw = str_detect(method, "cw"),
+    is_pw = str_detect(method, "pw"),
+  ) 
+
 
 # Check the levels of one of the variables
 levels(sruns.clean$block_type)
+table(sruns.clean$block_type)
+
 levels(sruns.clean$J.bar)
 levels(sruns.clean$ICC.school)
 
@@ -164,6 +209,8 @@ ordered_methods <- sruns.clean %>%
   )
 
 # Create the plot data with ordered methods
+# 
+# TODO: Just make this sruns.clean everywhere???
 plot_data <- sruns.clean %>%
   mutate(
     weight_biased = paste(weight, biased, sep = "_"),
@@ -177,7 +224,7 @@ group_estimators <- function( rps, var ) {
   
   wid <- rps %>% 
     dplyr::select( ID, method, all_of(var) ) %>% 
-    pivot_wider( names_from = method, values_from = var ) %>%
+    pivot_wider( names_from = method, values_from = all_of( var ) ) %>%
     dplyr::select( -ID )
   
   results <- combn(names(wid), 2, function(x) {
@@ -222,7 +269,7 @@ group_estimators <- function( rps, var ) {
   groups
 }
 
-groups <- group_estimators(sruns, var= "mean.ATE.hat")
+groups <- group_estimators(sruns, var = "mean.ATE.hat")
 
 
 # List the groups
@@ -242,9 +289,15 @@ core.methods <- c("LRa-FE-db", "LRa-FIcw-db", "LRapw-FE-db", "LRapw-FIpw-db", "M
 MLM.methods<-c( "MLM-FE", "MLM-FIcw", "MLM-RE" )
 
 #this is the list of methods that don't produce the same se estimates
-all.methods<-c("LRa-FE-db", "LRa-FE-het", "LRicw-FE-crve", "LRicw-FE-db","LRa-FIcw-db","LRa-FIcw-het", "LRicw-FIcw-crve", "LRicw-FIcw-db", "LRapw-FE-db", "LRapw-FE-het", "LRi-FE-crve", "LRi-FE-db","LRapw-FIpw-db", "LRapw-FIpw-het", "LRi-FIpw-crve", "LRi-FIpw-db", "MLM-FE", "MLM-FIcw","MLM-RE")
+all.methods<-c("LRa-FE-db", "LRa-FE-het", "LRicw-FE-crve", "LRicw-FE-db",
+               "LRa-FIcw-db","LRa-FIcw-het", "LRicw-FIcw-crve", 
+               "LRicw-FIcw-db", "LRapw-FE-db", "LRapw-FE-het", 
+               "LRi-FE-crve", "LRi-FE-db","LRapw-FIpw-db", 
+               "LRapw-FIpw-het", "LRi-FIpw-crve", "LRi-FIpw-db", 
+               "MLM-FE", "MLM-FIcw","MLM-RE")
 
-groups<-group_estimators(sruns, var= "mean.SE.hat")
+
+groups <- group_estimators(sruns, var = "mean.SE.hat")
 
 
 # List the groups
@@ -256,6 +309,14 @@ map_chr(groups, paste, collapse = ", ") %>%
   relocate(grp) %>%
   knitr::kable()
 
-core.methods.se <- c("LRa-FE-db", "LRa-FE-het", "LRa-FIcw-db", "LRapw-FE-db", "LRapw-FE-het", "LRapw-FIpw-db", "LRapw-FIpw-het", "LRicw-FE-crve", "LRicw-FIcw-crve", "MLM-FE", "MLM-FIcw", "MLM-RE")
+core.methods.se <- c("LRa-FE-db", "LRa-FE-het", "LRa-FIcw-db", "LRapw-FE-db", 
+                     "LRapw-FE-het", "LRapw-FIpw-db", "LRapw-FIpw-het", 
+                     "LRicw-FE-crve", "LRicw-FIcw-crve", "MLM-FE", "MLM-FIcw",
+                     "MLM-RE")
+
+
+# QUESTION: Can we delete these?
+rm( groups )
+rm( sruns )
 
 

@@ -48,7 +48,6 @@ sruns.sub <- sruns.sub %>%
   rename( blk_type = block_type,
           cor_J_tau = size.impact.cor.school,
           num.cov = num.cov.school,
-          var.n = variable.n,
           cv.sch = cv.school,
           sd.sch = sd.school,
           ICC.sch = ICC.school )
@@ -56,8 +55,7 @@ sruns.sub <- sruns.sub %>%
 
 # QUESTION: Include method or not?
 form = as.formula( "abs(bias.s.estimand) ~ is_FI + is_MLM + is_cw + is_pw + blk_type + J.bar + cor_J_tau + 
-                                                 sd.sch + ICC.sch + var.n + 
-                                                 cv.sch + num.cov" )
+                                                 sd.sch + ICC.sch + cv.sch + num.cov+p.bar" )
 form
 
 

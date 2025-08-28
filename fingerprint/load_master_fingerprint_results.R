@@ -50,7 +50,7 @@ skimr::skim_without_charts( simdat )
 
 # Load MDRC side ----
 
-mdrc_dat <- read_rds( "fingerprint/results_master_finger/master_run_fingerprints.RDS" ) %>%
+mdrc_dat <- read_rds( here::here( "fingerprint/results_master_finger/master_run_fingerprints.RDS" ) ) %>%
   as_tibble()
 
 skimr::skim_without_charts( mdrc_dat )
@@ -125,7 +125,7 @@ stopifnot( all( !is.na( simdat$ATE_hat[ok] ) ) )
 
 
 # Who is missing from the fingerprint simulation? ----
-table(simdat$UniqueID)
+table( simdat$UniqueID )
 length( unique( simdat$UniqueID ) )
 miss_sets <- setdiff( studies$UniqueID, simdat$UniqueID )
 
@@ -137,6 +137,8 @@ filter( studies, UniqueID %in% miss_sets ) %>%
   knitr::kable( caption = "Dropped Datasets" ) %>%
   print()
 
+miss_sets <- filter( studies,
+                     UniqueID %in% miss_sets )
 # rm( miss_sets )
 
 # Subset to our core fingerprinted studies
@@ -167,7 +169,7 @@ range_dat
 table(range_dat$runID )
 
 
-# Calculate method performances s---
+# Calculate method performances ----
 
 table( simdat$method, useNA="always" )
 
@@ -180,7 +182,7 @@ meth_dat <- simdat %>%
 meth_dat  
 
 
-# Windsorize the SE ranges
+# Windsorize the SE ranges ----
 range_dat$ratioSE[ range_dat$ratioSE > 5 ] = 5
 
 range_dat <- range_dat %>%

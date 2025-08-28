@@ -20,15 +20,16 @@ test_that( "single.CRT() works", {
                    ATE.district = 0.2, 
                    sd.district = 0.1,
                    ICC.district = 0.2,
-                   variable.J = F,
                    variable.p = T,
                    
                    # cluster-level params
                    n.bar = 50, 
                    sd.school = 0.1, 
                    ICC.school = 0.2,
-                   variable.n = T,
-                   
+                   cv.school = 0.2,
+                   cv.district = 0.2,
+
+                    
                    # size and correlation params
                    size.impact.cor.district = 0,
                    size.intercept.cor.district = 0.5,
@@ -59,14 +60,13 @@ test_that( "single.CRT() works", {
                     ATE.district = 0.2, 
                     sd.district = 0.1,
                     ICC.district = 0.2,
-                    variable.J = F,
                     variable.p = T,
                     
                     # cluster-level params
                     n.bar = 50, 
                     sd.school = 0.1, 
                     ICC.school = 0.2,
-                    variable.n = T,
+                    cv.school = 0.2,
                     
                     # size and correlation params
                     size.impact.cor.district = 0,
