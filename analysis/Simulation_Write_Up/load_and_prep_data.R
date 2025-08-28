@@ -31,34 +31,54 @@ create_labeled_factor <- function(x) {
   unique_values <- sort(unique(x))
   num_levels <- length(unique_values)
   
+  # Check if 0 is among the values
+  has_zero <- 0 %in% unique_values
+  
   if (num_levels == 1) {
     # If only one level, just return as is
     return(factor(x))
   } else if (num_levels == 2) {
-    # For two levels: 0 (base) and "L" (for larger value)
-    labels <- c("0", "L")
-    return(factor(x, levels = unique_values, labels = labels))
+    if (has_zero) {
+      # If one of the two values is 0, use "0" and "+"
+      labels <- ifelse(unique_values == 0, "0", "+")
+      return(factor(x, levels = unique_values, labels = labels))
+    } else {
+      # If no zero, use "S" and "L"
+      labels <- c("S", "L")
+      return(factor(x, levels = unique_values, labels = labels))
+    }
   } else if (num_levels == 3) {
-    # For three levels: 0 (base), "S" (small/middle), and "L" (large)
-    labels <- c("0", "S", "L")
-    return(factor(x, levels = unique_values, labels = labels))
+    if (has_zero) {
+      # If one of the three values is 0, use "0", "S", and "L"
+      zero_pos <- which(unique_values == 0)
+      ordered_levels <- c(0, unique_values[unique_values != 0])
+      labels <- c("0", "S", "L")
+      return(factor(x, levels = ordered_levels, labels = labels))
+    } else {
+      # If no zero, use "S", "M", and "L"
+      labels <- c("S", "M", "L")
+      return(factor(x, levels = unique_values, labels = labels))
+    }
   } else {
-    # For more than three levels, label by position
-    # Zero is always the base (first level), and others are numbered
-    zero_pos <- which(unique_values == 0)
-    if (length(zero_pos) > 0) {
+    # For more than three levels
+    if (has_zero) {
       # Reorder so 0 is first
       ordered_levels <- c(0, unique_values[unique_values != 0])
+      # First label is "0", rest are numbered L1, L2, etc.
       labels <- c("0", paste0("L", 1:(num_levels-1)))
       return(factor(x, levels = ordered_levels, labels = labels))
     } else {
-      # If no zero value exists, just use ordered values
-      warning("No zero value found in variable. Using smallest value as base.")
-      labels <- c("0", paste0("L", 1:(num_levels-1)))
+      # If no zero value exists, just use S1, S2, etc.
+      labels <- paste0("L", 1:num_levels)
       return(factor(x, levels = unique_values, labels = labels))
     }
   }
 }
+
+#dropping repeats caused by cv.school and variable.n
+#dropping variable nbar
+
+sruns<- sruns %>% select(-variable.nbar) 
 
 sruns.clean <- sruns %>%  
   mutate(block_type = case_when(
@@ -101,7 +121,9 @@ sruns.clean <- sruns %>%
     proptx.impact.cor = create_labeled_factor(proptx.impact.cor),
     size.intercept.cor = create_labeled_factor(size.intercept.cor),
     size.impact.cor.school = create_labeled_factor(size.impact.cor.school),
-    block_type = create_labeled_factor(block_type),
+    block_type = factor(block_type, 
+                               levels = sort(unique(block_type)),
+                               labels = c("Same", "Reas", "Mess")),
     bias.s.estimand.mag=abs(bias.s.estimand),
     method = reorder(method, -biased),
     bias.ratio.sch=(round(bias.f.sch/bias.s.sch,4)),
@@ -115,6 +137,8 @@ sruns.clean <- sruns %>%
 
 # Check the levels of one of the variables
 levels(sruns.clean$block_type)
+levels(sruns.clean$J.bar)
+levels(sruns.clean$ICC.school)
 
 # Create the new variable with median RMSE.s.estimand for each ID
 sruns.clean <- sruns.clean %>%
