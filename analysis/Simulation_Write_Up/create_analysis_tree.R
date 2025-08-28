@@ -15,6 +15,18 @@ create_analysis_tree <- function(data, outcome_var,
                                  plot_tree = TRUE, initial_cp = 0.001,
                                  tree_title = NULL) {
   
+  # Check if Times New Roman is available, fallback to serif
+  available_fonts <- names(pdfFonts())
+  if ("Times" %in% available_fonts) {
+    title_family <- "Times"
+  } else if ("serif" %in% available_fonts) {
+    title_family <- "serif"
+  } else {
+    title_family <- ""  # Use default
+  }
+  
+  # Convert 11pt to cex (assuming 12pt default)
+  title_cex <- 11/12
   
   name_map <- c(
     block_type = "blk_type",
@@ -80,6 +92,10 @@ create_analysis_tree <- function(data, outcome_var,
   if (plot_tree) {
     # Use custom title if provided, otherwise default
     plot_title <- if (is.null(tree_title)) paste("Decision Tree for", outcome_var) else tree_title
+    
+    # Set graphics parameters for title formatting
+    old_par <- par(cex.main = title_cex, font.main = 1, family = title_family)
+    on.exit(par(old_par))
     
     prp(tree_p,
         box.col = node_colors,

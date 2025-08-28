@@ -94,12 +94,7 @@ sruns <- sruns %>%
 
 
 
-
-
-
-
 # Make clean set ----
-
 
 
 sruns.clean <- sruns %>%  
@@ -162,11 +157,10 @@ sruns.clean <- sruns %>%
     proptx.impact.cor = create_labeled_factor(proptx.impact.cor),
     size.intercept.cor = create_labeled_factor(size.intercept.cor),
     size.impact.cor.school = create_labeled_factor(size.impact.cor.school),
-    # Fix for the factor problem - explicitly define levels based on your block types
     block_type = factor(block_type, 
-                        levels = c(1, 2, 3),
-                        labels = c("Same", "Reas", "Mess")),
-    bias.s.estimand.mag = abs(bias.s.estimand),
+                               levels = sort(unique(block_type)),
+                               labels = c("Same", "Reas", "Mess")),
+    bias.s.estimand.mag=abs(bias.s.estimand),
     method = reorder(method, -biased),
     bias.ratio.sch = round(bias.f.sch/bias.s.sch, 4),
     bias.ratio.stu = round(bias.f.stu/bias.s.stu, 4),
@@ -187,6 +181,7 @@ sruns.clean <- sruns %>%
 # Check the levels of one of the variables
 levels(sruns.clean$block_type)
 table(sruns.clean$block_type)
+
 levels(sruns.clean$J.bar)
 levels(sruns.clean$ICC.school)
 
