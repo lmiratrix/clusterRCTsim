@@ -292,7 +292,7 @@ The SEs for the troublesome studies:
     geom_hline( yintercept = 0 ) +
     coord_flip() +
     labs(
-      title = paste(stud_name, "SE estimates"),
+      title = "SE estimates",
       subtitle = "(For defined estimators)"
     )
 
