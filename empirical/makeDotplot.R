@@ -37,7 +37,7 @@ makeDotplot <- function(df, var,
          title    = title,
          subtitle = subtitle,
    #      color = "Structure",
-         fill = "df" ) +
+         fill = "DF" ) +
     theme(axis.text.y        = element_blank(),
           panel.grid.major.y = element_blank(),
           panel.grid.minor.y = element_blank(),
