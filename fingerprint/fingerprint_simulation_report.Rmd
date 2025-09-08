@@ -73,6 +73,7 @@ meth_dat <- meth_dat %>%
   ungroup()
 ```
 
+\newpage
 ## Are some methods imperfectly calibrated?
 
 We first examine whether the standard errors are _calibrated_, meaning the average estimated standard error tends to be equal to the true standard error.
@@ -82,7 +83,7 @@ This plots across the studies for each estimator.
 ggplot( meth_dat, aes( method, cal )) +
   geom_boxplot() +
   coord_flip() +
-  labs( title = "Calibration of SE estimates",
+  labs( title = "Calibration of SE estimates (E[SE-hat]/SE)",
         subtitle = "Ratio of estimated SE to true SE" ) +
   theme_minimal() +
   geom_hline( yintercept = 1 ) 
@@ -98,13 +99,13 @@ meth_dat %>%
   summarise( n = sum( !is.na( cal ) ),
              below_75 = mean( cal <= 0.75, na.rm=TRUE ),
              above_1.25 = mean( cal >= 1.25, na.rm=TRUE ) ) %>%
-  arrange( below_75 ) %>%
+  arrange( -below_75 ) %>%
   knitr::kable( digits = 2 )
 ```
 
-We see that some estimators have many scenarios where the standard errors are systematically too low (more than 25% too small, give or take some monte carlo uncertainty).
+We see that some estimators do have many scenarios where the standard errors are systematically too low (more than 25% too small, give or take some monte carlo uncertainty).
 
-
+\newpage
 ## Are some methods more precise?
 
 We next examine whether some methods are, for given scenarios, systematically more or less precise than others.
@@ -112,11 +113,12 @@ We, for each scenario, calculate the ratio of the true standard error to the med
 Above 1 means that method is more unstable relative to its peers for that scenario.
 Below 1 means it is notably more precise.
 
-```{r}
+```{r, message=FALSE}
 ggplot( meth_dat, aes( method, rel_SE )) +
   geom_boxplot() +
   coord_flip() +
-  labs( title = "Method true SE to median true SE within study" ) +
+  labs( title = "Method true SE to median true SE within study",
+        caption = "For TRIAD, 6 ATE estimators are undefined due to degrees of freedom concerns.") +
   theme_minimal() +
   geom_hline( yintercept = 1 ) 
 ```
@@ -124,7 +126,7 @@ ggplot( meth_dat, aes( method, rel_SE )) +
 One study (TRIAD) is matched pairs, and for this study 6 methods did not even provide a point estimate, meaning there is no standard error.
 For those methods, that study is dropped from the above figure.
 
-Here are the stats on that one:
+Here are the performance stats on TRIADScale-up:
 
 ```{r}
 filter( meth_dat, UniqueID == "TRIADScale-up_rema2" ) %>%
@@ -132,26 +134,44 @@ filter( meth_dat, UniqueID == "TRIADScale-up_rema2" ) %>%
   knitr::kable( digits = 2 )
 ```
 
-As another way of tackling this, we can look, within study, at the ratio of largest _true_ SE to smallest _true_ SE.
-This is akin to the ratio of estimated SEs, but is about true differences in performance.
+As another way of tackling the question of which estimators are more or less precise, we can look, within study, at the ratio of largest _true_ SE to smallest _true_ SE.
+This is akin to the ratio of estimated SEs (which we did in the paper), but is about differences in true performance.
 
-Here we look at the ratio of true SEs as a function of the median SE.
-No strong relationship, and we see outliers with some studies where the choice of estimator apparently matters a great deal.
+<!--Below we look at the ratio of true SEs as a function of the median SE.
+No strong relationship, and we see outliers with some studies where the choice of estimator apparently matters a great deal.-->
+
+We can make the standard plot of studies, looking at the SE ratio.  But this is the true ratio, not the ratio of the estimated SEs:
 
 ```{r}
 mm <- meth_dat %>%
   group_by( UniqueID ) %>%
   summarise( medianSE = median(SE),
-             trueSEratio = max(SE) / min(SE) )
-ggplot( mm, aes( medianSE, trueSEratio )) +
-  geom_point()
+             trueSEratio = max(SE, na.rm=TRUE) / min(SE, na.rm=TRUE) )
+mm <- left_join( mm, studies, by="UniqueID" ) 
 
+#ggplot( mm, aes( medianSE, trueSEratio )) +
+#  geom_point()
+ggplot( mm, aes( trueSEratio, fill=low_df ) ) +
+  geom_dotplot( method="histodot", binwidth=0.1 ) 
 ```
 
-We can look at which studies have more difference:
+We are looking at `r nrow(mm)` studies.
+
+We can look at the ranges of true SE by study, to see which studies have greater opportunity for an estimator to be preferred:
 
 ```{r}
-mm <- left_join( mm, studies, by="UniqueID" ) 
+ggplot( meth_dat, aes( UniqueID, SE )) +
+  geom_boxplot() +
+  coord_flip() +
+  labs( title = "Range of True SEs of methods by study" ) +
+  scale_y_log10() +
+  theme_minimal()
+```
+
+
+We can look at which studies have the larger differences, by printing out the studies in order of smallest to largest true SE ratio:
+
+```{r}
 #mm
 mm %>%
   arrange( trueSEratio ) %>%
@@ -159,11 +179,9 @@ mm %>%
   knitr::kable( digits=2 )
 ```
 
-We can ask what drives these differences:
+We can ask what drives these differences, making a tree that predicts which studies have greater instability in the true SE:
 
 ```{r}
-
-
 source( here::here( "create_analysis_tree.R" ) )
 create_analysis_tree( mm, "trueSEratio",
                       c("J", "Jbar", "K", "num_singletons",
@@ -182,16 +200,18 @@ if ( FALSE ) {
 }
 ```
 
-Not that useful as to what is going on.
+This says those studies with larger R2.1 values have greater differences.
+This implies that some estimators are taking advantage of the covariates better than others?
+
 
 We can look at the stats of `jg_crt_12`, but nothing jumps out as being particularly exciting as an explanation.
 
 ```{r}
 uid = "jg_crt_12"
 clusterRCT:::print.clusterRCTstats( filter( studies, UniqueID == uid ) )
-
 ```
 
+\newpage
 ## Are estimated SEs more unstable for some methods?
 
 We next look at whether some methods have more variation in how their estimated standard errors vary across simulation runs for given scenarios.
@@ -205,7 +225,7 @@ ggplot( meth_dat, aes( method, stab )) +
   theme_minimal()
 ```
 
-Overall, all the methods have standard errors that seem about the same wiggly.
+Overall, all the methods have estimated standard errors that seem about the same wiggly, relative to their respective true standard errors.
 
 If we look by study, we see some studies have very reliable stabilities across method.
 Other studies have very different stabilities.

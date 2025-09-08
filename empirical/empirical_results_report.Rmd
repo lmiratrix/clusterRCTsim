@@ -48,7 +48,7 @@ table( studies$Collection, studies$blocked ) %>%
 ```
 
 
-Some statistics about the studies across the `r nrow(filter( studies, blocked=="Blocked"))` outcomes:
+Some statistics about the blocked studies across the `r nrow(filter( studies, blocked=="Blocked"))` outcomes they entail:
 ```{r}
 studies %>%
   filter( blocked == "Blocked" ) %>%
@@ -79,9 +79,6 @@ bind_rows( n=n, J=J, K=K, .id = "unit" ) %>%
   knitr::kable()
 ```
 
-**Cut-off for "low" degrees of freedom**
-
-Low is strictly less than 10
 
 
 
@@ -92,7 +89,7 @@ This table lists the number of singletons and doubletons for the Blocked experim
 ```{r}
 studies %>% 
   dplyr::filter( blocked == "Blocked" ) %>%
-  dplyr::select( UniqueID, study_id, num_singletons, num_doubletons ) %>% 
+  dplyr::select( UniqueID, num_singletons, num_doubletons ) %>% 
   knitr::kable(  )
 ```
 
@@ -108,7 +105,13 @@ studies %>%
 
 
 
-## Studies with few degrees of freedom
+## Studies with low degrees of freedom
+
+In this report, we define "Low" to be strictly less than 10 degrees of freedom.
+Here are all studies with 30 or fewer "conservative" degrees of freedom defined as:
+
+$$ df_{cons} =  J - 2K - 1 $$
+
 
 ```{r}
 studies %>%
@@ -123,14 +126,19 @@ studies %>%
 
 # Some statistics on our estimators
 
-The number of large ranges of SE (2x or more) and ATE (0.10 or more) is the following (*** means yes, blank means no):
+For each outcome we calculate a bunch of ATE estimates and SE estimates.
+We then look at the range of ATE estimates and the ratio of the max to min SE estimate.
+
+We can then tally the number of outcomes with a large ranges of SE (2x or more) and/or ATE (0.10 or more) is the following (*** means yes it is a large range, blank means no):
 
 ```{r}
 table( `big ATE range` = studies$big_ate, `big SE ratio` = studies$big_se ) 
 ```
 
 
-## The number of ATE ranges greater than 0.10 and 0.05
+## How often the ATE range is large
+
+Here we count the number of ranges greater than 0.10 and 0.05:
 
 ```{r}
 ranges %>%
@@ -145,7 +153,9 @@ ranges %>%
 
 ```
 
-## How often Standard errors are large
+## How often estimated Standard error ratio is large
+
+The `n_1.2`, etc are the number of outcomes with a ratio of that amount or larger.  The "big" is just the percent of outcomes.
 
 ```{r}
 ranges %>%
@@ -165,9 +175,11 @@ ranges %>%
 
 ## Stability connected to df
 
-**When DF are low, the ratio of the largest to smallest standard error is always greater than 1.5x. When DF are high, only 6 out of 34 outcomes have a ratio above 1.5.**
+**FALSE CLAIM: When DF are low, the ratio of the largest to smallest standard error is always greater than 1.5x. When DF are high, only 6 out of 34 outcomes have a ratio above 1.5.**
 
 Note: The above claim is no longer true, now that we have fixed the Fully Interacted issue.
+
+Here we divide by low vs high degree of freedom, and count how many ratios are large vs. small:
 
 ```{r}
 ranges %>%
@@ -180,6 +192,7 @@ ranges %>%
              big_1.5 = n_1.5 / n,
              n_2 = sum( Range >= 2 ),
              big_2 = n_2 / n ) %>%
+  arrange( group, measure, desc(low_df) ) %>%
   knitr::kable( digits = 2 )
 
 ```
@@ -187,13 +200,13 @@ ranges %>%
 
 ## Fully interacted estimator notes (now defunct)
 
-**To consider how much trouble the fully interacted models are causing, we exclude them and recalculate the ratios (see Figure 5). Doing so dramatically changes the story. For example, the largest estimated standard error is 1.5x the smallest estimated standard error in only 10 percent of cases without the fully-interacted models, down from 48 percent when considering all estimators. The ratio never exceeds 1.7 once the fully-interacted models are excluded.**
+We originally had two claims:
 
-See above tables.
+1) To consider how much trouble the fully interacted models are causing, we exclude them and recalculate the ratios (see Figure 5). Doing so dramatically changes the story. For example, the largest estimated standard error is 1.5x the smallest estimated standard error in only 10 percent of cases without the fully-interacted models, down from 48 percent when considering all estimators. The ratio never exceeds 1.7 once the fully-interacted models are excluded.
 
-**Even in Figure 3 we see estimated standard errors that are 20 percent different across estimators in over 20 percent of the cases we examined.**
+2) Even in Figure 3 we see estimated standard errors that are 20 percent different across estimators in over 20 percent of the cases we examined.
 
-See above tables
+They are no longer relevant or true.
 
 
 ## When are SE estimators defined?
@@ -220,7 +233,7 @@ This table counts the number of estimates for each outcome that are undefined (t
 ```{r}
 combined %>%
   group_by( UniqueID, Covariates ) %>%
-  summarise( n = n(),
+  summarise( #n = n(),
              n_ATE = sum( is.na( ATE_hat_std ) ),
              n_SE = sum( is.na( SE_hat_std ) ) ) %>%
   pivot_wider( names_from=Covariates, values_from=c(n_ATE, n_SE) ) %>%
@@ -228,10 +241,76 @@ combined %>%
 ```
 
 
+# The range of ATE and ratio of SE estimates by study
+
+We can look at specific outcomes to see the range of ATE estimates and the ratio of SE estimates for that outcome.
+The "N" column shows number of defined estimates comprising the given range.
+
+```{r}
+rangesW %>%
+  dplyr::filter( group=="all", Covariates == "best" ) %>%
+  dplyr::select( UniqueID, num_singletons, ATE_avg, ATE_N, SE_avg, SE_N ) %>%
+  arrange( desc( ATE_avg ) ) %>%
+  knitr::kable( digits = 2 )
+```
+
+
+
+## What is the average range and ratio?
+
+The following table shows the average range (for ATEs) and average ratio (for estimated SEs) across all our outcomes:
+
+This tells us, for example, that "On average, the largest standard error is around 33% larger than the smallest, across studies."
+
+```{r}
+ranges %>%
+  group_by( group, Covariates, measure ) %>%
+  summarise( avg = mean( Range ),
+             sd = sd( Range ),
+             Q05 = quantile( Range, 0.05 ),
+             Q95 = quantile( Range, 0.95 ),
+             n = sum( !is.na(Range) ) ) %>%
+  knitr::kable( digits = 2 )
+```
+
+
+## ATE range and SE ratios vs study characteristics
+
+Here is our "conservative df" for each study and the range across estimators and the ratio of SE estimates (all studies with 30 df or more have been topcoded at 30 to make the plots easier to read):
+
+```{r}
+ranges %>%
+  filter( group=="all" ) %>%
+  mutate( cons_df_adj = ifelse( cons_df > 30, 30, cons_df ) ) %>%
+ggplot( aes(cons_df_adj, Range, col=has_single ) ) +
+  #facet_grid(  measure ~ has_single, scales="free" ) +
+  facet_wrap(  ~ measure, scales="free" ) +
+  geom_point() +
+  geom_smooth(method="lm", se=FALSE)
+```
+
+Commentary: This plot does show there is some tendency for ranges and ratios to go down as DF goes up, but there is a lot of variation around that tendency.
+
+
+Here we look at the distribution of range/ratio of estimates across outcome, dividing by singleton status.  We see the studies with singletons tend to have smaller ATE ranges, and the range of SE estimates is marginally higher---note that the singleton studies SE ratios are over fewer estimators (none of the FI estimators), which would generally push the ratios _lower_ as there are fewer points to take the max and min from.
+
+
+```{r, fig.height=2}
+ranges %>%
+  filter( group=="all" ) %>%
+  mutate( cons_df_adj = ifelse( cons_df > 30, 30, cons_df ) ) %>%
+ggplot( aes(has_single, Range ) ) +
+  facet_wrap( ~ measure, scales="free_x" ) +
+  geom_boxplot()  +
+  coord_flip()
+```
+
+Commentary: I am not sure if these plots are useful or informative. 
+
 
 \newpage
 
-# ATE Ranges
+# Variation in the ATE Estimates
 
 ## Studies with a high range (more than 0.15) of ATE estimates
 
@@ -256,7 +335,10 @@ ss <- studies %>%
 
 ss %>%
   knitr::kable( digits = 2 )
+```
 
+Some statistics on the selected studies:
+```{r}
 cc <- combined %>%
   dplyr::filter( UniqueID %in% ss$UniqueID, Covariates == "best" ) 
 
@@ -280,11 +362,14 @@ ggplot( cc, aes(Estimator, ATE_hat_std, color = Estimand ) ) +
   geom_point() +
   geom_point( data=filter(cc,str_detect( Estimator, "MLM" ) ), 
               color="black", shape = 21, size = 3 ) +
-  coord_flip()
+  coord_flip() +
+    theme(panel.spacing = unit(1.5, "lines"))
 ```
 
+Note: The MLM estimators are circled to indicate they are not unbiased for either estimand, in principle.
 
 
+We can look at what study characteristics drive larger or smaller ranges, within estimand:
 
 ```{r}
 rr <- rangesW %>%
@@ -292,24 +377,17 @@ rr <- rangesW %>%
   mutate( cons_df_adj = ifelse( cons_df > 30, 30, cons_df ) ) 
 
 rr %>%
-ggplot( aes(cons_df_adj, Range ) ) +
-  facet_wrap( has_single ~ Estimand,  nrow=1 ) +
-  geom_point() +
-  geom_smooth(method="lm", se=FALSE)
-
-
-rr %>%
-ggplot( aes(cons_df_adj, Range ) ) +
+ggplot( aes(cons_df_adj, Range, col=has_single ) ) +
   facet_wrap( . ~ Estimand,  nrow=1 ) +
   geom_point() +
-  geom_smooth(se=FALSE)
+  geom_smooth(method="lm", se=FALSE)
 ```
 
 Range does go up as expected with average SE increasing:
 ```{r}
 rr %>%
-ggplot( aes(SE_avg, Range ) ) +
-  facet_wrap( has_single ~ Estimand,  nrow=1 ) +
+ggplot( aes(SE_avg, Range, color=has_single ) ) +
+  facet_wrap( . ~ Estimand,  nrow=1 ) +
   geom_point() +
   geom_smooth(method="lm", se=FALSE)
 
@@ -351,16 +429,20 @@ tree1<-create_analysis_tree(rr2,
 
 These trees shows that uncertainty drives larger differences, and also that greater variation in cluster size drives larger differences, especially if there is variation in the cluster means.
 
-If we look within estimand, we see that our datasets with larger R2.1 and no singletons are larger ranges (assuming the SEs are generally large):
+If we look within estimand (i.e., fit our tree to the full set of 50 person ranges and 50 cluster ranges), we see that our datasets with larger R2.1 and no singletons have larger ranges (assuming the SEs are generally large):
 
 ```{r}
 tree2<-create_analysis_tree(rr,
                             "Range",
-                            predictor_vars = c( "cons_df", "Estimand", "ncv", "Jcv", "SE_avg", "R2.1", "R2.2", "has_single", "cluster_ICC", "block_ICC" ) )
+                            predictor_vars = c( "cons_df", "Estimand", "ncv", "Jcv",
+                                                "SE_avg", "R2.1", "R2.2", "has_single",
+                                                "cluster_ICC", "block_ICC" ) )
 
 ```
 
 ## Comparing low DF to high DF studies
+
+We can look to see if studies with high or low df have generally larger ranges:
 
 ```{r}
 ra <- rr2 %>%
@@ -376,16 +458,20 @@ ra %>%
   knitr::kable( digits = 2 )
 ```
 
-# Standard Errors
+The low df studies tend to have higher ranges than the high df studies.
+
+
+\newpage
+# Variation in Estimated Standard Errors
 
 
 ## Studies with a high ratio of SE estimates
 
 
-Here are all the studies with an SE range above 1.75.
+Here are all the studies with an min-max SE ratio above 1.5.
 
 ```{r}
-CUT = 1.75
+CUT = 1.5
 ss <- studies %>%
   filter( blocked == "Blocked", R_se > CUT | R_se_Clu > CUT | R_se_Per > CUT ) %>%
   dplyr::select( Project, UniqueID, K, J, n, cons_df, R_se, R_se_Clu, R_se_Per )
@@ -393,7 +479,10 @@ ss <- studies %>%
 ss %>%
   arrange( UniqueID ) %>%
   knitr::kable( digits = 2 )
+```
 
+Some extra info on these studies:
+```{r}
 combined %>%
   dplyr::filter( UniqueID %in% ss$UniqueID, Covariates == "best" ) %>%
   group_by( UniqueID, cons_df, num_singletons ) %>% 
@@ -405,20 +494,28 @@ combined %>%
   knitr::kable( digits = 4 )
 ```
 
-The SEs for the troublesome studies:
+The individual SE estimates for the troublesome studies:
 
-```{r}
+```{r, out.width="100%", fig.width=8, fig.height=6}
   stud <- combined |>
     filter(UniqueID %in% ss$UniqueID, !is.na(SE_hat_std), Covariates =="best" ) |>
     mutate(
+        MLM = ifelse( str_detect( Estimator, "MLM" ), "MLM", "" ),
+        EE = factor( paste0( Estimand, MLM ),
+                     levels = c( "Person", "ClusterMLM", "Cluster" ) ),
       Estimator = factor(Estimator),
-      Estimator = fct_reorder(Estimator, SE_hat_std, .na_rm = TRUE)
+      Estimator = fct_reorder(Estimator, as.numeric( EE ), .na_rm = TRUE)
     )
-  
-  ggplot(stud, aes(Estimator, SE_hat_std, pch=Estimand, col = Covariates)) +
-    facet_wrap( ~ UniqueID, scales="free" ) +
+agg <- stud %>% 
+  group_by( UniqueID, EE ) %>%
+  summarise( SE_hat_std = mean( SE_hat_std, na.rm=TRUE ) ) %>%
+  filter( EE != "ClusterMLM" )
+
+  ggplot(stud, aes(Estimator, SE_hat_std, pch=EE, col = EE)) +
+    facet_wrap( ~ UniqueID ) +
     geom_point() +
     geom_hline( yintercept = 0 ) +
+    geom_hline( aes( yintercept = SE_hat_std, col=EE ), data=agg, lty=2 ) +
     coord_flip() +
     labs(
       title = "SE estimates",
@@ -427,35 +524,28 @@ The SEs for the troublesome studies:
 
 ```
 
-**Looking at jg_crt_6**:
+<!--**Looking at jg_crt_6**:
 
-```{r}
+```{r,eval=FALSE}
 jg_crt_6 <- filter( combined, UniqueID == "jg_crt_6" ) %>%
   dplyr::filter( !is.na( SE_hat_std ) ) %>%
   mutate( Estimator = factor(Estimator),
           Estimator = fct_reorder(Estimator, SE_hat_std,.na_rm=TRUE) )
+mm<-jg_crt_6$SE_hat_std[ jg_crt_6$Covariates=="best"]
+max(mm,na.rm=TRUE) 
+min(mm, na.rm=TRUE)
 ggplot( jg_crt_6, aes( Estimator, SE_hat_std, col = Covariates ) ) +
   geom_point() +
   coord_flip() +
   labs( title = "jg_crt_6 SE estimates",
         subtitle = "(For defined estimators)" )
 ```
+-->
 
+## How often are the SE estimates defined?
 
-## What is the average ratio?
-
-```{r}
-ranges %>%
-  group_by( group, Covariates, measure ) %>%
-  summarise( avg_rng = mean( Range ),
-             sd_rng = sd( Range ),
-             Q05 = quantile( Range, 0.05 ),
-             Q95 = quantile( Range, 0.95 ),
-             n = n() ) %>%
-  knitr::kable( digits = 2 )
-```
-
-## How often are they defined?
+Here we look at 'best' and see how often the SE estimates are defined for each outcome.
+We see that for 34 outcomes, 57% of our estimators are defined and for 16 outcomes all of them are defined.
 
 ```{r}
 cc <- combined %>%
@@ -473,7 +563,7 @@ table( cc$Covariates, cc$per_def )
 
 In the following we look at how much the SE ratios shrink going within estimand.
 
-```{r include=FALSE}
+```{r echo=FALSE}
  # Looking at how range decreases as we go within estimand
 source( here::here( "empirical/calculate_all_ranges.R" ) )
   ss <- summary_stats_estimand %>%
@@ -492,7 +582,10 @@ source( here::here( "empirical/calculate_all_ranges.R" ) )
     coord_fixed() +
     geom_abline(slope = 1, intercept = 0, lty = 2, col = 'red') +
     labs( x = "Overall ratio", y = "Within Estimand Ratio" )
-  
+```
+
+This is the average reduction across outcomes:
+```{r}
   ssf %>% 
     mutate( rat = Ratio.x / Ratio.y ) %>%
     group_by( Estimand ) %>%
@@ -504,19 +597,55 @@ source( here::here( "empirical/calculate_all_ranges.R" ) )
 
 # Are SEs for cluster weight smaller than individual?
 
+We fit a multilevel model to our raw estimated standard errors, having a random intercept for the outcome and for the estimator.
+We also allow for a "random slope" for estimand within outcome, as it is possible that some studies are better at targeting person vs cluster average effects.
+We finally allow a random slope for studies with singletons, to see if some estimators have estimated SEs that change more depending on whether there are singletons present:
+
 ```{r}
 library( lme4 )
 
 combined$Covariates = factor( combined$Covariates,
                               levels = c( "best", "none", "all" ) )
-M = lmer( log( SE_hat_std ) ~ Estimand + Covariates + has_single + (1|Estimator) + (1|UniqueID) + (1|Estimand:UniqueID),
+M = lmer( log( SE_hat_std ) ~ Estimand + Covariates + has_single + I(log(1+cons_df)) + I(log(nbar)) + I(log(J)) + (1+has_single|Estimator) + (1+Estimand|UniqueID),
           data=combined )
 arm::display(M)
-exp( fixef( M ) ) 
 ```
+
+We see no evidence that targeting person estimands is different from cluster estimands in terms of precision.
+There is some variation in average uncertainty by estimator.
+
+We can look at the exponentiated coefficients to see the multiplicative effect on the SE:
+```{r}
+exp( fixef( M ) ) %>%
+  knitr::kable( digits = 2 )
+```
+
+Relative to 'best', not controlling for anything means estimated SEs are 18% larger.  Controlling for everything makes them 10% smaller.
+Bigger studies in terms of either n or J have smaller SEs, as expected.
+The estimated SEs for the studies with singletons are generally smaller; it is unclear what that is coming from.
+
+
+We can dig into which estimators are better or worse:
+
+```{r}
+ranef(M)$Estimator %>%
+  as.data.frame() %>%
+  rownames_to_column(var="estimator" ) %>%
+  rename( avg = `(Intercept)`,
+          singletons = has_singlesingetons ) %>%
+  mutate( avg = exp(avg),
+          singletons = exp( singletons ) ) %>%
+  knitr::kable( digits = 2 )
+```
+
+The estimators have no variation in the average estimated SE, but do differ when faced with studies with singletons.
+In particular, MLM-FIcw is 6% larger, and LRicw-FE-crve is 12% smaller---the latter is likely due to poorly estimated CRVEs when there are singletons.
+
 
 
 ## Which estimators tend to be most extreme?
+
+Here we tag when each estimator is either the 1st or second smallest or 1st or second largest SE estimate of all availables for that outcome (within the "best" covariate set).
 
 ```{r}
 extreme <- combined %>%
@@ -539,29 +668,8 @@ extreme %>%
 
 ```
 
+The `n_def` column is the number of outcomes where the estimator was even defined.
 
-
-## SE ratios vs study characteristics
-
-
-```{r}
-ranges %>%
-  filter( group=="all" ) %>%
-  mutate( cons_df_adj = ifelse( cons_df > 30, 30, cons_df ) ) %>%
-ggplot( aes(cons_df_adj, Range ) ) +
-  facet_wrap( ~ measure, scales="free" ) +
-  geom_point() +
-  geom_smooth(se=FALSE)
-```
-
-```{r}
-ranges %>%
-  filter( group=="all" ) %>%
-  mutate( cons_df_adj = ifelse( cons_df > 30, 30, cons_df ) ) %>%
-ggplot( aes(has_single, Range ) ) +
-  facet_wrap( ~ measure, scales="free_x" ) +
-  geom_boxplot()  +
-  coord_flip()
-```
+I'm not sure this table is particularly informative, but it does show that some estimators are more likely to be extreme than others.  The problem is some estimators aren't even defined, which robs them of the opportunity to be informative.
 
 
