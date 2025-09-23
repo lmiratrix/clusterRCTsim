@@ -20,64 +20,40 @@ knitr::opts_chunk$set(echo = FALSE,
 options(list(dplyr.summarise.inform = FALSE))
 theme_set( theme_classic() )
 
-source( here::here( "fingerprint/fingerprint_and_empirical_analysis.R" ) )
+source( here::here( "fingerprint/load_master_permutation_results.R" ) )
+
+range_dat <- filter( range_dat, Covariates=="best" )
 ```
 
-Building on our randomization simulation we can analyze each outcome in turn to assess how the estimators function for that particular simulation scenario.  See the main rerandomizartion report for how the range of estimates across the simulation scenarios changes.
+We extend our rerandomization simulation analysis to examine how the estimators function for specific scenarios when we operate within estimand.
+See the main rerandomizartion report for how the range of estimates across the simulation scenarios changes.
 
+This report shows how the ranges go down when we go from looking at ranges across all estimators to looking at the ranges within the Person or Cluster targeting estimators.
 
-
-## How do the SEs we get from simulation compare to empirical SEhats?
-
-
-```{r}
-
-
-cc <- filter( combined,
-              Covariates=="best" ) %>%
-  dplyr::select(UniqueID, Estimator, Estimand, ATE_hat_std, SE_hat_std ) %>%
-  rename( method = Estimator ) %>%
-  mutate( has_FI = str_detect( method, "FI" ) )
-
-simdat_meth <- simdat_meth %>%
-  left_join(cc, by=c("UniqueID", "method"))
-
-
-ggplot( simdat_meth, aes( SE_hat_std, SE, color=UniqueID ) ) +
-#  facet_grid( has_FI ~ Estimand ) +
-  facet_wrap( ~ method, nrow=2 ) +
-  #facet_wrap( ~UniqueID ) +
-  geom_point() +
-  coord_fixed() +
-  geom_abline( slope=1, intercept=0, lty=2 )
-```
 
 
 ## How do ranges reduce by going within estimand
 
-For each outcome, we can see how the range of the estimates goes down when looking within each estimand.
+For each outcome, we can see how the range of the ATE or SE estimates goes down when looking within each estimand (Person or Cluster).
 We do this first for the ATE, and then for the SE estimates.
 
-```{r}
-simW <- simdat %>%
+```{r, include=FALSE}
+simW <- range_dat %>%
+  ungroup() %>%
   dplyr::select( UniqueID, Estimand, runID, ratioSE, rangeATE ) %>%
   pivot_wider( names_from = "Estimand", values_from = c( "rangeATE", "ratioSE" ) ) %>%
   mutate( rat_ATE_C = rangeATE_Cluster / rangeATE_Overall,
           rat_ATE_P = rangeATE_Person / rangeATE_Overall,
           rat_SE_C = ratioSE_Cluster / ratioSE_Overall,
-          rat_SE_P = ratioSE_Person / ratioSE_Overall ) %>%
+          rat_SE_P = ratioSE_Person / ratioSE_Overall )
+
+
+ss_W <- filter( simW, runID == "empirical" )
+ss_W
+
+simW <- simW %>%
   group_by( UniqueID ) %>%
   summarise( across( c( rat_ATE_C, rat_ATE_P, rat_SE_C, rat_SE_P ), list( mn=mean, sd=sd ) ) )
-
-ss_W <- summary_stats %>%
-  filter( Covariates=="best" ) %>%
-  
-  dplyr::select( UniqueID, Estimand, ratioSE, rangeATE ) %>%
-  pivot_wider( names_from = "Estimand", values_from = c( "rangeATE", "ratioSE" ) ) %>%
-  mutate( rat_ATE_C = rangeATE_Cluster / rangeATE_Overall,
-          rat_ATE_P = rangeATE_Person / rangeATE_Overall,
-          rat_SE_C = ratioSE_Cluster / ratioSE_Overall,
-          rat_SE_P = ratioSE_Person / ratioSE_Overall ) 
 
 fin_res <- left_join( ss_W, simW, 
                       by = "UniqueID", suffix = c( "_true", "" ) )
@@ -86,6 +62,9 @@ fin_res
 names( fin_res ) <- str_replace( names( fin_res ), "Cluster", "C" )
 names( fin_res ) <- str_replace( names( fin_res ), "Person", "P" )
 names( fin_res ) <- str_replace( names( fin_res ), "Overall", "All" )
+```
+
+```{r}
 fin_res %>%
   dplyr::select( UniqueID, contains("ATE") ) %>%
   rename_with(~ str_remove(., "ATE_")) %>%
@@ -113,7 +92,7 @@ And now some viz:
 names( fin_res )
 finW <- fin_res %>%
   pivot_longer(
-    cols = -c( UniqueID, rangeATE_All, ratioSE_All ),
+    cols = -c( runID, UniqueID, rangeATE_All, ratioSE_All ),
     names_to="col", values_to="value" ) %>%
   separate_wider_regex( col, 
                         c( measure = ".*", "_", Estimand = "C|P", "_?", sim = ".*" ) ) %>%
@@ -128,17 +107,17 @@ ggplot( finW, aes( rat_ATE, rat_ATEmn ) ) +
   geom_point() +
   coord_fixed( xlim=c(0,1), ylim=c(0,1) ) +
   geom_abline( slope=1, intercept=0, lty=2 )+
-  labs( y = "Simulation (average proportion ATE range)",
-        x = "Empirical (actual reduction ATE range)",
-        title = "Ratio of ranges of ATE estimates" )
+  labs( y = "Simulation",
+        x = "Empirical",
+        title = "Reduction in ranges across datasets" )
 
 ```
 
-We are seeing no strong relationship between how much the range of ATE estimates goes down across the simulations and how much it went down in our empirical data. For the Person estimand, the ratios in the simulation tend to be very small, suggesting that the person-weighted estimators are much closer together in the simulation than they are in the actual data.
+We are seeing no strong relationship between how much the range of ATE estimates goes down across the simulations and how much it went down in our empirical data. For the Person estimand, many of the ratios in the simulation tend to be very small, suggesting that the person-weighted estimators are much closer together in the simulation than they are in the actual data.
 
 
 
-For the standard errors, we are not seeing much reduction in the ratio of largest to smallest standard error when we move to the two estimands.  That said, the simulation does suggest that the reduction of the SE ratio for some studies is anomolous.
+For the standard errors (note cropping of figure), we are not seeing much reduction in the ratio of largest to smallest standard error when we move to the two estimands.  
 
 ```{r}
 
@@ -146,7 +125,8 @@ ggplot( finW, aes( rat_SE, rat_SEmn ) ) +
   facet_wrap( ~ Estimand ) +
     geom_errorbar( aes( ymin=rat_SEmn-rat_SEsd, ymax=rat_SEmn+rat_SEsd ), width=0, col="grey" ) +
   geom_point() +
-  coord_fixed( xlim=c(0,1), ylim=c(0,1) ) +
+  #coord_fixed( xlim=c(0.5,1), ylim=c(0.5,1) ) +
+  coord_fixed() + 
   geom_abline( slope=1, intercept=0, lty=2 )+
   labs( y = "Simulation (average reduction SE ratio)",
         x = "Empirical (actual reduction SE ratio)",

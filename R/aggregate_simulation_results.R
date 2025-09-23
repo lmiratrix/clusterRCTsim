@@ -19,10 +19,10 @@ calculate_range_statistics <- function( simdata ) {
   
   
   range.dat <- simdata %>% 
-    group_by( run,subrun ) %>% 
+    group_by( run, subrun ) %>% 
     mutate(range=diff(range(ATE.hat))) %>%
     ungroup() %>%
-    group_by(subrun,weight, range) %>%  
+    group_by(subrun, weight, range) %>%  
     summarise(range_bygroup=diff(range(ATE.hat)) ) %>%
     pivot_wider( names_from=weight, values_from=range_bygroup, names_prefix="range_" )
   
@@ -37,7 +37,11 @@ calculate_range_statistics <- function( simdata ) {
 calculate_performance_statistics <- function( simdata, 
                                               ATE.super.student = NULL,
                                               ATE.super.school = NULL,
-                                              align = TRUE ) {
+                                              align = TRUE, 
+                                              runID = "run" ) {
+  
+  simdata$run = simdata[[runID]]
+  #simdata$subrun = simdata[[subrunID]]
   
   stopifnot( all( !is.na( simdata$method ) ) )
   
@@ -76,6 +80,7 @@ calculate_performance_statistics <- function( simdata,
     summarise( mean.SE.hat = mean( SE.hat, na.rm = TRUE ),
                p.noSE = mean( is.na( SE.hat ) ),
                mean.ATE.hat=mean(ATE.hat),
+               
                # bias of estimators for each estimand
                bias.f.stu = mean( ATE.hat - ATE.finite.student ),
                bias.f.sch = mean( ATE.hat - ATE.finite.school ),
@@ -99,11 +104,6 @@ calculate_performance_statistics <- function( simdata,
                #RMSE.s.dsch = sqrt( mean( ( ATE.hat - ATE.super.dist.school )^2 ) ),
                MCSE.RMSE = pmax( MCSE_SE( ATE.hat - ATE.finite.student ),
                                  MCSE_SE( ATE.hat - ATE.finite.school ) ),
-               # # SD of finite-sample estimands (?)
-               # sd.ATE.f.stu = sd( ATE.finite.student ),
-               # sd.ATE.f.sch = sd( ATE.finite.school ),
-               # sd.ATE.f.dstu = sd( ATE.finite.dist.student ),
-               # sd.ATE.f.dsch = sd( ATE.finite.dist.school ),
                
                # true superpopulation sd of estimate
                SE.s = sd( ATE.hat ),
@@ -123,14 +123,22 @@ calculate_performance_statistics <- function( simdata,
                #cover.s.dsch = mean( cov.s.dsch ),
                MCSE.cover = pmax( MCSE_bias( cov.f.stu ),
                                   MCSE_bias( cov.f.sch ) ),
+               
                avg.df = mean( df, na.rm=TRUE ),
                
                power = mean( p_value <= 0.05 ),
+               
+               # # SD of finite-sample estimands (?)
+               # sd.ATE.f.stu = sd( ATE.finite.student ),
+               # sd.ATE.f.sch = sd( ATE.finite.school ),
+               # sd.ATE.f.dstu = sd( ATE.finite.dist.student ),
+               # sd.ATE.f.dsch = sd( ATE.finite.dist.school ),
                
                # var.err2.s.stu = var( ATE.hat - ATE.super.student ),
                # var.err2.s.sch = var( ATE.hat - ATE.super.school ),
                # var.err2.s.dstu = var( ATE.hat - ATE.super.dist.student ),
                # var.err2.s.dsch = var( ATE.hat - ATE.super.dist.school )
+               
                .groups = "drop"
     )
   
@@ -141,15 +149,27 @@ calculate_performance_statistics <- function( simdata,
   subruns = simdata %>% 
     group_by( method, run ) %>%            # just aggregating over subruns
     summarise( nsr = n(),
-               SE2 = var( ATE.hat ),           # noisy estimate of true finite-sample SE^2
+               
+               # noisy estimate of true finite-sample SE^2:
+               SE2 = var( ATE.hat ),           
                # SE.hat.f2 = mean( SE.hat^2 ),
-               var.SE.hat = var( SE.hat, na.rm=TRUE ), .groups="drop" )    # variation in estimated SE
+               
+               # variation in estimated SE:
+               var.SE.hat = var( SE.hat, na.rm=TRUE ), 
+               
+               .groups="drop" )    
   
   subruns <- subruns %>% 
     group_by( method ) %>%                            # now aggregate over runs
-    summarise( SE.f = sqrt( mean( SE2 ) ),                # true finite-sample SE^2
-               #SE.hat.f = sqrt( mean( SE.hat.f2 ) ),
-               sd.SE.hat.f = sqrt( mean( var.SE.hat, na.rm=TRUE ) ) ) # average sd of SE estimates
+    summarise( 
+      # true finite-sample SE^2:
+      SE.f = sqrt( mean( SE2 ) ),                
+      
+      #SE.hat.f = sqrt( mean( SE.hat.f2 ) ),
+      
+      # average sd of SE estimates:
+      sd.SE.hat.f = sqrt( mean( var.SE.hat, na.rm=TRUE ) ) 
+    )
   
   # add to sruns
   sruns = merge( sruns, subruns, by=c("method"), all=TRUE )

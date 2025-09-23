@@ -43,3 +43,15 @@ rerand_sim_results/
 fingerprint_results/
 results_master_finger/
 fingerprint/scratch/
+fingerprint/results_rerand/
+fingerprint/results_rerand_master/
+fingerprint/results_rerand_sim_public/
+fingerprint/results_fingerprint/
+empirical/fake_data/
+empirical/fake_data_results/
+empirical/make_study_flashcards_files/
+empirical/*.docx
+empirical/*.pdf
+fingerprint/attic/
+fingerprint/*.pdf
+fingerprint/results_fingerprint_old/

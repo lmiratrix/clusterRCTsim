@@ -5,8 +5,8 @@
 
 
 #' This function takes a bunch of simulation results and groups
-#' estimators based on whether they give the same point estimate (to a
-#' high degree of precision).
+#' estimators based on whether they give the same point estimate or
+#' variance estimate (to a high degree of precision).
 #'
 #' @param rps A data frame of simulation results. Columns are runID,
 #'   method, and ATE_hat, at least.  Each row is a simulation result
@@ -14,16 +14,20 @@
 #'   dataset.
 #' @param   Method will call two methods the same if they are within
 #'   tolerance of each other.  This could cause chaining where members
-#'   in a group are linked by another member but are not close.
-#'   Beware this!
+#'   in a group are linked by another member but are not close. Beware
+#'   this!
 #' @return A list of groups of methods that give the same point
 #'   estimate.
-group_estimators <- function( rps, tolerance = 10^-7, return_matrix = FALSE ) {
+group_estimators <- function( rps, var="ATE_hat",
+                              tolerance = 10^-7, return_matrix = FALSE ) {
 
-    wid <- rps %>% dplyr::select( runID, method, ATE_hat ) %>%
-        pivot_wider( names_from = method, values_from = ATE_hat ) %>%
+    wid <- rps %>%
+        dplyr::select( runID, method, all_of(var) ) %>%
+        pivot_wider( names_from = method, values_from = all_of( var ) ) %>%
         dplyr::select( -runID )
 
+
+    wid[ is.na(wid) ] <- 9999  # Replace NAs with 9999s for comparison]
 
     #results <- combn(names(wid), 2, function(x) {
     #        mean_diff <- mean( abs( wid[[x[1]]] - wid[[x[2]]] ) )

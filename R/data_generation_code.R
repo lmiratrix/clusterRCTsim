@@ -302,7 +302,7 @@ describe_district_grid <- function( grid ) {
 #' Build set of districts with cluster sizes and proportion treated,
 #' etc.
 #'
-#' @param sd.ATE Standard deviation of the district-average ATEs
+#' @param sd.district Standard deviation of the district-average ATEs
 #'   (i.e., the target cluster-average ATE for each district).  The
 #'   district average ATE is what is passed to the code to generate
 #'   the clusters for the district as the "ATE."
@@ -316,7 +316,7 @@ describe_district_grid <- function( grid ) {
 #'   across district)
 #' @param empirical If TRUE generate district variation to get as
 #'   close as possible to the set targets.  In particular, if the
-#'   sd.ATE = 0.1, then the standard deviation of the actual generated
+#'   sd.district = 0.1, then the standard deviation of the actual generated
 #'   ATEs will equal 0.1 exactly if empirical = TRUE.  I.e. TRUE means
 #'   try to get the target correlations more closely by connecting
 #'   things with a calibrated connection with the given correlation
@@ -327,7 +327,7 @@ describe_district_grid <- function( grid ) {
 #'
 #' @return dataframe, one row per district.
 build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
-                             ATE = 0, sd.ATE = 0,
+                             ATE = 0, sd.district = 0,
                              ICC.district = 0,
                              variable.p = FALSE,
                              cv.district = 0.6, 
@@ -392,15 +392,15 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
   
   
   # district-level parameters
-  #  - note: ensure var of district-level effects is exactly sd.ATE^2, ICC
+  #  - note: ensure var of district-level effects is exactly sd.district^2, ICC
   grid <- NA
   if ( K == 1 ) {
     grid = tibble( did = 1, district.tau = ATE, district.alpha = 0 )  
   } else {
     grid <- tibble(
       did = 1:K,
-      # district.tau = rnorm(K, mean=ATE, sd=sd.ATE))
-      district.tau = MASS::mvrnorm(K, mu=ATE, Sigma=sd.ATE^2, 
+      # district.tau = rnorm(K, mean=ATE, sd=sd.district))
+      district.tau = MASS::mvrnorm(K, mu=ATE, Sigma=sd.district^2, 
                                    empirical=empirical) %>% 
         as.vector(),
       district.alpha = MASS::mvrnorm(K, mu=0, Sigma=ICC.district,
@@ -470,9 +470,9 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
   # make sure eventual randomization has at least min.size/2 treated/control clusters
   #  in each district, by applying floor and ceiling to p, depending on J
   #   - i.e., force 2 <= J*p <= J-2
-  print("this is the value of min.size")
-  print(min.size)
-  stopifnot( "All districts should have max( min.size, 2 )  clusters at least" = all( grid$J >= max( 2, min.size) ) )
+  #print("this is the value of min.size")
+  #print(min.size)
+  stopifnot( "All districts should have at least max( min.size, 2 ) clusters" = all( grid$J >= max( 2, min.size) ) )
   ms2 = pmax( 1, round( min.size/2 ) )
   grid <- grid %>% 
     mutate(p = ifelse(J*p < ms2, ms2/J, p),
@@ -513,7 +513,7 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
 ## testing code ----
 if ( FALSE ) {
   grid <- build_districts( K = 10, J.bar = 20, n.bar = 20, p.bar = 0.5,
-                           ATE = 0.2, sd.ATE = 0.1,
+                           ATE = 0.2, sd.district = 0.1,
                            ICC.district = 0.2,
                            variable.p = TRUE, 
                            num.cov.district = 3 )
@@ -588,7 +588,7 @@ generate_data_for_districts <- function(
 if (FALSE) {
   
   grid <- build_districts( K = 10, J.bar = 20, n.bar = 20, p.bar = 0.5,
-                           ATE = 0.2, sd.ATE = 0.1,
+                           ATE = 0.2, sd.district = 0.1,
                            ICC.district = 0.2,
                            variable.p = TRUE, 
                            num.cov.district = 3,
@@ -645,7 +645,8 @@ generate_districts <- function(
   # variation in number of clusters and average cluster size
   cv.district = 0.6,
   cv.nbar = 0,
-
+  min.size = 1,
+  
   # correlation params at district level
   size.impact.cor.district = 0,
   proptx.impact.cor.district = 0,
@@ -663,13 +664,15 @@ generate_districts <- function(
   
   # Individual-level params
   R2.indiv = NULL,
-  num.cov.indiv = 0 + !is.null(R2.indiv) ) {
+  num.cov.indiv = 0 + !is.null(R2.indiv),
+  
+  empirical = FALSE ) {
   
   stopifnot( ICC.district + ICC.school < 1 )
   
   grid <- build_districts( K = K, J.bar = J.bar, n.bar = n.bar, 
                            p.bar = p.bar,
-                           ATE = ATE.district, sd = sd.district,
+                           ATE = ATE.district, sd.district = sd.district,
                            ICC.district = ICC.district,
                            variable.p = variable.p, 
                            cv.district = cv.district,
@@ -679,6 +682,7 @@ generate_districts <- function(
                            size.intercept.cor = size.intercept.cor.district,
                            R2 = R2.district,
                            num.cov.district = num.cov.district,
+                           min.size = min.size,
                            
                            # school-level params
                            sd.school = sd.school, ICC.school = ICC.school,
@@ -689,7 +693,9 @@ generate_districts <- function(
                            
                            # Individual-level params
                            R2.indiv = R2.indiv,
-                           num.cov.indiv = num.cov.indiv )
+                           num.cov.indiv = num.cov.indiv,
+                           
+                           empirical = empirical )
   
   
   sim.data <- generate_data_for_districts( grid, 

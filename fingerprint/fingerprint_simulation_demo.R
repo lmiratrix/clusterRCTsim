@@ -8,13 +8,16 @@
 # variation in the treatment effect, and thus in the possible
 # estimands one might consider.
 
+# This script demonstrates running such simulations for a series of
+# examples.
+
 
 source( "R/calibrated_simulation_code.R" )
 
 
 # ---- First simulation ----
 
-# Check one of our empirical studies --- do we get ranges like what we saw?
+# This makes data purely based on the descriptive statistics.
 
 studies = read_csv( here::here( "empirical/results/study_descriptions.csv" ),
                     show_col_types = FALSE )
@@ -23,18 +26,32 @@ studies
 stud = filter( studies, UniqueID == "CARES_TR_BPI_Incred" )
 clusterRCT:::print.clusterRCTstats( stud )
 
+# Demo of DGP
 dat = generate_data_from_fingerprint( structure = NULL,
                                       parameters = stud )  
+dat
 
+# Running simulation itself
 res <- run_fingerprint_simulation( structure = NULL,
-                            parameters = stud, 
-                            R = 100,
-                            include_MLM = FALSE,
-                            summarize_results = "cross", parallel = FALSE )
-res
+                                   parameters = stud, 
+                                   R = 100,
+                                   include_MLM = FALSE,
+                                   summarize_results = "cross", parallel = FALSE )
+res$ratioSE[ res$ratioSE > 5 ] = 5
+
+res %>% group_by( weight ) %>%
+  summarise( mn_rangeATE = mean(rangeATE),
+             sd_rangeATE = sd(rangeATE),
+             mn_ratioSE = mean( ratioSE ),
+             sd_ratioSE = sd( ratioSE ),
+             per_max = mean( ratioSE == 5 ) )
+             
+
 
 
 # Second simulation (simulation code check) ----
+
+# Run permutation simulation on fixed dataset
 
 # TODO: See if this compares to just generating data over and over?
 # We should get the same pattern of results.
@@ -70,20 +87,34 @@ sim.data <- PUMP::gen_sim_data( d_m = "d3.2_m3ff2rc", model.params.list, Tbar = 
 head( sim.data )
 
 
-sim_res2 <- run_fingerprint_simulation( Yobs ~ T.x | S.id | D.id, 
-                                       data=sim.data,
-                                       R = 100,
-                                       include_MLM = FALSE )
-sim_res2
+raw_res2 <- run_rerandomize_simulation( Yobs ~ T.x | S.id | D.id, 
+                                        data=sim.data,
+                                        R = 100,
+                                        include_MLM = FALSE )
+head( raw_res2 )
 
-ggplot( sim_res2, aes( method, SE ) ) +
+sim_res2 <- summarize_simulation_results( raw_res2 )
+head( sim_res2 )
+
+ggplot( sim_res2, aes( method ) ) +
   geom_point( aes( y = ESEhat, color = "SE_hat") ) +
   geom_errorbar( aes( ymin = Q10, ymax = Q90, color = "SE_hat" ), width = 0 ) +
-  geom_point( aes( color = "true SE" ), size = 2 ) +
+  geom_point( aes( y = SE, color = "true SE" ), size = 2 ) +
   coord_flip()
 
+sim_res2
+ggplot( sim_res2, aes( method ) ) +
+  geom_point( aes( y = EATE, color = "ATE_hat") ) +
+  geom_errorbar( aes( ymin = EATE+2*SE, ymax = EATE-2*SE, color = "ATE_hat" ), 
+                 width = 0 ) +
+  geom_point( aes( y = 0, color = "true ATE" ), size = 2 ) +
+  coord_flip()
+
+
+
 sL <- sim_res2 %>%
-  pivot_longer( cols = c(EATE, ESEhat, sdSEhat, SE), names_to="metric", values_to="value" )
+  pivot_longer( cols = c(EATE, ESEhat, sdSEhat, SE), 
+                names_to="metric", values_to="value" )
 sL
 
 ggplot( sL, aes( method, value, pch=weight )) +
@@ -91,9 +122,6 @@ ggplot( sL, aes( method, value, pch=weight )) +
   geom_hline( yintercept = 0 ) +
   geom_point() +
   coord_flip()
-
-sim_res2
-
 
 
 

@@ -1,0 +1,315 @@
+---
+title: "Nonblocked Experiment Report"
+author: "Miratrix"
+date: "2025-08-19"
+output:
+  pdf_document: default
+  word_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+knitr::opts_chunk$set(echo = FALSE,
+          fig.width = 5,
+          fig.height = 3,
+          out.width = "75%",
+           message = FALSE,
+          fig.align = "center")
+options(list(dplyr.summarise.inform = FALSE))
+theme_set( theme_classic() )
+
+
+# load data ----
+
+# load all data
+source( here::here( "empirical/load_empirical_results.R" ) )
+source( here::here( "empirical/makeDotplot.R" ) )
+
+
+
+# Calculate ranges, etc. ----
+
+source( here::here( "empirical/calculate_all_ranges.R" ) )
+
+
+# Define common grouping variables
+base_groups <- c("UniqueID", "class", "low_df", "has_single", "Collection", 
+                 "Covariates")
+estimand_groups <- c(base_groups, "Estimand")
+
+# Get summary statistics grouped by base variables
+summary_stats <- unblocked %>%
+  group_by( across( all_of( base_groups ) ) ) %>%
+  calculate_summary_statistics()
+summary_stats
+
+
+# Get summary statistics grouped by estimand
+summary_stats_estimand <- unblocked %>%
+  group_by( across( all_of( c( base_groups, "Estimand" ) ) ) ) %>%
+  calculate_summary_statistics()
+summary_stats_estimand
+
+n_outcomes <- n_distinct( summary_stats$UniqueID )
+n_outcomes
+n_estimators <- n_distinct( unblocked$Estimator )
+n_estimators
+nrow( summary_stats )
+table( table( summary_stats$UniqueID ) )
+
+n_studies <- n_distinct( unblocked$study_id )
+n_studies
+
+studies <- studies %>% 
+  dplyr::filter( blocked == "Unblocked" )
+
+
+summary_stats <- summary_stats %>%
+  filter(Covariates == "best")
+summary_stats_estimand <- summary_stats_estimand %>%
+  filter(Covariates == "best")
+
+
+ss = left_join( summary_stats_estimand %>% filter( Covariates =="best" ),
+                summary_stats %>% 
+                  dplyr::filter( Covariates =="best" ) %>%
+                  dplyr::select( UniqueID, Range, Ratio ),
+                by = "UniqueID" ) %>%
+  mutate( red_range = Range.x / Range.y,
+          reduction = Ratio.x / Ratio.y )
+
+```
+
+This manuscript drafts the supplement on non-blocked experiments.  It also has some summary statistics printed out that motivate the written text.
+
+
+# Supplement Section: Non-Blocked Experiments
+
+We replicate our core analyses in the main paper with a set of identified cluster randomized trials, taken from the collection of datasets assembled by Gilbert, where there was no blocking.
+For unblocked experiments, our set of estimators is substantially reduced.
+In particular, the fully interacted estimators are no longer applicable, as there is no blocking variable to interact treatment with.
+This leaves `r n_estimators` estimators.
+For point estimators, we have individual regression, individual regression with weights to target the cluster average, aggregated regression, and aggregated regression with weights to target the person average.
+For each of these we have design based or robust standard errors.
+We finally have a multilevel model, with random effects at the cluster level.
+
+In our collection of datasets, we have `r n_outcomes` outcomes across `r n_studies`.
+Most of the experiments had substantial number of clusters (an average of around 95 clusters), but a good quarter of the studies had 25 clusters or fewer, total; for these small studies, we would generally expect high levels of uncertainty and we would also expect cluster robust estimators to be fairly unstable.
+Across the middle 80% of the studies, the average cluster size ranges 10 to 47 units, with a median of about 20 units per cluster.
+One very small study (with psychological distress as an outcome) had an average of less than 2 units per cluster, and another large study on reading had an average of 71.
+
+As with the main paper, we can examine the range of point estimates, finding that most studies have only a modest range across estimators:
+
+```{r}
+
+range_x_range <- 0.30
+
+ summary_stats %>%
+  makeDotplot(var      = 'Range',
+              xlab     = 'Range of Point Estimates of β', 
+              ylab     = 'Number of Outcomes', 
+              title    = 'Figure 1', 
+              filename   = 'final paper figures/fig1_ATErange',
+              subtitle = glue::glue( 'The Range (across {n_estimators} Estimators) of Estimates of β for {n_outcomes} Outcomes' ),
+              binw = 0.01,
+              coordratio = 0.1,
+              rmlegend = FALSE) +
+  scale_x_continuous( limits=c(0, range_x_range ) )
+```
+
+Across the outcomes, we have 23% of the ranges being 0.05 or larger, and 18% 0.10 or larger.
+As before, if we target a Person vs Cluster average estimand, we find that the range of estimates often shrinks.
+Across outcomes, the average reduction is around 46%, but 25% of the outcomes had a reduction of 20% or less.
+
+
+```{r}
+## Figure 2: The Range of Estimates of β for all Estimators Targeting a Given Estimand  ----
+summary_stats_estimand %>%
+  filter(Covariates == "best") %>%
+  makeDotplot(var      = 'Range',
+              xlab     = 'Range of Point Estimates of β',
+              ylab     = 'Number of Outcomes',
+              filename = 'final paper figures/fig2_ATErange_byestimand',
+              title = 'Figure 2',
+              subtitle = glue::glue( 'The Range of Estimates of β for all Estimators\nTargeting a Given Estimand for {n_outcomes} Outcomes' ),
+              coordratio = .15,
+              binw = 0.01,
+              rmlegend = F,
+              byest    = TRUE,
+              xscale = c(0, 0.3))
+```
+
+We can look at how the range changes depending on initial range:
+```{r}
+ggplot( ss, aes( Range.y, Range.x ) ) +
+  facet_wrap( ~ Estimand ) +
+  geom_point() +
+  coord_fixed() +
+  scale_x_log10() +
+  scale_y_log10() +
+  geom_abline( slope=1, intercept=0, lty=2, col="red" ) 
+```
+
+Note the log scaling on the plot.  An alternate plot is the following:
+
+```{r}
+ggplot( ss, aes( Range.x, 1-red_range ) ) +
+  facet_wrap( ~ Estimand ) +
+  geom_point()+
+  labs( title = "Reduction of ATE range going to within Estimand",
+        x = "Range of Largest to Smallest ATE across Point Estimates",
+        y = "Percent reduction in range" )
+  #coord_fixed() 
+  #scale_x_log10() +
+ # scale_y_log10() +
+#  geom_abline( slope=1, intercept=0, lty=2, col="red" ) 
+```
+
+
+Even without blocking, the standard errors again range substantially across our estimators:
+
+```{r}
+## Figure 3: The Ratio (across 19 estimators) of the Largest to Smallest Estimates of SE(β) for {n_outcomes} outcomes. ----
+
+#summary_stats$Ratio = ifelse( summary_stats$Ratio > 3, 3, summary_stats$Ratio )
+summary_stats %>%
+  filter(Covariates == "best") %>%
+  makeDotplot(var      = 'Ratio',
+              xlab     = 'Ratio of Largest to Smallest SE across Point Estimates',
+              ylab     = 'Count',
+              title    = 'Figure 3',
+              subtitle = glue::glue( 'The Ratio (across {n_estimators} estimators) of the Largest to Smallest\nEstimates of SE(β) for {n_outcomes} outcomes' ),
+              filename = 'final paper figures/fig3_SEratio',
+              rmlegend = FALSE,
+              binw     = 0.1,
+              coordratio = 1,
+              tcratio  = T,
+              tcbreaks = c(1:4))
+
+```
+
+The single outcome with an extreme ratio of more than three times was a tiny study of 10 clusters with 124 total units.
+The aggregated, person-weighted linear regression with design-based standard errors gave an outlier standard error estimate of 0.10 (unusual estimated standard errors is common when using cluster robust or design based methods with few clusters), while the cluster weighted estimate was 0.36.
+The remaining estimators were all around 0.2.
+Overall, with small cluster randomized experiments, uncertainty estimation can be quite unstable.
+
+And as before, the variation in uncertainty estimates does not seem to be driven by the estimand targeted.
+When we look within estimand, the ratio of largest to smallest standard error shrinks only modestly (a median reduction of 2%, with 75% of the ratios shrinking by only 8% or less).
+
+The reduction does appear to be larger for larger initial ratios:
+
+```{r}
+## Figure 4: The Ratio (across 19 estimators) of the Largest to Smallest Estimates of SE(β) among all estimators targeting a given estimand for {n_outcomes} outcomes ----
+
+summary_stats_estimand %>%
+  filter(Covariates == "best") %>%
+  makeDotplot(var      = 'Ratio',
+              xlab     = 'Ratio of Largest to Smallest SE across Point Estimates',
+              ylab     = 'Count',
+              title    = 'Figure 4',
+              subtitle = glue::glue( 'The Ratio (across {n_estimators} estimators) of the Largest to Smallest Estimates of SE(β)\namong all estimators targeting a given estimand for {n_outcomes} outcomes' ),
+              filename = 'final paper figures/fig4_SEratio_byestimand',
+              byest = T,
+              rmlegend = T,
+              binw     = 0.1,
+              coordratio = 1.5,
+              tcratio  = T,
+              tcbreaks = c(1:3))
+
+
+
+ggplot( ss, aes( Ratio.y, 1-reduction ) ) +
+  facet_wrap( ~ Estimand ) +
+  geom_point()+
+  labs( title = "Reduction of SE ratio going to within Estimand",
+        x = "Ratio of Largest to Smallest SE across Point Estimates",
+        y = "Percent reduction in Ratio" )
+  #coord_fixed() 
+  #scale_x_log10() +
+ # scale_y_log10() +
+#  geom_abline( slope=1, intercept=0, lty=2, col="red" ) 
+
+
+
+
+
+```
+
+
+\newpage
+
+
+# Technical Results: Descriptives on non-blocked experiments
+
+```{r}
+
+studies %>%
+  pivot_longer( c( n, ncv, nbar, J, cluster_ICC, R2.1, p.tx ),
+                names_to="statistic", values_to="value" ) %>%
+  group_by( statistic ) %>%
+  summarise( mean = mean(value),
+             median = median( value ),
+             sd = sd(value),
+             min = min( value ),
+             Q10 = quantile(value, 0.1),
+             Q90 = quantile(value, 0.9),
+             max = max( value ) ) %>%
+  knitr::kable(digits = 2)
+
+```
+
+## Who has the smallest and largest size clusters?
+
+```{r}
+studies %>% filter( 
+  nbar == min(nbar) | nbar == max(nbar) ) %>%
+  dplyr::select( Project, Outcome, UniqueID, n, J, nbar ) %>%
+  knitr::kable( digits = 2 )
+```
+
+## The estimators
+
+```{r}
+table( unblocked$Estimator )
+```
+
+## Stats on range and ratio
+
+Proportion bigger than 0.05:
+```{r, echo=TRUE}
+mean( summary_stats$Range > 0.05 )
+mean( summary_stats$Range > 0.10 )
+```
+
+
+```{r, echo=TRUE}
+ss <- left_join( summary_stats, studies, by=c( "UniqueID", "Covariates") ) %>%
+  dplyr::filter( Covariates =="best" )
+ggplot( ss, aes( J, Ratio ) ) +
+  geom_point() +
+  geom_smooth( se=FALSE ) +
+  scale_x_log10()
+
+bads <- dplyr::filter( summary_stats, Ratio > 2, Covariates=="best" )
+bads %>%
+  dplyr::select( -c( class:ATE_Nmiss), -SE_N, -ATE_avg )
+
+studies %>%
+  dplyr::filter( UniqueID %in% bads$UniqueID ) %>%
+    dplyr::select( Project, Outcome, UniqueID, n, J, nbar ) %>%
+  knitr::kable( digits = 2 )
+
+unblocked %>%
+  dplyr::filter( UniqueID %in% bads$UniqueID, Covariates =="best" ) %>%
+  dplyr::select( UniqueID, Estimator, ATE_hat_std, SE_hat_std ) %>%
+  arrange( SE_hat_std ) %>%
+  knitr::kable( digits = 2 )
+
+
+summary( 1 - ss$red_range )
+summary( ss$reduction )
+```
+
+

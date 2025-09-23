@@ -1,3 +1,10 @@
+
+
+library(rpart)
+library( rpart.plot )
+require(RColorBrewer)
+
+
 #' Make a regression tree with the simulation results 
 #' 
 create_analysis_tree <- function(data, outcome_var, 

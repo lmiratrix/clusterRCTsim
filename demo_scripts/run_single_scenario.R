@@ -13,12 +13,24 @@ source( here::here( "R/simulation_support_code_fixed_district.R" ) )
 # This will run a single scenario!
 
 grid <- build_districts( K = 10, J.bar = 20, n.bar = 20, p.bar = 0.5,
-                         ATE = 0.2, sd.ATE = 0.1,
-                         ICC = 0.2,
-                         variable.J = TRUE, variable.p = TRUE, variable.nbar = TRUE,
-                         num.cov.school = 3, size.intercept.cor = -0.8,
-                         size.impact.cor = 0.75, proptx.impact.cor = 0.75, nbar.J.cor = 0.9, 
-                         empirical = TRUE )
+                         ATE = 0.2, sd.ATE = 0.4,
+                         ICC.district = 0.2,
+                         variable.p = TRUE,
+                         cv.district = 0.6,
+                         cv.nbar = 0.6,
+                         size.intercept.cor = -0.8,
+                         R2 = NULL,
+                         num.cov.district = 0,
+                         sd.school = 0.4,
+                         ICC.school = 0.2, 
+                         R2.school = NULL,
+                         num.cov.school = 0,
+                         cv.school = 0.6,
+                         size.impact.cor.school = 0.5,
+                         R2.indiv = NULL,
+                         num.cov.indiv = 0,
+                         empirical = FALSE )
+
 
 grid
 describe_district_grid( grid )
