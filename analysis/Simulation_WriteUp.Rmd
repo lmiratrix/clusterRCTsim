@@ -634,7 +634,7 @@ print(cov_plot)
 
 # Do any of the estimated standard errors target finite versus super population uncertainty? 
 
-The simulations demonstrate that the standard errors are targeting the super population standard errors. The true super population standard errors are only noticeably different from the true finite population standard errors when the cluster level ICC is zero and the there is cross-cluster treatment effect variance. Looking at the subset of simulations where that is true, shows that the standard error inflation is consistently closer to one for the true super population standard errors than for the true finite population standard errors.   
+The simulations demonstrate that the standard errors are targeting the super-population standard errors. The true super-population standard errors are only noticeably different from the true finite population standard errors when the cluster-level ICC is zero and there is cross-cluster treatment effect variance (Figure 11). Looking at the subset of simulations where that is true shows that the standard error inflation is consistently closer to one for the true super-population standard errors than for the true finite population standard errors (Figure 12).
 
 ```{r finite, include=TRUE, echo=FALSE}
 fig11cap <- "Figure 11: Regression tree which predicts the ratio of true finite population standard error over true super population standard error using different data generating parameters. These two quantities are the same when this ratio is one."
@@ -704,20 +704,20 @@ ggdraw() +
   ) +
   draw_label(
     "Super Population",  # Left subplot title
-    x = 0.2, y = 0.14,  # Position under left plot
+    x = 0.2, y = 0.16,  # Position under left plot
     hjust = 0.5, vjust = 0,
     size = 10, fontfamily = "serif", fontface = "bold"
   ) +
   draw_label(
     "Finite Population",  # Right subplot title
-    x = 0.75, y = 0.14,  # Position under right plot
+    x = 0.75, y = 0.16,  # Position under right plot
     hjust = 0.5, vjust = 0,
     size = 10, fontfamily = "serif", fontface = "bold"
   ) +
   draw_label(
     str_wrap(fig12cap, width = 120),
-    x = 0.05, y = 0.05,
-    hjust = 0, vjust = 0.5,
+    x = 0.05, y = 0.06,
+    hjust = 0, vjust = 0.45,
     size = 9, color = "gray40", fontfamily = "serif"
   )
 ```
@@ -849,13 +849,11 @@ fin_plot6 + fin_plot7 + plot_layout(widths = c(2, 3))
 
 # Are problems caused by low degrees of freedom due to estimate instability or bias?
 
-Simulation show that the problems with estimates in studies with low degrees of freedom is driven by estimate instability and not estimate bias. We see that as the degrees of freedom gets smaller the estimate instability gets larger (figure ). On the other hand we see no relationship between mean bias and degrees of freedom (figure ).
-
-
+Simulations show that the problems with estimates in studies with low degrees of freedom are driven by estimate instability and not estimate bias. We see that as the degrees of freedom get smaller, the estimate instability gets larger (Figure 13). On the other hand, we see no relationship between mean bias and degrees of freedom (Figure 14).
 
 ```{r degfree, include=TRUE, echo=FALSE, results='asis'}
 
-fig12cap <- "Figure 12: Scatter plot of true estimate standard error versus degrees of freedom by method. Each panel shows the relationship for a different estimation method. "
+fig13cap <- "Figure 13: Scatter plot of true estimate standard error versus degrees of freedom by method. Each panel shows the relationship for a different estimation method. "
 
 scatter_plot <- ggplot(sruns.clean %>% filter(group=="full_factor"), aes(x = mean.df, y = SE.s)) +
   geom_point(aes(color = method)) +
@@ -882,14 +880,14 @@ scatter_plot <- ggplot(sruns.clean %>% filter(group=="full_factor"), aes(x = mea
 ggdraw() +
      draw_plot(scatter_plot, 0, 0.1, 1, 0.9) +
      draw_label(
-       str_wrap(fig12cap, width = 120),
+       str_wrap(fig13cap, width = 120),
        x = 0.05, y = 0.05,
        hjust = 0, vjust = 0.5,
        size = 9, color = "gray40", fontfamily = "serif"
      )
 
 
-fig13cap <- "Figure 13: Scatter plot of mean bias versus degrees of freedom by method. Each panel shows the relationship for a different estimation method. "
+fig14cap <- "Figure 14: Scatter plot of mean bias versus degrees of freedom by method. Each panel shows the relationship for a different estimation method. "
 
 scatter_plot <- ggplot(sruns.clean %>% filter(group=="full_factor"), aes(x = mean.df, y = bias.s.estimand)) +
   geom_point(aes(color = method)) +
@@ -916,124 +914,10 @@ scatter_plot <- ggplot(sruns.clean %>% filter(group=="full_factor"), aes(x = mea
 ggdraw() +
      draw_plot(scatter_plot, 0, 0.1, 1, 0.9) +
      draw_label(
-       str_wrap(fig13cap, width = 120),
+       str_wrap(fig14cap, width = 120),
        x = 0.05, y = 0.05,
        hjust = 0, vjust = 0.5,
        size = 9, color = "gray40", fontfamily = "serif"
      )
 ```
-
-
-#this section is all cut text that I will need to put somewhere else 
-
-
-
-
-Basically the answer is no 
-
-Subset the simulations to those where True (Average) Finite SE is REALLY not same as True Super SE.  E.g., look only at the high impact variation sims. 
-
-Then do (1) above with the true super. 
-
- 
-
-To check first: WHEN (for what scenarios) do the True SEs differ? 
-
-It should be when there is treatment variation at the cluster level 
-
- 
-
-Ideally you can make a subset just by subsetting on simulation factors (tx variation) 
-
-
-## Description of Analysis
-
-
-
-- The third graph is a the same regression tree above, but just for the LRapw−FIpw−db. The indicators for MLM, FI, cluster weighted, and person weighted are dropped for this regression.   
-
-- The first table contains the DGPs that produce that largest magnitude of mean bias for each method, conditional on the magnitude of the mean bias being at least .1 . Where again mean bias is the mean bias against the targeted estimator. 
-
-
-
-Step 1: Assess when, if ever, any estimators have substantially lower TRUE SE than other estimators 
-
-Possible: For each scenario, calculate ratio of true SE to median SE.  Then we have a relative performance for each estimator for each scenario.  Then make boxplots across scenarios, one box per method, and look for methods with long tails.   An estimator with a wide boxplot is one that sometimes has very different performance than the typical estimator in that setting. 
-
-Step 2: For those estimators with long tails, do the tree thing (for just that estimator’s performance, or possibly a group of estimators that seem related’s performance) to assess when they have low or high relative performance  
-
-(And do these scenarios fall within realm of plausibility?) 
-
-
-## Main Bullet Points:
-
-- 
-- All analysis done on the fullfactor simulation, because the results didn't change in the low degrees of freedom simulation
-
-- Methods that are as bad as -.2 in the 5% of scenarios with the most bias: LRapw-FE-db, MLM-RE, MLM−FE, LRa−FE−db
-
-- LRapw−FE−db: In the worst 5% of the sims bias as big as -.2. Fine as long as blocks aren't messy or aren't unbalanced or J.bar is S. If unbalanced but J.Bar is S and also cor_J_tau is not zero, that can be a problem.
-
-- MLM−FE, mostly no bias when blocks aren't messy, except cor_J_tau != 0 & ICC.sch=0 & cv.sch!=0, when blocks are messy than bias is at J.bar M,L and p.bar is unbalanced
-
-- LRa−FE−db: In the worst 5% of the sims bias as big as -.2. As long as the blocks are not messy it's fine. Bias needs combination J.Bar is Large and unbalance, otherwise it's fine.
-
-- MLM−FIcw has bias as bad as .1 in the 5% of scenarios with most bias,  bias is when cor_J_tau != 0 & ICC.sch =0 & cv.sch!=S  
-- The LRapw−FIpw−db . This is consistent with theory. 
-- LRa−FIcw−db: no bias in any case
-
-
-- MLM-RE, mostly no bias when blocks aren't messy, except cor_J_tau != 0 & ICC.sch=0 & cv.sch!=0, when blocks are messy than bias is at J.bar M,L and p.bar is unbalanced
-
-
-- For most of the estimators that are biased, the mean bias is mostly driven by large differences across blocks. With the largest bias in cases with large differences across blocks, 10 or 20 clusters, and unbalanced assignment to treatment (mean p =.7).
-
-
-# How to read this document
-
-This document is divided into sections based on specific topics. In each section there is a set of summary main bullet points, a description of the analysis done in that section to support those bullet points, and the output from the analysis done in that section. The main bullet points cover a combination of answering the questions in the empirical paper and the overall questions about how each of the estimators perform under different conditions. The analysis descriptions need to be moved to be under the piece of analysis they describe, but for now I thought it was better to have it all up top. 
-
-\newpage 
-
-
-# TO DO EDIT THIS BASED On The Revised Research Questions Doc 
-
-- Are any of the estimators ever substantially biased? When? 
-
-- Are any of the estimators generally more precise than others? When? 
-
-- Which estimators produce the best estimates of the treatment effect standard error?
-
-- Which estimators produce the best estimates of the treatment effect standard error?
-
-- Are the standard errors targeting finite versus super population 
-
-Relevant section from the empirical paper:
-
-  We discuss this further in our simulations, but the consequence is that any of our standard error estimators can be viewed   as conservative, if we view the clusters as a finite population, or as appropriate if we consider the clusters as coming     from a larger superpopulation (Litschwartz et al., 2025). 
-  
-- Do estimated standard errors vary across estimators and why?
-
-Notes:
-Is this because true SEs vary across estimators?
-Is this estimation error?
-Are certain SE estimators more accurate than others?
-  
-Relevant section from the empirical paper:
-Choosing an estimand and excluding the fully interacted estimators results in estimated standards errors that are less variable across estimators. However, it is notable that differences are still often non-trivial. Even in Figure  we see estimated standard errors are 20 percent different across estimators in 24 percent of the cases we examined. 
-
-- Are the fully-interacted models driving the instability of the estimated standard errors?
-
-Relevant section from the empirical paper:
-
- For example, the largest estimated standard error is 1.5x the smallest estimated standard error in only 10 percent of cases without the fully-interacted models, down from 44 percent when considering all estimators. The ratio never exceeds 1.8 once the fully-interacted models are excluded. This corroborates simulation findings that show the instability of estimated standard errors coming from fully-interacted estimators (Litschwartz et al., 202X). In general, we do not recommend using the fully-interacted estimators due to this short-coming. 
-
-- Are problems caused by low degrees of freedom due to estimate instability or bias?
-
-Relevant section from the empirical paper:
-Notice that in Figure 2 it appears that choice of estimator matters more in low-degree of freedom studies – the ranges across estimators tend to be larger in low degree of freedom studies (blue dots) than high degree of freedom studies (red dots). 
-
-[ADD SOMETHING ABOUT WHAT WE LEARNED FROM THE SIMULATIONS – DO WE THINK THESE RANGES ARE MORE ABOUT BIAS OR ESTIMATION ERROR] 
-
-
 
