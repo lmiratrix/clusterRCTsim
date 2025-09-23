@@ -14,10 +14,15 @@ require(pander)
 
 
 
-load( here::here( "results_agg/processed_simulation_results_agg_full_factor_2025-05-21.RData" ) )
+load( here::here( "results_agg/combined_simulation_results.RData" ) )
 
+#figure out what didn't run in the low df 
+lowdf<-sruns %>% filter(group=="lowdf")
+with(lowdf,table(is.na(mean.SE.hat),method))
+with(lowdf,table(is.na(mean.ATE.hat),method))
+#there are estimates for all the methods for all the scenarios, but not SEs 
 
-
+     
 DGP_vars <- c("K", "J.bar", "p.bar", "sd.ATE", "ICC.district", "variable.p", 
               "n.bar", "sd.school", "ICC.school", "size.impact.cor", "size.impact.cor.school", 
               "proptx.impact.cor", "num.cov.district", "num.cov.school", "cv.school", 
@@ -74,6 +79,80 @@ create_labeled_factor <- function(x) {
   }
 }
 
+# Function to create a single labeled factor variable based on group-specific labeling
+create_labeled_factor_by_group <- function(data, variable, group_var) {
+  # Convert to character to handle column names
+  var_name <- deparse(substitute(variable))
+  group_name <- deparse(substitute(group_var))
+  
+  # If passed as strings, use them directly
+  if (is.character(substitute(variable))) var_name <- variable
+  if (is.character(substitute(group_var))) group_name <- group_var
+  
+  # Create a helper function to apply labeling within each group
+  label_within_group <- function(x) {
+    unique_values <- sort(unique(x))
+    num_levels <- length(unique_values)
+    
+    # Check if 0 is among the values in this group
+    has_zero <- 0 %in% unique_values
+    
+    if (num_levels == 1) {
+      # If only one level, just return as is
+      factor(x)
+    } else if (num_levels == 2) {
+      if (has_zero) {
+        # If one of the two values is 0, use "0" and "+"
+        labels <- ifelse(unique_values == 0, "0", "+")
+        factor(x, levels = unique_values, labels = labels)
+      } else {
+        # If no zero, use "S" and "L" (Small and Large)
+        labels <- c("S", "L")
+        factor(x, levels = unique_values, labels = labels)
+      }
+    } else if (num_levels == 3) {
+      if (has_zero) {
+        # If one of the three values is 0, use "0", "S", and "L"
+        zero_pos <- which(unique_values == 0)
+        ordered_levels <- c(0, unique_values[unique_values != 0])
+        labels <- c("0", "S", "L")
+        factor(x, levels = ordered_levels, labels = labels)
+      } else {
+        # If no zero, use "S", "M", and "L" (Small, Medium, Large)
+        labels <- c("S", "M", "L")
+        factor(x, levels = unique_values, labels = labels)
+      }
+    } else {
+      # For more than three levels
+      if (has_zero) {
+        # Reorder so 0 is first
+        ordered_levels <- c(0, unique_values[unique_values != 0])
+        # First label is "0", rest are numbered L1, L2, etc.
+        labels <- c("0", paste0("L", 1:(num_levels-1)))
+        factor(x, levels = ordered_levels, labels = labels)
+      } else {
+        # If no zero value exists, just use L1, L2, etc.
+        labels <- paste0("L", 1:num_levels)
+        factor(x, levels = unique_values, labels = labels)
+      }
+    }
+  }
+  
+  # Apply the labeling within each group and then combine
+  data %>%
+    group_by(!!sym(group_name)) %>%
+    mutate(!!var_name := label_within_group(!!sym(var_name))) %>%
+    ungroup()
+}
+
+# Example usage:
+# sruns.clean <- create_labeled_factor_by_group(sruns.clean, "J.bar", "group")
+# 
+# This will create a single J.bar variable where:
+# - Rows with group="full_factor": 10→S, 20→M, 30→L
+# - Rows with group="lowdf": 3→S, 4→L
+# - All in the same J.bar column
+
 
 # Drop impossible combos ---
 
@@ -94,10 +173,19 @@ sruns <- sruns %>%
 
 
 
+
+
+
+
 # Make clean set ----
 
+#I'm going to keep the two different simulation sets with separate block type variables for now 
+#I need to fix the levels by the groups 
 
 sruns.clean <- sruns %>%  
+  # Create new ID combining old ID and group
+  mutate(ID = paste(ID, group, sep = "_")) %>%
+  # Create a different block type variable for the full factor and the low df data sets 
   mutate(block_type = case_when(
     # Blocks all the same (btype1)
     cv.district == 0 &
@@ -107,7 +195,8 @@ sruns.clean <- sruns %>%
       proptx.impact.cor == 0 & 
       size.intercept.cor == 0 &
       !variable.p &
-      cv.nbar == 0 ~ 1,
+      cv.nbar == 0 &
+      group=="full_factor" ~ 1,
     
     # Blocks all messy (btype2)
     cv.district == 0.85 &
@@ -117,7 +206,7 @@ sruns.clean <- sruns %>%
       proptx.impact.cor == 0.8 & 
       size.intercept.cor == 0.8 &
       variable.p &
-      cv.nbar == 0.33 ~ 3,
+      cv.nbar == 0.33 & group=="full_factor" ~ 3,
     
     # Blocks vaguely reasonable (btype3)
     cv.district == 0.33 &
@@ -127,7 +216,25 @@ sruns.clean <- sruns %>%
       proptx.impact.cor == 0 & 
       size.intercept.cor == 0.3 &
       !variable.p &
-      cv.nbar == 0.33 ~ 2,
+      cv.nbar == 0.33 & group=="full_factor"~ 2,
+    
+    TRUE ~ NA_real_  # Catch any other combinations
+  )) %>% 
+  mutate(block_type_lowdf = case_when(
+    # Blocks all the same (btype1)
+    sd.ATE == 0 & 
+      size.impact.cor == 0 & 
+      size.intercept.cor == 0 & group=="lowdf" ~ 1,
+    
+    # Blocks all messy (btype2)
+    sd.ATE == 0.6 & 
+      size.impact.cor == 0.8 & 
+      size.intercept.cor == 0.8 & group=="lowdf"~ 3,
+    
+    # Blocks vaguely reasonable (btype3)
+    sd.ATE == 0.2 & 
+      size.impact.cor == 0.2 & 
+      size.intercept.cor == 0.3 & group=="lowdf"~ 2,
     
     TRUE ~ NA_real_  # Catch any other combinations
   )) %>% 
@@ -145,22 +252,27 @@ sruns.clean <- sruns %>%
       weight == "Person" ~ RMSE.s.stu
     )
   ) %>%
+  # Apply group-based labeling to variables that differ by group
+  create_labeled_factor_by_group("sd.ATE", "group") %>%
+  create_labeled_factor_by_group("size.impact.cor", "group") %>%
+  create_labeled_factor_by_group("J.bar", "group") %>%
+  create_labeled_factor_by_group("p.bar", "group") %>%
+  create_labeled_factor_by_group("sd.school", "group") %>%
+  create_labeled_factor_by_group("ICC.school", "group") %>%
+  create_labeled_factor_by_group("cv.school", "group") %>%
+  create_labeled_factor_by_group("num.cov.school", "group") %>%
+  create_labeled_factor_by_group("proptx.impact.cor", "group") %>%
+  create_labeled_factor_by_group("size.intercept.cor", "group") %>%
+  create_labeled_factor_by_group("size.impact.cor.school", "group") %>%
   mutate(
-    sd.ATE = create_labeled_factor(sd.ATE),
-    size.impact.cor = create_labeled_factor(size.impact.cor),
-    J.bar = create_labeled_factor(J.bar),
-    p.bar = create_labeled_factor(p.bar),
-    sd.school = create_labeled_factor(sd.school),
-    ICC.school = create_labeled_factor(ICC.school),
-    cv.school = create_labeled_factor(cv.school),
-    num.cov.school = create_labeled_factor(num.cov.school),
-    proptx.impact.cor = create_labeled_factor(proptx.impact.cor),
-    size.intercept.cor = create_labeled_factor(size.intercept.cor),
-    size.impact.cor.school = create_labeled_factor(size.impact.cor.school),
+    # Fix for the factor problem - explicitly define levels based on your block types
     block_type = factor(block_type, 
-                               levels = sort(unique(block_type)),
-                               labels = c("Same", "Reas", "Mess")),
-    bias.s.estimand.mag=abs(bias.s.estimand),
+                        levels = c(1, 2, 3),
+                        labels = c("Same", "Reas", "Mess")),
+    block_type_lowdf = factor(block_type_lowdf, 
+                              levels = c(1, 2, 3),
+                              labels = c("Same", "Reas", "Mess")),
+    bias.s.estimand.mag = abs(bias.s.estimand),
     method = reorder(method, -biased),
     bias.ratio.sch = round(bias.f.sch/bias.s.sch, 4),
     bias.ratio.stu = round(bias.f.stu/bias.s.stu, 4),
@@ -169,21 +281,25 @@ sruns.clean <- sruns %>%
     cover.ratio.stu = round(cover.f.stu/cover.s.stu, 4),
     cover.ratio.sch = round(cover.f.sch/cover.s.sch, 4),    
     true.se.ratio = round(SE.f/SE.s, 2)
-  )  %>%
+  ) %>%
   mutate(
     is_FI = str_detect(method, "FI"),
     is_MLM = str_detect(method, "MLM"),
     is_cw = str_detect(method, "cw"),
     is_pw = str_detect(method, "pw"),
-  ) 
-
+  )
 
 # Check the levels of one of the variables
 levels(sruns.clean$block_type)
 table(sruns.clean$block_type)
-
+levels(sruns.clean$block_type_lowdf)
+table(sruns.clean$block_type_lowdf)
 levels(sruns.clean$J.bar)
 levels(sruns.clean$ICC.school)
+levels(sruns.clean$sd.ATE)
+levels(sruns.clean$sd.school)
+table(sruns.clean$ID)
+
 
 # Create the new variable with median RMSE.s.estimand for each ID
 sruns.clean <- sruns.clean %>%
@@ -192,6 +308,9 @@ sruns.clean <- sruns.clean %>%
          SE.s.median = median(SE.s, na.rm = TRUE),
          CI.length.median = median(CI.length, na.rm = TRUE),
          sd.SE.hat.s.median=median(sd.SE.hat.s,na.rm=TRUE)) %>%
+  ungroup() %>%
+  group_by(ID,weight) %>%
+  mutate(SE.s.median.weight = median(SE.s, na.rm = TRUE)) %>%
   ungroup()
 
 
@@ -209,9 +328,8 @@ ordered_methods <- sruns.clean %>%
   )
 
 # Create the plot data with ordered methods
-# 
-# TODO: Just make this sruns.clean everywhere???
-plot_data <- sruns.clean %>%
+
+sruns.clean <- sruns.clean %>%
   mutate(
     weight_biased = paste(weight, biased, sep = "_"),
     method_ordered = factor(method, levels = ordered_methods)
@@ -269,7 +387,10 @@ group_estimators <- function( rps, var ) {
   groups
 }
 
-groups <- group_estimators(sruns, var = "mean.ATE.hat")
+
+groups <- group_estimators(sruns.clean , var = "mean.ATE.hat")
+
+
 
 
 # List the groups
@@ -296,12 +417,24 @@ all.methods<-c("LRa-FE-db", "LRa-FE-het", "LRicw-FE-crve", "LRicw-FE-db",
                "LRapw-FIpw-het", "LRi-FIpw-crve", "LRi-FIpw-db", 
                "MLM-FE", "MLM-FIcw","MLM-RE")
 
+####Pick Up Here
 
-groups <- group_estimators(sruns, var = "mean.SE.hat")
+#the missing SE's for some methods in the low df group  is doing weird stuff, so run them separately 
+
+groups.ff <- group_estimators(sruns.clean %>% filter(group=="full_factor"), var = "mean.SE.hat")
+groups.lowdf <- group_estimators(sruns.clean %>% filter(group=="lowdf"), var = "mean.SE.hat")
 
 
 # List the groups
-map_chr(groups, paste, collapse = ", ") %>%
+map_chr(groups.ff, paste, collapse = ", ") %>%
+  # Convert to a data frame with a proper column name
+  data.frame(group_values = .) %>%
+  # Now n() will work inside mutate()
+  mutate(grp = 1:nrow(.)) %>%
+  relocate(grp) %>%
+  knitr::kable()
+
+map_chr(groups.lowdf, paste, collapse = ", ") %>%
   # Convert to a data frame with a proper column name
   data.frame(group_values = .) %>%
   # Now n() will work inside mutate()
@@ -315,8 +448,10 @@ core.methods.se <- c("LRa-FE-db", "LRa-FE-het", "LRa-FIcw-db", "LRapw-FE-db",
                      "MLM-RE")
 
 
-# QUESTION: Can we delete these?
+# QUESTION: Can we delete these?, SL: yes! 
 rm( groups )
+rm(groups.ff)
+rm(groups.lowdf)
 rm( sruns )
 
 
