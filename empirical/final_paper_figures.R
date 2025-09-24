@@ -89,6 +89,7 @@ summary_stats_estimand %>%
               title = 'Figure 2',
               subtitle = glue::glue( 'The Range of Estimates of β for all Estimators\nTargeting a Given Estimand for {n_outcomes} Outcomes' ),
               coordratio = .15,
+              axisfs = 14,
               binw = 0.01,
               rmlegend = F,
               byest    = TRUE,
@@ -109,9 +110,10 @@ summary_stats %>%
               filename = 'final paper figures/fig3_SEratio',
               rmlegend = FALSE,
               binw     = 0.1,
-              coordratio = 1,
+              coordratio = 1.25,
+              axisfs = 14,
               tcratio  = T,
-              tcbreaks = c(1:5))
+              tcbreaks = c(1:4))
 
 
 
@@ -128,9 +130,9 @@ summary_stats_estimand %>%
               byest = T,
               rmlegend = T,
               binw     = 0.1,
-              coordratio = 1.5,
+              coordratio = 2,
               tcratio  = T,
-              tcbreaks = c(1:5))
+              tcbreaks = c(1:4))
 
 
 
