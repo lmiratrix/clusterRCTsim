@@ -150,22 +150,22 @@ scenarios
 # Add in (estimated) superpopulation person weighted ATE
 scenarios = mutate( scenarios, 
                     ATE.super.student = map_dbl( run, ~ mean( .$ATE.finite.student ) ),
-                    ATE.super.school = map_dbl( run, ~ mean(.$ATE.finite.school )),
+                    ATE.super.cluster = map_dbl( run, ~ mean(.$ATE.finite.cluster )),
                     ATE.super.dist.student = map_dbl( run, ~ mean(.$ATE.finite.dist.student ) ),
-                    ATE.super.dist.school = map_dbl( run, ~ mean(.$ATE.finite.dist.school ) ))
+                    ATE.super.dist.cluster = map_dbl( run, ~ mean(.$ATE.finite.dist.cluster ) ))
 
 # Rearrange and foreground relevant columns
 scenarios = dplyr::select( scenarios, 
-                           ID, K, J.bar, p.bar, sd.district, ICC.district, variable.J,
-                           variable.p, n.bar, sd.school, ICC.school, variable.n,
-                           size.impact.cor.district, size.impact.cor.school,
-                           proptx.impact.cor.district,
+                           ID, K, J.bar, p.bar, sd.block, ICC.block, variable.J,
+                           variable.p, n.bar, sd.cluster, ICC.cluster, variable.n,
+                           size.impact.cor.block, size.impact.cor.cluster,
+                           proptx.impact.cor.block,
                            
-                           ATE.super.district = ATE.district, 
-                           ATE.super.school, 
+                           ATE.super.block = ATE.block, 
+                           ATE.super.cluster, 
                            ATE.super.student, 
                            ATE.super.dist.student,
-                           ATE.super.dist.school,
+                           ATE.super.dist.cluster,
                            everything() ) %>% mutate(group=group)
 scenarios
 

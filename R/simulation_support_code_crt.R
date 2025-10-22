@@ -7,9 +7,9 @@
 # This script has functions to run a single trial, generate a list of
 # all scenarios, and a few other things.
 #
-# NOTE: This regenerates districts (blocks) and so operates in a very
-# super-population framework.  We now usually fix the districts, and
-# use the companion "fixed_district" version of this script.
+# NOTE: This regenerates blocks (blocks) and so operates in a very
+# super-population framework.  We now usually fix the blocks, and
+# use the companion "fixed_block" version of this script.
 
 library( tidyverse )
 library( purrr )
@@ -30,25 +30,25 @@ source( here::here( "R/util.R" ) )
 # It also calculates the true finite-sample ATE (person and site weighted).
 #
 # @return Dataframe with the estimates along with the true baseline values.
-single.CRT = function( # district-level params
+single.CRT = function( # block-level params
   K, J.bar, p.bar=0.5,
-  ATE.district, sd.district,
-  ICC.district,
+  ATE.block, sd.block,
+  ICC.block,
   variable.p = FALSE,
   
   # correlation params at cluster level
-  cv.district = 0.6, 
-  size.impact.cor.district = 0,
-  proptx.impact.cor.district = 0,
-  size.intercept.cor.district = 0,
+  cv.block = 0.6, 
+  size.impact.cor.block = 0,
+  proptx.impact.cor.block = 0,
+  size.intercept.cor.block = 0,
   
-  # school-level params
-  n.bar, sd.school, ICC.school = 0.20,
+  # cluster-level params
+  n.bar, sd.cluster, ICC.cluster = 0.20,
   
   # correlation params at individual level
-  cv.school = 0.6,
-  size.impact.cor.school = 0,
-  cor.strength.school = 0.75,
+  cv.cluster = 0.6,
+  size.impact.cor.cluster = 0,
+  cor.strength.cluster = 0.75,
   
   # method params
   n.runs = 3,
@@ -56,27 +56,27 @@ single.CRT = function( # district-level params
   just.return.data = FALSE,
   ... ) {
   
-  df <- generate_districts(
+  df <- generate_blocks(
     K = K, 
     J.bar = J.bar,
     p.bar = p.bar,
-    ATE.district = ATE.district, 
-    sd.district = sd.district,
-    ICC.district = ICC.district,
+    ATE.block = ATE.block, 
+    sd.block = sd.block,
+    ICC.block = ICC.block,
     variable.p = variable.p,
     
     # cluster-level params
     n.bar = n.bar, 
-    sd.school = sd.school, 
-    ICC.school = ICC.school,
+    sd.cluster = sd.cluster, 
+    ICC.cluster = ICC.cluster,
     
     # size and correlation params
-    cv.district = cv.district, 
-    cv.school = cv.school,
-    size.impact.cor.district = size.impact.cor.district,
-    size.intercept.cor.district = size.intercept.cor.district,
-    size.impact.cor.school = size.impact.cor.school,
-    proptx.impact.cor.district = proptx.impact.cor.district)
+    cv.block = cv.block, 
+    cv.cluster = cv.cluster,
+    size.impact.cor.block = size.impact.cor.block,
+    size.intercept.cor.block = size.intercept.cor.block,
+    size.impact.cor.cluster = size.impact.cor.cluster,
+    proptx.impact.cor.block = proptx.impact.cor.block)
   
   if ( just.return.data ) {
     return( df )
@@ -98,17 +98,17 @@ single.CRT = function( # district-level params
   #   summarize(n_k = sum(n_jk),
   #             s = sum(n_jk*beta_jk)) %>% 
   #   summarize(ATE.student = sum(s) / sum(n_k))
-  ATE.school <- mean(beta_jks$beta_jk)
+  ATE.cluster <- mean(beta_jks$beta_jk)
   ATE.dist.student <- beta_jks %>% 
     summarize(n_k = sum(n_jk),
               s = sum(n_jk*beta_jk)) %>% 
     summarize(ATE.dist.student = sum(s/n_k) / n()) %>% 
     pull(ATE.dist.student)
-  ATE.dist.school <- beta_jks %>% 
+  ATE.dist.cluster <- beta_jks %>% 
     summarize(J_k = n(),
               s = sum(beta_jk)) %>% 
-    summarize(ATE.dist.school = sum(s/J_k) / n()) %>% 
-    pull(ATE.dist.school)
+    summarize(ATE.dist.cluster = sum(s/J_k) / n()) %>% 
+    pull(ATE.dist.cluster)
   
   # Do finite-sample simulation, rerandomizing n.runs times.  
   ests = map_dfr( 1:n.runs, function( x ) {
@@ -119,9 +119,9 @@ single.CRT = function( # district-level params
   # Gather results and ship!
   ests = mutate( ests,
                  ATE.finite.student = ATE.student,
-                 ATE.finite.school = ATE.school,
+                 ATE.finite.cluster = ATE.cluster,
                  ATE.finite.dist.student = ATE.dist.student,
-                 ATE.finite.dist.school = ATE.dist.school)
+                 ATE.finite.dist.cluster = ATE.dist.cluster)
   
   if (F) {
     ests %>% filter(subrun==1)
@@ -155,17 +155,17 @@ single.CRT = function( # district-level params
 if ( FALSE ) {
   
   # NOTE: DB estimators will return infinite SEs if there are
-  #  fewer than two tx and co clusters in any district
+  #  fewer than two tx and co clusters in any block
   res <- single.CRT(
     K=10, J.bar=20, p.bar=0.5,
     variable.p=F,
-    ATE.district=0.2, sd.district=0.1, 
-    ICC.district=0.2,
+    ATE.block=0.2, sd.block=0.1, 
+    ICC.block=0.2,
     
-    size.impact.cor.district = 0,
-    proptx.impact.cor.district = -0,
+    size.impact.cor.block = 0,
+    proptx.impact.cor.block = -0,
     
-    n.bar=50, sd.school=0.1, ICC.school=0.3,
+    n.bar=50, sd.cluster=0.1, ICC.cluster=0.3,
     include_method_characteristics=F)
   
   head(res)
@@ -178,31 +178,31 @@ if ( FALSE ) {
 #' Run a simulation with R trials and return all the simulation runs
 #' as a large dataframe.
 #'
-#' @param sd.school Treatment variation at the cluster level.
+#' @param sd.cluster Treatment variation at the cluster level.
 #' 
 #' @param n.runs Number of "finite sample" replicates for each
 #'   generated dataset.
 #' @param R Number of datasets.
 run.scenario = function( 
-  # district-level params
+  # block-level params
   K, J.bar, p.bar,
-  ATE.district, sd.district,
-  ICC.district,
+  ATE.block, sd.block,
+  ICC.block,
   variable.p,
   
   # correlation params at cluster level
-  cv.district = 0.6,
-  size.impact.cor.district,
-  size.intercept.cor.district = 0,
-  proptx.impact.cor.district,
+  cv.block = 0.6,
+  size.impact.cor.block,
+  size.intercept.cor.block = 0,
+  proptx.impact.cor.block,
   
-  # school-level params
-  n.bar, sd.school, ICC.school = 0.2,
+  # cluster-level params
+  n.bar, sd.cluster, ICC.cluster = 0.2,
   
   # correlation params at individual level
-  cv.school = 0.6,
-  size.impact.cor.school,
-  cor.strength.school = 0.75,
+  cv.cluster = 0.6,
+  size.impact.cor.cluster,
+  cor.strength.cluster = 0.75,
   
   # method params
   n.runs = 3,
@@ -228,17 +228,17 @@ run.scenario = function(
   }
   
   scat( "Running scenario %d\n\tK=%d\tJ.bar=%d\tp.bar=%.2f\t
-        district ATE=%.2f\tdistrict sd=%.2fdistrict ICC=%.2f\t
-        district size correlate=%.2f\tdistrict proptx correlate=%.2f
-        n.bar=%d\tschool sd=%.2f\tICC=%.2f
-        school size correlate=%s
+        block ATE=%.2f\tblock sd=%.2fblock ICC=%.2f\t
+        block size correlate=%.2f\tblock proptx correlate=%.2f
+        n.bar=%d\tcluster sd=%.2f\tICC=%.2f
+        cluster size correlate=%s
         R=%d\n", 
         ID, K, J.bar, p.bar,
-        ATE.district, sd.district, 
-        ICC.district,
-        size.impact.cor.district, proptx.impact.cor.district,
-        n.bar, sd.school, ICC.school,
-        size.impact.cor.school,
+        ATE.block, sd.block, 
+        ICC.block,
+        size.impact.cor.block, proptx.impact.cor.block,
+        n.bar, sd.cluster, ICC.cluster,
+        size.impact.cor.cluster,
         R)
   
   # Get all the ... arguments in list
@@ -249,24 +249,24 @@ run.scenario = function(
     K = K, 
     J.bar = J.bar,
     p.bar = p.bar,
-    ATE.district = ATE.district, 
-    sd.district = sd.district,
-    ICC.district = ICC.district,
+    ATE.block = ATE.block, 
+    sd.block = sd.block,
+    ICC.block = ICC.block,
     variable.p = variable.p,
     
     # cluster-level params
     n.bar = n.bar, 
-    sd.school = sd.school, 
-    ICC.school = ICC.school,
+    sd.cluster = sd.cluster, 
+    ICC.cluster = ICC.cluster,
     
     # size and correlation params
-    cv.district = cv.district, 
-    cv.school = cv.school,
-    size.impact.cor.district = size.impact.cor.district,
-    size.intercept.cor.district = size.intercept.cor.district,
-    size.impact.cor.school = size.impact.cor.school,
-    proptx.impact.cor.district = proptx.impact.cor.district,
-    cor.strength.school = cor.strength.school,
+    cv.block = cv.block, 
+    cv.cluster = cv.cluster,
+    size.impact.cor.block = size.impact.cor.block,
+    size.intercept.cor.block = size.intercept.cor.block,
+    size.impact.cor.cluster = size.impact.cor.cluster,
+    proptx.impact.cor.block = proptx.impact.cor.block,
+    cor.strength.cluster = cor.strength.cluster,
     n.runs=n.runs, ... ),
     .id="run", .progress=.progress )
   
@@ -289,21 +289,21 @@ if ( FALSE ) {
   rr = run.scenario( K = 10, 
                      J.bar = 10,
                      p.bar = 0.5,
-                     ATE.district = 0.2, 
-                     sd.district = 0.1,
-                     ICC.district = 0.2,
+                     ATE.block = 0.2, 
+                     sd.block = 0.1,
+                     ICC.block = 0.2,
                      variable.p = T,
                      
                      # cluster-level params
                      n.bar = 50, 
-                     sd.school = 0.1, 
-                     ICC.school = 0.2,
+                     sd.cluster = 0.1, 
+                     ICC.cluster = 0.2,
                      
                      # size and correlation params
-                     size.impact.cor.district = 0,
-                     size.intercept.cor.district = 0.5,
-                     size.impact.cor.school = 0,
-                     proptx.impact.cor.district = 0,
+                     size.impact.cor.block = 0,
+                     size.intercept.cor.block = 0.5,
+                     size.impact.cor.cluster = 0,
+                     proptx.impact.cor.block = 0,
                      
                      R = 2,
                      .progress="text",

@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 load( "../results/aggregated_simulation_results.RData" )
 require(tidyverse)
 
-ESTIMAND_LEVELS <- c("stu", "dstu", "sch", "dsch")
+ESTIMAND_LEVELS <- c("stu", "dstu", .clu", ".clu")
 ESTIMATOR_LEVELS <- c("LR w/ CRSE", "LR (agg, wt)", "DB_indiv (FE)", "DB_indiv (int)",
                       "LR (agg)", "DB_clust (int)", "DB_clust (FE)",
                       "MLM")
@@ -27,30 +27,30 @@ scenarios = expand.grid(
   K = c(10), 
   J.bar = c(20,50),
   p.bar = c(0.5),
-  ATE.district = 0.2, 
-  sd.district = 0.1,
-  ICC.district = 0.2,
+  ATE.block = 0.2, 
+  sd.block = 0.1,
+  ICC.block = 0.2,
   variable.J = c(T,F),
   variable.p = c(T,F),
   
   # cluster-level params
   n.bar = c(50), 
-  sd.school = c(0.1), 
-  ICC.school = 0.2,
+  sd.cluster = c(0.1), 
+  ICC.cluster = 0.2,
   variable.n = c(T,F),
   
   # size and correlation params
-  size.impact.cor.district = c(0,0.75),
-  size.impact.cor.school = c(0,1),
-  proptx.impact.cor.district = c(0,0.75))
+  size.impact.cor.block = c(0,0.75),
+  size.impact.cor.cluster = c(0,1),
+  proptx.impact.cor.block = c(0,0.75))
 ```
 
 Key for estimand names:
 
 * "stu": student-weighted
-* "sch": school-weighted
-* "dstu": district-weighted student-weighted
-* "dsch": district-weighted school-weighted
+* .clu": cluster-weighted
+* "dstu": block-weighted student-weighted
+* ".clu": block-weighted cluster-weighted
 
 \newpage
 
@@ -62,11 +62,11 @@ There are three groups of methods:
 These methods have less bias for the student-weighted estimands. 
 
 2. School-weighted: LR (agg), DB_clust (int), DB_clust (FE).
-These methods have less bias for the school-weighted estimands.
+These methods have less bias for the cluster-weighted estimands.
 
-3. MLM: about 90% of the way down the spectrum from student-weighted to school-weighted (i.e., slightly different from school-weighted).
+3. MLM: about 90% of the way down the spectrum from student-weighted to cluster-weighted (i.e., slightly different from cluster-weighted).
 
-The differences between the student and school-weighted methods are proportionally smaller for the district-weighted versions of those estimands. 
+The differences between the student and cluster-weighted methods are proportionally smaller for the block-weighted versions of those estimands. 
 
 For clarity I've removed the bias for superpopulation estimands here, since true finite-sample and superpopulation estimand averages are the same.
 
@@ -222,7 +222,7 @@ sruns %>%
   coord_flip()
 ```
 
-Here, the district-school-weighted, school-weighted, and student-weighted results remain the same, but the district-student-weighted results strangely flip such that the school-weighted estimators appear to perform better for the true district-student-weighted estimand.
+Here, the block-cluster-weighted, cluster-weighted, and student-weighted results remain the same, but the block-student-weighted results strangely flip such that the cluster-weighted estimators appear to perform better for the true block-student-weighted estimand.
 I'll need to think a bit about what's going on here.
 
 

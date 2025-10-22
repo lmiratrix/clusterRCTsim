@@ -151,11 +151,11 @@ generate_covariate_block <- function( y, var_y, R2, k = 1,
 }
 
 
-#### Code to build districts ####
+#### Code to build blocks ####
 
 
-#' Describe a set of district parameters by printing to screen
-describe_district_grid <- function( grid ) {
+#' Describe a set of block parameters by printing to screen
+describe_block_grid <- function( grid ) {
   
   K = nrow( grid )
   J.bar = mean( grid$J )
@@ -170,40 +170,40 @@ describe_district_grid <- function( grid ) {
     sd.p = 0
     sd.nbar = 0
   }
-  ATE.district = mean( grid$district.tau )
-  sd.district = sd( grid$district.tau )
-  ICC.district = sd( grid$district.alpha )
+  ATE.block = mean( grid$block.tau )
+  sd.block = sd( grid$block.tau )
+  ICC.block = sd( grid$block.alpha )
   
-  size.impact.cor.district = ifelse( sd.district != 0 && sd.J != 0, 
-                                     cor( grid$J, grid$district.tau ), NA )
-  size.intercept.cor = ifelse( sd.J != 0 && ICC.district != 0,
-                               cor( grid$J, grid$district.alpha ), NA )
-  proptx.impact.cor.district = ifelse( sd.district != 0 && sd( grid$p ) != 0, 
-                                       cor( grid$p, grid$district.tau ), NA )
+  size.impact.cor.block = ifelse( sd.block != 0 && sd.J != 0, 
+                                     cor( grid$J, grid$block.tau ), NA )
+  size.intercept.cor = ifelse( sd.J != 0 && ICC.block != 0,
+                               cor( grid$J, grid$block.alpha ), NA )
+  proptx.impact.cor.block = ifelse( sd.block != 0 && sd( grid$p ) != 0, 
+                                       cor( grid$p, grid$block.tau ), NA )
   if ( sd.J > 0 && sd.nbar > 0 ) {
     nbar.cor.J = cor( grid$n.bar, grid$J )
   } else {
     nbar.cor.J = NA
   }
   
-  taubarJ = weighted.mean( grid$district.tau, w=grid$J )
-  taubarn = weighted.mean( grid$district.tau, w=grid$J * grid$n.bar )
+  taubarJ = weighted.mean( grid$block.tau, w=grid$J )
+  taubarn = weighted.mean( grid$block.tau, w=grid$J * grid$n.bar )
   
   
-  #         district ATE(J)=%.2f\tdistrict ATE(n)=%.2f
+  #         block ATE(J)=%.2f\tblock ATE(n)=%.2f
   
   scat( "K=%d\tJ.bar=%.2f (%.2f, cv=%.2f)\tn.bar=%.2f (%.2f cv=%.2f)\tp.bar=%.2f (%.2f)\n",
         K, 
         J.bar, sd.J, sd.J / J.bar, 
         n.bar, sd.nbar, sd.nbar / n.bar, 
         p.bar, sd.p )
-  scat( "District stats:\n\tdistrict ATE=%.2f (%.2f)\tdistrict ICC=%.2f\t
+  scat( "District stats:\n\tblock ATE=%.2f (%.2f)\tblock ICC=%.2f\t
 \tcor(J,tau)=%.2f\t\tcor(ptx,tau)=%.2f
 \tcor(J,alpha)=%.2f\t\tcor(nbar, J)=%.2f\n",
-        ATE.district, sd.district, 
-        ICC.district,
+        ATE.block, sd.block, 
+        ICC.block,
         #  taubarJ, taubarn,
-        size.impact.cor.district, proptx.impact.cor.district,
+        size.impact.cor.block, proptx.impact.cor.block,
         size.intercept.cor,
         nbar.cor.J )
   
@@ -214,7 +214,7 @@ describe_district_grid <- function( grid ) {
   rps = pmax( 1, round( min( 400/dst, 100000 / dmx ) ) )
   
   
-  dd = map_dfr( 1:rps, ~generate_data_for_districts( grid ), .id="run" )
+  dd = map_dfr( 1:rps, ~generate_data_for_blocks( grid ), .id="run" )
   dd <- mutate( dd,
                 did = paste0( run, "_", did ),
                 sid = paste0( run, "_", sid ) )
@@ -222,7 +222,7 @@ describe_district_grid <- function( grid ) {
   #dsc
   
   
-  # Print out school level stuff
+  # Print out cluster level stuff
   dagg <- dd %>% group_by( did, sid ) %>%
     summarise( tau = mean( Y1 - Y0 ),
                n = n(), .groups = "drop" )
@@ -236,8 +236,8 @@ describe_district_grid <- function( grid ) {
   
   
   cat( "Cluster stats:\n")
-  scat( "\tschool ICC=%.2f (%.2f)\n\tavg cluster size = %.1f (range %.0f--%.0f, sd = %.1f, cv=%.2f)\n\tcor(n,tau) = %.2f (across blocks)\n",
-        mean(grid$ICC.school), sd(grid$ICC.school),
+  scat( "\tcluster ICC=%.2f (%.2f)\n\tavg cluster size = %.1f (range %.0f--%.0f, sd = %.1f, cv=%.2f)\n\tcor(n,tau) = %.2f (across blocks)\n",
+        mean(grid$ICC.cluster), sd(grid$ICC.cluster),
         mean( dagg$n ), 
         min(dagg$n), max(dagg$n), sd(dagg$n), sd(dagg$n) / mean(dagg$n),
         #quantile(dagg$n, 0.25), quantile(dagg$n, 0.75), sd(dagg$n),
@@ -254,7 +254,7 @@ describe_district_grid <- function( grid ) {
   
   
   cat( "ATE information:\n" )
-  scat( "\tWithin-district cluster ATE and variation: %.2f (%.2f)\n",
+  scat( "\tWithin-block cluster ATE and variation: %.2f (%.2f)\n",
         mean(daggagg$tau),
         sqrt(mean(daggagg$sd_tau^2)) )
   scat( "\tTotal cluster ATE: %.2f (%.2f)\n",
@@ -265,7 +265,7 @@ describe_district_grid <- function( grid ) {
         sd( dd$Y1 - dd$Y0 ) )
   
   #cat( glue::glue( "\t\n" ) )
-  #attr(dd, "district_key") <- grid
+  #attr(dd, "block_key") <- grid
   #d2 = describe.data( dd, print = FALSE )
   #print( knitr::kable( d2, digits = 2 ) )
   cat( "\n\t" )
@@ -277,9 +277,9 @@ describe_district_grid <- function( grid ) {
                   mean.J = J.bar, sd.J = sd.J, cv.J = sd.J / J.bar,
                   mean.p = p.bar, sd.p = sd.p,
                   mean.nbar = n.bar, sd.nbar = sd.nbar,
-                  ATE.district = ATE.district, 
-                  sdATE.district = sd.district,
-                  ICC.district = ICC.district,
+                  ATE.block = ATE.block, 
+                  sdATE.block = sd.block,
+                  ICC.block = ICC.block,
                   mean.n = mean( dagg$n ),
                   sd.n = sd( dagg$n ),
                   cv.n = sd( dagg$n ) / mean( dagg$n ),
@@ -289,9 +289,9 @@ describe_district_grid <- function( grid ) {
                   avg.sd.cluster.ATE = sqrt( mean( daggagg$sd_tau^2 ) ),
                   mean.total.indiv.ATE = mean( dd$Y1 - dd$Y0 ),
                   sd.total.indiv.ATE = sd( dd$Y1 - dd$Y0 ),
-                  cor.size.impact.district = size.impact.cor.district,
-                  cor.size.intercept.district = size.intercept.cor,
-                  cor.proptx.impact.district = proptx.impact.cor.district,
+                  cor.size.impact.block = size.impact.cor.block,
+                  cor.size.intercept.block = size.intercept.cor,
+                  cor.proptx.impact.block = proptx.impact.cor.block,
                   cor.nbar.J = nbar.cor.J,
                   cor.n.tau = corntau
   )
@@ -299,38 +299,38 @@ describe_district_grid <- function( grid ) {
 }
 
 
-#' Build set of districts with cluster sizes and proportion treated,
+#' Build set of blocks with cluster sizes and proportion treated,
 #' etc.
 #'
-#' @param sd.district Standard deviation of the district-average ATEs
-#'   (i.e., the target cluster-average ATE for each district).  The
-#'   district average ATE is what is passed to the code to generate
-#'   the clusters for the district as the "ATE."
-#' @param cv.school This is the coefficient of variation of cluster
+#' @param sd.block Standard deviation of the block-average ATEs
+#'   (i.e., the target cluster-average ATE for each block).  The
+#'   block average ATE is what is passed to the code to generate
+#'   the clusters for the block as the "ATE."
+#' @param cv.cluster This is the coefficient of variation of cluster
 #'   sizes.
-#' @param cv.district This is the coefficient of variation of the
-#'   number of clusters in each district, across districts.
+#' @param cv.block This is the coefficient of variation of the
+#'   number of clusters in each block, across blocks.
 #' @param cv.nbar This is the coefficient of variation of how much
-#'   variation there is in the cluster sizes within district, across
-#'   district (i.e., how much average cluster size `nbar` varies
-#'   across district)
-#' @param empirical If TRUE generate district variation to get as
+#'   variation there is in the cluster sizes within block, across
+#'   block (i.e., how much average cluster size `nbar` varies
+#'   across block)
+#' @param empirical If TRUE generate block variation to get as
 #'   close as possible to the set targets.  In particular, if the
-#'   sd.district = 0.1, then the standard deviation of the actual generated
+#'   sd.block = 0.1, then the standard deviation of the actual generated
 #'   ATEs will equal 0.1 exactly if empirical = TRUE.  I.e. TRUE means
 #'   try to get the target correlations more closely by connecting
 #'   things with a calibrated connection with the given correlation
 #'   (correlation will still not be exact).
-#' @param variable.p Variable proportion treated per district, uniform
+#' @param variable.p Variable proportion treated per block, uniform
 #'   around the p.bar value, reaching 2/3 the distance from 0 or 1
 #'   (whichever is closer).
 #'
-#' @return dataframe, one row per district.
-build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
-                             ATE = 0, sd.district = 0,
-                             ICC.district = 0,
+#' @return dataframe, one row per block.
+build_blocks <- function( K, J.bar, n.bar, p.bar=0.5,
+                             ATE = 0, sd.block = 0,
+                             ICC.block = 0,
                              variable.p = FALSE,
-                             cv.district = 0.6, 
+                             cv.block = 0.6, 
                              cv.nbar = 0,
                              min.size = 1,
                              size.impact.cor = 0,
@@ -338,16 +338,16 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
                              proptx.impact.cor = 0,
                              size.intercept.cor = 0,
                              R2 = NULL,
-                             num.cov.district = 0 + !is.null(R2),
+                             num.cov.block = 0 + !is.null(R2),
                              
-                             # school-level params
-                             sd.school = 0, ICC.school = 0.20,
-                             R2.school = NULL,
-                             num.cov.school = 0 + !is.null(R2.school),
+                             # cluster-level params
+                             sd.cluster = 0, ICC.cluster = 0.20,
+                             R2.cluster = NULL,
+                             num.cov.cluster = 0 + !is.null(R2.cluster),
                              
-                             # correlation params at school level
-                             cv.school = 0.6,
-                             size.impact.cor.school = 0,
+                             # correlation params at cluster level
+                             cv.cluster = 0.6,
+                             size.impact.cor.cluster = 0,
                              
                              # Individual-level params
                              R2.indiv = NULL,
@@ -367,22 +367,22 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
               size.intercept.cor >= -1 & size.intercept.cor <= 1)
   stopifnot("nbar.J.cor must be in (-1,1)" = 
               nbar.J.cor >= -1 & nbar.J.cor <= 1)
-  stopifnot("ICC.district must be in [0,1]" = 
-              ICC.district >= 0 & ICC.district <= 1)
+  stopifnot("ICC.block must be in [0,1]" = 
+              ICC.block >= 0 & ICC.block <= 1)
   
   
-  # district J values
-  if (cv.district > 0) {
+  # block J values
+  if (cv.block > 0) {
     num_clusters <- cluster_distn( K = K, 
                                    J.bar = J.bar, 
-                                   cv=cv.district,
+                                   cv=cv.block,
                                    min.size = min.size )
   } else {
     num_clusters <- rep(J.bar, K)
   }
   
   
-  # district proportions treated
+  # block proportions treated
   if (variable.p) {
     pp <- (2/3) * min(p.bar, 1-p.bar)
     prop_tx_clusters <- runif(K, min=p.bar-pp, max=p.bar+pp)
@@ -391,53 +391,53 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
   }
   
   
-  # district-level parameters
-  #  - note: ensure var of district-level effects is exactly sd.district^2, ICC
+  # block-level parameters
+  #  - note: ensure var of block-level effects is exactly sd.block^2, ICC
   grid <- NA
   if ( K == 1 ) {
-    grid = tibble( did = 1, district.tau = ATE, district.alpha = 0 )  
+    grid = tibble( did = 1, block.tau = ATE, block.alpha = 0 )  
   } else {
     grid <- tibble(
       did = 1:K,
-      # district.tau = rnorm(K, mean=ATE, sd=sd.district))
-      district.tau = MASS::mvrnorm(K, mu=ATE, Sigma=sd.district^2, 
+      # block.tau = rnorm(K, mean=ATE, sd=sd.block))
+      block.tau = MASS::mvrnorm(K, mu=ATE, Sigma=sd.block^2, 
                                    empirical=empirical) %>% 
         as.vector(),
-      district.alpha = MASS::mvrnorm(K, mu=0, Sigma=ICC.district,
+      block.alpha = MASS::mvrnorm(K, mu=0, Sigma=ICC.block,
                                      empirical=empirical) %>% 
         as.vector())
   }
   
-  # generate correlations between district.tau and num_clusters & prop_tx_clusters
-  #  - uses some magic hacks; idea is to keep order of district.tau,
+  # generate correlations between block.tau and num_clusters & prop_tx_clusters
+  #  - uses some magic hacks; idea is to keep order of block.tau,
   #    and to reorder num_clusters & prop_tx_clusters, to avoid automatically
   #    correlating the two of them
-  if (size.impact.cor != 0 || (cv.district>0 && empirical) ) {
-    stopifnot("Cannot correlate district sizes and average impacts if sizes do not vary" = 
-                cv.district > 0)
-    num_clusters <- induce_cor( x = grid$district.tau,
+  if (size.impact.cor != 0 || (cv.block>0 && empirical) ) {
+    stopifnot("Cannot correlate block sizes and average impacts if sizes do not vary" = 
+                cv.block > 0)
+    num_clusters <- induce_cor( x = grid$block.tau,
                                 y = num_clusters,
                                 cor = size.impact.cor,
                                 empirical = empirical )
   }
   
   if (proptx.impact.cor != 0 || (variable.p && empirical)) {
-    stopifnot("Cannot correlate district proportions treated and average impacts if proportions treated do not vary" = 
+    stopifnot("Cannot correlate block proportions treated and average impacts if proportions treated do not vary" = 
                 variable.p)
-    prop_tx_clusters <- induce_cor(x = grid$district.tau,
+    prop_tx_clusters <- induce_cor(x = grid$block.tau,
                                    y = prop_tx_clusters,
                                    cor = proptx.impact.cor,
                                    empirical = empirical )
     # p_temp <- prop_tx_clusters[order(
     #   proptx.impact.cor^2 * prop_tx_clusters + 
     #     (1-proptx.impact.cor^2) * rnorm(K, sd=sd(prop_tx_clusters)) )]
-    # prop_tx_clusters <- p_temp[ order(order(sign(proptx.impact.cor)*grid$district.tau)) ]
+    # prop_tx_clusters <- p_temp[ order(order(sign(proptx.impact.cor)*grid$block.tau)) ]
   }
-  if (size.intercept.cor != 0 || (ICC.district!=0 && empirical)) {
-    stopifnot("Cannot correlate district sizes and intercepts if ICC.district = 0" = 
-                (ICC.district != 0))
-    grid$district.alpha <- induce_cor(x = num_clusters,
-                                      y = grid$district.alpha,
+  if (size.intercept.cor != 0 || (ICC.block!=0 && empirical)) {
+    stopifnot("Cannot correlate block sizes and intercepts if ICC.block = 0" = 
+                (ICC.block != 0))
+    grid$block.alpha <- induce_cor(x = num_clusters,
+                                      y = grid$block.alpha,
                                       cor = size.intercept.cor,
                                       empirical = empirical )
   }
@@ -451,7 +451,7 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
   grid$p = round( prop_tx_clusters * grid$J ) / grid$J
   
   
-  # Make average cluster sizes for districts
+  # Make average cluster sizes for blocks
   if (cv.nbar > 0 ) {
     n.bar <- cluster_distn(K, n.bar, cv=cv.nbar)
     if ( nbar.J.cor != 0 ) {
@@ -468,38 +468,38 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
   
   
   # make sure eventual randomization has at least min.size/2 treated/control clusters
-  #  in each district, by applying floor and ceiling to p, depending on J
+  #  in each block, by applying floor and ceiling to p, depending on J
   #   - i.e., force 2 <= J*p <= J-2
   #print("this is the value of min.size")
   #print(min.size)
-  stopifnot( "All districts should have at least max( min.size, 2 ) clusters" = all( grid$J >= max( 2, min.size) ) )
+  stopifnot( "All blocks should have at least max( min.size, 2 ) clusters" = all( grid$J >= max( 2, min.size) ) )
   ms2 = pmax( 1, round( min.size/2 ) )
   grid <- grid %>% 
     mutate(p = ifelse(J*p < ms2, ms2/J, p),
            p = ifelse(J*p > J-ms2, (J-ms2)/J, p))
   
-  # Add district level covariates if needed.
-  if ( num.cov.district > 0 ) {
+  # Add block level covariates if needed.
+  if ( num.cov.block > 0 ) {
     if ( is.null( R2 ) ) {
       R2 = 0
     }
-    cov_block <- generate_covariate_block( grid$district.alpha,
-                                           ICC.district, R2, k = num.cov.district, 
+    cov_block <- generate_covariate_block( grid$block.alpha,
+                                           ICC.block, R2, k = num.cov.block, 
                                            var_prefix = "Xd" )
     grid = bind_cols( grid, cov_block )
   }
   
   
-  # Add in the school level stuff
-  grid$sd.school = sd.school
-  grid$ICC.school = ICC.school
-  grid$num.cov.school = num.cov.school
-  grid$R2.school = R2.school
-  if ( num.cov.school > 0 && is.null( R2.school ) ) {
-    grid$R2.school = 0
+  # Add in the cluster level stuff
+  grid$sd.cluster = sd.cluster
+  grid$ICC.cluster = ICC.cluster
+  grid$num.cov.cluster = num.cov.cluster
+  grid$R2.cluster = R2.cluster
+  if ( num.cov.cluster > 0 && is.null( R2.cluster ) ) {
+    grid$R2.cluster = 0
   }
-  grid$cv.school = cv.school
-  grid$size.impact.cor.school = size.impact.cor.school
+  grid$cv.cluster = cv.cluster
+  grid$size.impact.cor.cluster = size.impact.cor.cluster
   
   # Add in the individual level stuff
   grid$R2.indiv = R2.indiv
@@ -512,29 +512,29 @@ build_districts <- function( K, J.bar, n.bar, p.bar=0.5,
 
 ## testing code ----
 if ( FALSE ) {
-  grid <- build_districts( K = 10, J.bar = 20, n.bar = 20, p.bar = 0.5,
-                           ATE = 0.2, sd.district = 0.1,
-                           ICC.district = 0.2,
+  grid <- build_blocks( K = 10, J.bar = 20, n.bar = 20, p.bar = 0.5,
+                           ATE = 0.2, sd.block = 0.1,
+                           ICC.block = 0.2,
                            variable.p = TRUE, 
-                           num.cov.district = 3 )
+                           num.cov.block = 3 )
   
   grid
 }
 
 
 
-#### Code to build data given a description of the districts ####
+#### Code to build data given a description of the blocks ####
 
-generate_data_for_districts <- function(
-    # datafrane if district-level characteristics
+generate_data_for_blocks <- function(
+    # datafrane if block-level characteristics
   grid,
-  ICC.district = var( grid$district.alpha ) ) {
+  ICC.block = var( grid$block.alpha ) ) {
   
   if ( nrow( grid ) == 1 ) {
-    ICC.district = 0
+    ICC.block = 0
   }
   
-  stopifnot( all( ICC.district + grid$ICC.school < 1 ) )
+  stopifnot( all( ICC.block + grid$ICC.cluster < 1 ) )
   
   # make student-level dataset
   sim.data <- grid %>%
@@ -544,27 +544,27 @@ generate_data_for_districts <- function(
         n.bar = n.bar, 
         J = J,
         p = p,
-        gamma.00 = district.alpha,
-        gamma.10 = district.tau,
-        tau.11 = sd.school^2,
-        ICC = ICC.school / (1-ICC.district),
-        rho2.0W = R2.school,
+        gamma.00 = block.alpha,
+        gamma.10 = block.tau,
+        tau.11 = sd.cluster^2,
+        ICC = ICC.cluster / (1-ICC.block),
+        rho2.0W = R2.cluster,
         rho2.1W = 0,
         R2.X = R2.indiv,
-        num.W = num.cov.school,
+        num.W = num.cov.cluster,
         num.X = num.cov.indiv,
         finite.model = FALSE,
-        size.impact.correlate = sign( size.impact.cor.school ),
-        correlate.strength = size.impact.cor.school,
-        size.ratio = cv.school * 0.6,
+        size.impact.correlate = sign( size.impact.cor.cluster ),
+        correlate.strength = size.impact.cor.cluster,
+        size.ratio = cv.cluster * 0.6,
         proptx.impact.correlate = FALSE,
         zero.corr = TRUE,
-        varY0 = 1 - ICC.district,
+        varY0 = 1 - ICC.block,
         cluster.rand = TRUE,
         min.size = 1
       ))) %>%
     tidyr::unnest(cols=sim_data) %>% 
-    dplyr::select(-J, -p, -district.tau, -district.alpha)
+    dplyr::select(-J, -p, -block.tau, -block.alpha)
   
   # sim.data %>% filter(Z==0) %>% summarize(sd = sd(Yobs))
   
@@ -587,11 +587,11 @@ generate_data_for_districts <- function(
 ## Testing code ----
 if (FALSE) {
   
-  grid <- build_districts( K = 10, J.bar = 20, n.bar = 20, p.bar = 0.5,
-                           ATE = 0.2, sd.district = 0.1,
-                           ICC.district = 0.2,
+  grid <- build_blocks( K = 10, J.bar = 20, n.bar = 20, p.bar = 0.5,
+                           ATE = 0.2, sd.block = 0.1,
+                           ICC.block = 0.2,
                            variable.p = TRUE, 
-                           num.cov.district = 3,
+                           num.cov.block = 3,
                            
                            # correlation params at cluster level
                            cv = 0.6, 
@@ -599,18 +599,18 @@ if (FALSE) {
                            proptx.impact.cor = 0.2,
                            size.intercept.cor = 0.2, 
                            
-                           # school-level params
-                           sd.school = 0.5, 
-                           ICC.school = 0.7,
+                           # cluster-level params
+                           sd.cluster = 0.5, 
+                           ICC.cluster = 0.7,
 
                            # correlation params at individual level
-                           cv.school = 0.1,
-                           size.impact.cor.school = 0.75 )
+                           cv.cluster = 0.1,
+                           size.impact.cor.cluster = 0.75 )
   
   grid
   
   # Make data from grid
-  df <- generate_data_for_districts( grid )
+  df <- generate_data_for_blocks( grid )
   
   df
   
@@ -628,39 +628,39 @@ if (FALSE) {
 #### Code to simulate full data set ####
 
 
-#' Generate a cluster-randomized trial, with multiple districts.  This
-#' will build a grid of the districts (stats on each of the
-#' districts), and then fill in the grid with individual schools and
+#' Generate a cluster-randomized trial, with multiple blocks.  This
+#' will build a grid of the blocks (stats on each of the
+#' blocks), and then fill in the grid with individual clusters and
 #' students.
 #' 
-generate_districts <- function(
-    # district-level params
+generate_blocks <- function(
+    # block-level params
   K, J.bar, p.bar=0.5,
-  ATE.district, sd.district,
-  ICC.district,
+  ATE.block, sd.block,
+  ICC.block,
   variable.p = FALSE,
-  R2.district = NULL,
-  num.cov.district = 0 + !is.null(R2.district),
+  R2.block = NULL,
+  num.cov.block = 0 + !is.null(R2.block),
   
   # variation in number of clusters and average cluster size
-  cv.district = 0.6,
+  cv.block = 0.6,
   cv.nbar = 0,
   min.size = 1,
   
-  # correlation params at district level
-  size.impact.cor.district = 0,
-  proptx.impact.cor.district = 0,
-  size.intercept.cor.district = 0,
+  # correlation params at block level
+  size.impact.cor.block = 0,
+  proptx.impact.cor.block = 0,
+  size.intercept.cor.block = 0,
   
-  # school-level params
-  n.bar, sd.school,
-  ICC.school = 0.20,
-  R2.school = NULL,
-  num.cov.school = 0 + !is.null(R2.school),
+  # cluster-level params
+  n.bar, sd.cluster,
+  ICC.cluster = 0.20,
+  R2.cluster = NULL,
+  num.cov.cluster = 0 + !is.null(R2.cluster),
   
-  # correlation params at school level
-  cv.school = 0.6,
-  size.impact.cor.school = 0.75,
+  # correlation params at cluster level
+  cv.cluster = 0.6,
+  size.impact.cor.cluster = 0.75,
   
   # Individual-level params
   R2.indiv = NULL,
@@ -668,28 +668,28 @@ generate_districts <- function(
   
   empirical = FALSE ) {
   
-  stopifnot( ICC.district + ICC.school < 1 )
+  stopifnot( ICC.block + ICC.cluster < 1 )
   
-  grid <- build_districts( K = K, J.bar = J.bar, n.bar = n.bar, 
+  grid <- build_blocks( K = K, J.bar = J.bar, n.bar = n.bar, 
                            p.bar = p.bar,
-                           ATE = ATE.district, sd.district = sd.district,
-                           ICC.district = ICC.district,
+                           ATE = ATE.block, sd.block = sd.block,
+                           ICC.block = ICC.block,
                            variable.p = variable.p, 
-                           cv.district = cv.district,
+                           cv.block = cv.block,
                            cv.nbar = cv.nbar,
-                           size.impact.cor = size.impact.cor.district,
-                           proptx.impact.cor = proptx.impact.cor.district,
-                           size.intercept.cor = size.intercept.cor.district,
-                           R2 = R2.district,
-                           num.cov.district = num.cov.district,
+                           size.impact.cor = size.impact.cor.block,
+                           proptx.impact.cor = proptx.impact.cor.block,
+                           size.intercept.cor = size.intercept.cor.block,
+                           R2 = R2.block,
+                           num.cov.block = num.cov.block,
                            min.size = min.size,
                            
-                           # school-level params
-                           sd.school = sd.school, ICC.school = ICC.school,
-                           R2.school = R2.school,
-                           num.cov.school = num.cov.school,
-                           cv.school = cv.school,
-                           size.impact.cor.school = size.impact.cor.school,
+                           # cluster-level params
+                           sd.cluster = sd.cluster, ICC.cluster = ICC.cluster,
+                           R2.cluster = R2.cluster,
+                           num.cov.cluster = num.cov.cluster,
+                           cv.cluster = cv.cluster,
+                           size.impact.cor.cluster = size.impact.cor.cluster,
                            
                            # Individual-level params
                            R2.indiv = R2.indiv,
@@ -698,10 +698,10 @@ generate_districts <- function(
                            empirical = empirical )
   
   
-  sim.data <- generate_data_for_districts( grid, 
-                                           ICC.district = ICC.district )
+  sim.data <- generate_data_for_blocks( grid, 
+                                           ICC.block = ICC.block )
   
-  attr(sim.data, "district_key") <- grid
+  attr(sim.data, "block_key") <- grid
   
   sim.data
 }
@@ -711,29 +711,29 @@ generate_districts <- function(
 if (FALSE) {
   
   set.seed( 40404 )
-  df <- generate_districts(
+  df <- generate_blocks(
     K = 25,
     J.bar = 50, 
     p.bar = 0.5,
-    ATE.district = 0.2, 
-    sd.district = 0.1,
-    ICC.district = 0.5,
+    ATE.block = 0.2, 
+    sd.block = 0.1,
+    ICC.block = 0.5,
     variable.p = T,
     
     # correlation params at cluster level
-    cv.district = 0.6, 
-    size.impact.cor.district = 0.2,
-    proptx.impact.cor.district = 0.2,
-    size.intercept.cor.district = 0.2,
+    cv.block = 0.6, 
+    size.impact.cor.block = 0.2,
+    proptx.impact.cor.block = 0.2,
+    size.intercept.cor.block = 0.2,
     
-    # school-level params
+    # cluster-level params
     n.bar = 50, 
-    sd.school = 0.1, 
-    ICC.school = 0.2,
+    sd.cluster = 0.1, 
+    ICC.cluster = 0.2,
     
     # correlation params at individual level
-    cv.school = 0.6,
-    size.impact.cor.school = 0.75
+    cv.cluster = 0.6,
+    size.impact.cor.cluster = 0.75
   )
   df
   

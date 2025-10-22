@@ -1,6 +1,6 @@
 ---
 title: "Simulation Analysis"
-author: "Sophie Litschwartz"
+author: "Sophie Li.cluwartz"
 date: '2025-05-30'
 output:
   pdf_document:
@@ -90,23 +90,23 @@ my_t = theme_tufte() +
          axis.title=element_text(size=12))
 theme_set( my_t )
 
-DGP_vars <- c("K", "J.bar", "p.bar", "sd.ATE", "ICC", "variable.p", "n.bar", "sd.school", "ICC.school", 
-                 "size.impact.cor", "num.cov.district","cv.nbar", "R2.school", 
-                 "num.cov.school", "cv.school", "num.cov.indiv", 
-                 "empirical", "cv.district", "nbar.J.cor", "size.intercept.cor")
+DGP_vars <- c("K", "J.bar", "p.bar", "sd.ATE", "ICC", "variable.p", "n.bar", "sd.cluster", "ICC.cluster", 
+                 "size.impact.cor", "num.cov.block","cv.nbar", "R2.cluster", 
+                 "num.cov.cluster", "cv.cluster", "num.cov.indiv", 
+                 "empirical", "cv.block", "nbar.J.cor", "size.intercept.cor")
 
-source( here::here( "analysis/Simulation_Write_Up/load_and_prep_data.R" ) )
+source( here::here( "analysis/R/load_and_prep_data.R" ) )
 
-source( here::here( "analysis/Simulation_Write_Up/create_custom_boxplot.R" ) )
+source( here::here( "analysis/R/create_custom_boxplot.R" ) )
 
-source( here::here( "analysis/Simulation_Write_Up/create_analysis_tree.R" ) )
+source( here::here( "analysis/R/create_analysis_tree.R" ) )
 
 
 ```
 
 # Introduction
 
-Blocked cluster randomized controlled trials (CRTs) are a widely used experimental evaluation design in which entire groups (clusters) such as schools or classrooms are randomly assigned to treatment or control conditions within defined strata or blocks. The effectiveness of the program or treatment is then typically quantified using the average treatment effect (ATE). However, within this relatively straightforward quantity, researchers must make a variety of choices. Researchers need to decide whether to target a person-weighted average or cluster-weighted average; they need to decide whether they are targeting an estimate just for the clusters in the study (finite sample) or an estimate representative of some broader population (super-population); and they need to decide from among different methods or estimators that can be used to estimate the ATE.
+Blocked cluster randomized controlled trials (CRTs) are a widely used experimental evaluation design in which entire groups (clusters) such as clusters or classrooms are randomly assigned to treatment or control conditions within defined strata or blocks. The effectiveness of the program or treatment is then typically quantified using the average treatment effect (ATE). However, within this relatively straightforward quantity, researchers must make a variety of choices. Researchers need to decide whether to target a person-weighted average or cluster-weighted average; they need to decide whether they are targeting an estimate just for the clusters in the study (finite sample) or an estimate representative of some broader population (super-population); and they need to decide from among different methods or estimators that can be used to estimate the ATE.
 
 This paper contains simulations that complement research examining empirically the implications of different choices researchers make when performing CRTs (CITATION). Simulations, unlike empirical analyses, allow us to compare estimated quantities to their true values, which we cannot observe in empirical contexts. This in turn allows us to evaluate how well different statistical methods perform. Additionally, we can systematically vary data conditions and identify which factors impact method performance.
 
@@ -318,18 +318,18 @@ strp <- scenarios %>%
   select(where(~ n_distinct(.x) > 1))
 
 strp2 <- strp %>%
-  filter( sd.school != 0,
+  filter( sd.cluster != 0,
           blocktype == "messy",
           p.bar == 0.7,
           J.bar == 10,
-          cv.district != 0,
-          cv.school != 0.6,
-          sd.district != 0,
-          num.cov.school == 5,
+          cv.block != 0,
+          cv.cluster != 0.6,
+          sd.block != 0,
+          num.cov.cluster == 5,
           size.intercept.cor != 0,
-          ICC.school != 0,
-          cv.school != 0,
-          size.impact.cor.school != 0,
+          ICC.cluster != 0,
+          cv.cluster != 0,
+          size.impact.cor.cluster != 0,
           size.impact.cor != 0 
           )
 #strp2
@@ -339,7 +339,7 @@ key_scen <- filter( scenarios, ID == key_ID )
 
 key_scen %>%
   dplyr::select( -ID, -blocktype, -grid, -group,
-                 -num.cov.district ) %>%
+                 -num.cov.block ) %>%
     mutate(across(everything(), as.character)) %>%
   pivot_longer(everything(), names_to = "variable", values_to = "value") %>%
   group_by( variable ) %>%
@@ -366,10 +366,10 @@ To illustrate, here is the "grid" of block-level characteristics for the above s
 gd <- key_scen$grid[[1]]
 
 rename( gd,
-        tau = district.tau,
-        alpha = district.alpha,
-        cor.sch = size.impact.cor.school,
-        k.sch = num.cov.school,
+        tau = block.tau,
+        alpha = block.alpha,
+        cor.clu = size.impact.cor.cluster,
+        k.clu = num.cov.cluster,
         k.indiv = num.cov.indiv ) %>%
   knitr::kable( digits=1 )
 
@@ -379,7 +379,7 @@ and here is a set of descriptive features for data we would get from this fixed 
 
 ```{r describe_scenario, cache=TRUE}
 source( here::here( "R/data_generation_code.R" ) )
-describe_district_grid( gd )
+describe_block_grid( gd )
 ```
 
 The block ATE is the simple average of the block-level cluster-average ATEs. It is as we targeted.
@@ -481,8 +481,8 @@ for (method_name in methods) {
   create_analysis_tree(
     sruns.graph.bias %>% filter(method == method_name, group == "full_factor"), 
     outcome_var = "bias.s.estimand.mag", 
-    predictor_vars = c("block_type", "J.bar", "cor_J_tau", "sd.sch", "ICC.sch", 
-                       "cv.sch", "num.cov", "p.bar"),
+    predictor_vars = c("block_type", "J.bar", "cor_J_tau", "sd.clu", "ICC.clu", 
+                       "cv.clu", "num.cov", "p.bar"),
     tree_title = paste(method_name)
   )
 }
@@ -494,7 +494,7 @@ par(mfrow = c(1, 1), oma = c(0, 0, 0, 0))
 
 # Are any of the estimators generally more precise than others? When? 
 
-In general, all the different estimators have comparable precision (Figure 3). Excluding the multilevel estimators, within a given scenario and targeted estimand (person-weighted vs. cluster-weighted), all the estimators have standard errors that are at most 10% larger than the median across methods. The multilevel estimators become more precise than the other estimators when there is a combination of large variation in cluster size and zero school ICC; otherwise, their precision is close to that of the other estimators (Figure 4).
+In general, all the different estimators have comparable precision (Figure 3). Excluding the multilevel estimators, within a given scenario and targeted estimand (person-weighted vs. cluster-weighted), all the estimators have standard errors that are at most 10% larger than the median across methods. The multilevel estimators become more precise than the other estimators when there is a combination of large variation in cluster size and zero cluster ICC; otherwise, their precision is close to that of the other estimators (Figure 4).
 
 ```{r standard errors, include=TRUE, echo=FALSE,  fig.width=6, fig.height=4}
 
@@ -545,7 +545,7 @@ tree2 <- create_analysis_tree(
   sruns.graph.stab %>% filter(group == "full_factor"), 
   outcome_var = "SE.s.norm.weight", 
   predictor_vars = c("is_MLM", "block_type", "J.bar", "cor_J_tau",
-                     "sd.sch", "ICC.sch", "cv.sch", "num.cov", "p.bar"),
+                     "sd.clu", "ICC.clu", "cv.clu", "num.cov", "p.bar"),
   tree_title = ""
 )
 
@@ -649,7 +649,7 @@ tree7 <- create_analysis_tree(
   sruns.graph.infl.ff %>% filter(is_cw==1 & is_MLM==1), 
   outcome_var = "inflate.s", 
   predictor_vars = c("block_type", "J.bar", "cor_J_tau",
-                     "sd.sch", "ICC.sch", "cv.sch", "num.cov", "p.bar"),
+                     "sd.clu", "ICC.clu", "cv.clu", "num.cov", "p.bar"),
   tree_title = ""
 )
 # Add caption using mtext to match your other base R plots
@@ -662,7 +662,7 @@ tree8 <- create_analysis_tree(
   sruns.graph.infl.ff %>% filter(is_FI==0 | is_MLM==0), 
   outcome_var = "inflate.s", 
   predictor_vars = c("is_cw", "block_type", "J.bar", "cor_J_tau",
-                     "sd.sch", "ICC.sch", "cv.sch", "num.cov", "p.bar"),
+                     "sd.clu", "ICC.clu", "cv.clu", "num.cov", "p.bar"),
   tree_title = ""
 )
 # Add caption using mtext to match your other base R plots
@@ -708,7 +708,7 @@ tree10 <- create_analysis_tree(
   sruns.cov %>% filter(is_MLM==T & group=="full_factor"), 
   outcome_var = "cover.s.estimand", 
   predictor_vars = c("block_type", "J.bar", "cor_J_tau",
-                     "sd.sch", "ICC.sch", "cv.sch", "num.cov", "p.bar"),
+                     "sd.clu", "ICC.clu", "cv.clu", "num.cov", "p.bar"),
   tree_title = ""
 )
 # Add caption using mtext to match your other base R plots
@@ -748,7 +748,7 @@ print(inf_plot_lowdf)
 tree10<-create_analysis_tree( crve, 
                             outcome_var = "inflate.s", 
                              predictor_vars = c("block_type_lowdf","J.bar", "cor_J_tau",
-                                                "sd.sch", "ICC.sch", "cv.sch", "num.cov", "p.bar"),
+                                                "sd.clu", "ICC.clu", "cv.clu", "num.cov", "p.bar"),
                             tree_title = "Decision Tree for Super Population True Standard Error")
 
 
@@ -816,7 +816,7 @@ tree11 <- create_analysis_tree(
   sruns.graph.stab %>% filter(group=="full_factor"), 
   outcome_var = "true.se.ratio", 
   predictor_vars = c("is_MLM", "block_type", "J.bar", "cor_J_tau",
-                     "sd.sch", "ICC.sch", "cv.sch", "num.cov", "p.bar"),
+                     "sd.clu", "ICC.clu", "cv.clu", "num.cov", "p.bar"),
   tree_title = ""
 )
 # Add caption using mtext to match your other base R plots
@@ -827,7 +827,7 @@ fig12cap <- "Figure 12: Boxplot of estimated standard error inflation for across
 
 # Create individual plots WITHOUT ggtitle
 fin_plot4 <- create_custom_boxplot2(
-  sruns.clean %>% filter(group=="full_factor" & (ICC.school==0 & sd.school=="+")), 
+  sruns.clean %>% filter(group=="full_factor" & (ICC.cluster==0 & sd.cluster=="+")), 
   "inflate.s", 
   "", 
   "Ratio of Estimated SE over True SE",
@@ -846,7 +846,7 @@ theme(
 )
 
 fin_plot5 <- create_custom_boxplot2(
-  sruns.clean %>% filter(group=="full_factor" & (ICC.school==0 & sd.school=="+")), 
+  sruns.clean %>% filter(group=="full_factor" & (ICC.cluster==0 & sd.cluster=="+")), 
   "inflate.f", 
   "", 
   "",
@@ -898,7 +898,7 @@ ggdraw() +
 ```{r finiteexplore, include=FALSE, echo=FALSE}
 
 fin_plot3 <- create_custom_boxplot2(
-sruns.clean %>% filter(group=="full_factor" & (sd.school=="+" & ICC.school==0)) , 
+sruns.clean %>% filter(group=="full_factor" & (sd.cluster=="+" & ICC.cluster==0)) , 
   "true.se.ratio", 
   "How Close True Finite SEs are to True Super SEs by Method", 
   "Ratio of True Finite SE over True Super SE",
@@ -910,7 +910,7 @@ sruns.clean %>% filter(group=="full_factor" & (sd.school=="+" & ICC.school==0)) 
 print(fin_plot3)
 
 fin_plot4 <- create_custom_boxplot2(
-sruns.clean %>% filter(group=="full_factor" & !( sd.school=="+"  & ICC.school==0)) , 
+sruns.clean %>% filter(group=="full_factor" & !( sd.cluster=="+"  & ICC.cluster==0)) , 
   "true.se.ratio", 
   "How Close True Finite SEs are to True Super SEs by Method", 
   "Ratio of True Finite SE over True Super SE",
@@ -926,13 +926,13 @@ sruns.clean %>% filter(group=="full_factor" & !( sd.school=="+"  & ICC.school==0
 tree2<-create_analysis_tree( sruns.graph.stab %>% filter(group=="full_factor"), 
                             outcome_var =  "true.se.ratio", 
                              predictor_vars = c("is_MLM", "block_type","J.bar", "cor_J_tau",
-                                                "sd.sch", "ICC.sch", "cv.sch", "num.cov", "p.bar"),
+                                                "sd.clu", "ICC.clu", "cv.clu", "num.cov", "p.bar"),
                             tree_title = "Decision Tree for Ratio of True Finite SE over True Super SE")
 
 
-#they should all be the same when ICC.school==0 and 
+#they should all be the same when ICC.cluster==0 and 
 fin_plot1 <- create_custom_boxplot2(
-sruns.clean %>% filter(group=="full_factor" & (sd.school==0)) , 
+sruns.clean %>% filter(group=="full_factor" & (sd.cluster==0)) , 
   "true.se.ratio", 
   "How Close True Finite SEs are to True Super SEs by Method", 
   "Ratio of True Finite SE over True Super SE",
@@ -942,7 +942,7 @@ sruns.clean %>% filter(group=="full_factor" & (sd.school==0)) ,
 print(fin_plot1)
 
 fin_plot2 <- create_custom_boxplot2(
-sruns.clean %>% filter(group=="full_factor" & (ICC.school=="+")) , 
+sruns.clean %>% filter(group=="full_factor" & (ICC.cluster=="+")) , 
   "true.se.ratio", 
   "How Close True Finite SEs are to True Super SEs by Method", 
   "Ratio of True Finite SE over True Super SE",
@@ -952,7 +952,7 @@ sruns.clean %>% filter(group=="full_factor" & (ICC.school=="+")) ,
 print(fin_plot2)
 
 fin_plot3 <- create_custom_boxplot2(
-sruns.clean %>% filter(group=="full_factor" & (ICC.school==0 & sd.school=="+")) , 
+sruns.clean %>% filter(group=="full_factor" & (ICC.cluster==0 & sd.cluster=="+")) , 
   "true.se.ratio", 
   "How Close True Finite SEs are to True Super SEs by Method", 
   "Ratio of True Finite SE over True Super SE",
@@ -962,7 +962,7 @@ sruns.clean %>% filter(group=="full_factor" & (ICC.school==0 & sd.school=="+")) 
 print(fin_plot3)
 
 fin_plot4 <- create_custom_boxplot2(
-  sruns.clean %>% filter(group=="full_factor" & (ICC.school==0 & sd.school=="+")) ,  
+  sruns.clean %>% filter(group=="full_factor" & (ICC.cluster==0 & sd.cluster=="+")) ,  
   "inflate.s", 
   "Super Population Estimated Standard Error Accuracy by Method", 
   "Ratio of Estimated SE over True Super SE",
@@ -973,7 +973,7 @@ fin_plot4 <- create_custom_boxplot2(
 #print(fin_plot4)
 
 fin_plot5 <- create_custom_boxplot2(
-  sruns.clean %>% filter(group=="full_factor" & (ICC.school==0 & sd.school=="+")) ,  
+  sruns.clean %>% filter(group=="full_factor" & (ICC.cluster==0 & sd.cluster=="+")) ,  
   "inflate.f", 
   "Super Population Estimated Standard Error Accuracy by Method", 
   "Ratio of Estimated SE over True Finite SE",
@@ -986,20 +986,20 @@ fin_plot4 + fin_plot5 + plot_layout(widths = c(2, 3))
 
 # Arrange side by side
 
-tree5<-create_analysis_tree(  sruns.clean %>% filter(group=="full_factor" & (ICC.school==0 & sd.school=="+" & is_pw==T & is_FI==T)), 
+tree5<-create_analysis_tree(  sruns.clean %>% filter(group=="full_factor" & (ICC.cluster==0 & sd.cluster=="+" & is_pw==T & is_FI==T)), 
                             outcome_var =  "inflate.s", 
                              predictor_vars = c( "block_type","J.bar", "cor_J_tau",
-                                                 "cv.sch", "num.cov", "p.bar"),
+                                                 "cv.clu", "num.cov", "p.bar"),
                             tree_title = "Decision Tree for Ratio of Estimated SE over True Super SE")
 
-tree6<-create_analysis_tree(  sruns.clean %>% filter(group=="full_factor" & (ICC.school==0 & sd.school=="+" & is_pw==T & is_FI==T)), 
+tree6<-create_analysis_tree(  sruns.clean %>% filter(group=="full_factor" & (ICC.cluster==0 & sd.cluster=="+" & is_pw==T & is_FI==T)), 
                             outcome_var =  "inflate.f", 
                              predictor_vars = c( "block_type","J.bar", "cor_J_tau",
-                                                 "cv.sch", "num.cov", "p.bar"),
+                                                 "cv.clu", "num.cov", "p.bar"),
                             tree_title = "Decision Tree for Ratio of Estimated SE over True Finite SE")
 
 fin_plot6 <- create_custom_boxplot2(
-  sruns.clean %>% filter(group=="full_factor" & (ICC.school==0 & sd.school=="+" & is_pw==T & is_FI==T & J.bar=="S"& cv.school=="L" & block_type=="Mess")) ,  
+  sruns.clean %>% filter(group=="full_factor" & (ICC.cluster==0 & sd.cluster=="+" & is_pw==T & is_FI==T & J.bar=="S"& cv.cluster=="L" & block_type=="Mess")) ,  
   "inflate.s", 
   "Super Population Estimated Standard Error Accuracy by Method", 
   "Ratio of Estimated SE over True Super SE",
@@ -1008,7 +1008,7 @@ fin_plot6 <- create_custom_boxplot2(
 ) + theme(legend.position = "none")
 
 fin_plot7 <- create_custom_boxplot2(
-  sruns.clean %>% filter(group=="full_factor" & (ICC.school==0 & sd.school=="+" & is_pw==T & is_FI==T& J.bar=="S" & cv.school=="L" & block_type=="Mess")) ,  
+  sruns.clean %>% filter(group=="full_factor" & (ICC.cluster==0 & sd.cluster=="+" & is_pw==T & is_FI==T& J.bar=="S" & cv.cluster=="L" & block_type=="Mess")) ,  
   "inflate.f", 
   "Super Population Estimated Standard Error Accuracy by Method", 
   "Ratio of Estimated SE over True Finite SE",
