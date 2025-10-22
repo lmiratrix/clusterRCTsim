@@ -32,17 +32,17 @@ source( "R/simulation_support_code_fixed_district.R" )
 #blocktype=c("messy","same","reasonable")
 
 #Blocks all the same: 
-btype1<-data.frame( sd.ATE=0,
+btype1<-data.frame( sd.district=0,
                     size.impact.cor = 0, 
                     size.intercept.cor = 0)
 
 #Blocks all messy: 
-btype2<-data.frame( sd.ATE=.6, 
+btype2<-data.frame( sd.district=.6, 
                     size.impact.cor = .8, 
                     size.intercept.cor = .8)
 
 #Blocks vaguely reasonable
-btype3<-data.frame( sd.ATE=0.2, 
+btype3<-data.frame( sd.district=0.2, 
                     size.impact.cor = .2, 
                     size.intercept.cor = .3)
 
@@ -142,4 +142,5 @@ scenarios[131,] %>%
 
 #scenarios$run = map(scenarios$grid, run.scenario.fixed.district, R=1 , parallel=F)
 
-saveRDS( scenarios, "scenarios.rds" )
+scenarios$group = "low_df"
+saveRDS( scenarios, "scenarios_lowdf.rds" )

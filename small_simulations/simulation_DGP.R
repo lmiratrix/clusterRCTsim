@@ -264,16 +264,16 @@ if ( FALSE ) {
 #' treatment effect.  I.e., blocks are a mixture of a discrete number
 #' of cluster types.
 #'
-#' "Randomizations" are perfectly balanced to focus on bias, not
-#' estimation error.
+#' The initial "Randomizations" are perfectly balanced, so estimates
+#' will focus on bias, not estimation error.
 #'
 #' @param n List of lists of types of cluster size within each block,
 #'   or a pre-computed dataframe of the block and cluster statistics.
 #' @param J List of lists of number of clusters of each type.
-#' @param Y0 List of lists of mean control-side outcome of each type of
-#'   cluster.
-#' @param ATE List of lists of average treatment effects for each cluster
-#'   type.
+#' @param Y0 List of lists of mean control-side outcome of each type
+#'   of cluster.
+#' @param ATE List of lists of average treatment effects for each
+#'   cluster type.
 #' @param ptx Proportion treated.  Can be a list of what proportion to
 #'   treat within each block.
 #'

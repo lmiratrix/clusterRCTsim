@@ -93,7 +93,8 @@ studies %>%
   knitr::kable(  )
 ```
 
-So the number of outcomes that had no singletons is
+We can tally the outcomes by study type.
+Many of the studies had at least one singleton:
 ```{r}
 studies %>% 
   group_by( blocked, Collection ) %>%
@@ -107,10 +108,9 @@ studies %>%
 
 ## Studies with low degrees of freedom
 
-In this report, we define "Low" to be strictly less than 10 degrees of freedom.
-Here are all studies with 30 or fewer "conservative" degrees of freedom defined as:
-
+In this report, we define "Low" to be strictly less than 10 degrees of freedom, with degrees of freedom defined as
 $$ df_{cons} =  J - 2K - 1 $$
+Here are all studies with 30 or fewer "conservative" degrees of freedom (so low and near low):
 
 
 ```{r}
@@ -129,10 +129,17 @@ studies %>%
 For each outcome we calculate a bunch of ATE estimates and SE estimates.
 We then look at the range of ATE estimates and the ratio of the max to min SE estimate.
 
-We can then tally the number of outcomes with a large ranges of SE (2x or more) and/or ATE (0.10 or more) is the following (*** means yes it is a large range, blank means no):
+We can then tally the number of outcomes with a large ranges of SE (2x or more) and/or ATE (0.10 or more):
 
 ```{r}
-table( `big ATE range` = studies$big_ate, `big SE ratio` = studies$big_se ) 
+studies %>% 
+  filter( blocked == "Blocked" ) %>%
+  group_by( big_ate, big_se ) %>%
+  summarise( n = n() ) %>%
+  mutate( big_ate = ifelse( big_ate == "", "No", "Yes" ),
+          big_se = ifelse( big_se == "", "No", "Yes" )
+          ) %>%
+  knitr::kable()
 ```
 
 
@@ -175,11 +182,7 @@ ranges %>%
 
 ## Stability connected to df
 
-**FALSE CLAIM: When DF are low, the ratio of the largest to smallest standard error is always greater than 1.5x. When DF are high, only 6 out of 34 outcomes have a ratio above 1.5.**
-
-Note: The above claim is no longer true, now that we have fixed the Fully Interacted issue.
-
-Here we divide by low vs high degree of freedom, and count how many ratios are large vs. small:
+Here we divide our outcomes by low vs high degree of freedom, and then count how many ratios are large vs. small within those subgroups:
 
 ```{r}
 ranges %>%
@@ -198,22 +201,41 @@ ranges %>%
 ```
 
 
-## Fully interacted estimator notes (now defunct)
+We can also make a quick boxplot to show the difference in ratio by low vs high df:
 
-We originally had two claims:
+```{r}
+ranges %>%
+  filter( measure == "ate" | measure == "se" ) %>%
+  ggplot( aes( low_df, Range ) ) +
+  facet_wrap( ~ measure, scales="free" ) +
+  geom_boxplot() +
+  coord_flip() +
+  labs( title = "Ratio/Range under different specifications" )
 
-1) To consider how much trouble the fully interacted models are causing, we exclude them and recalculate the ratios (see Figure 5). Doing so dramatically changes the story. For example, the largest estimated standard error is 1.5x the smallest estimated standard error in only 10 percent of cases without the fully-interacted models, down from 48 percent when considering all estimators. The ratio never exceeds 1.7 once the fully-interacted models are excluded.
+ggsave( file="range_boxplot.pdf", width = 5, height = 2 )
+```
 
-2) Even in Figure 3 we see estimated standard errors that are 20 percent different across estimators in over 20 percent of the cases we examined.
+And singleton vs not:
 
-They are no longer relevant or true.
+```{r}
+ranges %>%
+  filter( measure == "ate" | measure == "se" ) %>%
+  ggplot( aes( has_single, Range ) ) +
+  facet_wrap( ~ measure, scales="free" ) +
+  geom_boxplot() +
+  coord_flip() +
+  labs( title = "Ratio/Range for studies with and without singletons" )
+
+```
+
+
 
 
 ## When are SE estimators defined?
 
-**While this model-free approach is appealing in theory, in practice this means design-based standard errors can only be estimated if every block X experimental arm has at least two or more clusters. Only three studies in our sample meet this condition; consequently, the design-based standard errors do not exist for XX out of 50 outcomes when the fully-interacted model (for individual or aggregate data) is implemented. The same limitation applies to heteroskedastic robust standard errors. For most outcomes, there are only 13 estimated standard errors, rather than 19 (See Supplemental Excel Spreadsheet 1).**
+In the paper we write: _While this model-free approach is appealing in theory, in practice this means design-based standard errors can only be estimated if every block X experimental arm has at least two or more clusters. Only three studies in our sample meet this condition; consequently, the design-based standard errors do not exist for XX out of 50 outcomes when the fully-interacted model (for individual or aggregate data) is implemented. The same limitation applies to heteroskedastic robust standard errors. For most outcomes, there are only 13 estimated standard errors, rather than 19 (See Supplemental Excel Spreadsheet 1)._
 
-This table counts the number of undefined estimators within each group given the set of covariates included.
+To motivate this, the following table counts the number of undefined estimators within each group given the set of covariates included.
 
 ```{r}
 #cc <- combined %>%
@@ -241,7 +263,7 @@ combined %>%
 ```
 
 
-# The range of ATE and ratio of SE estimates by study
+# ATE Ranges and SE ratios by study
 
 We can look at specific outcomes to see the range of ATE estimates and the ratio of SE estimates for that outcome.
 The "N" column shows number of defined estimates comprising the given range.
@@ -249,50 +271,83 @@ The "N" column shows number of defined estimates comprising the given range.
 ```{r}
 rangesW %>%
   dplyr::filter( group=="all", Covariates == "best" ) %>%
-  dplyr::select( UniqueID, num_singletons, ATE_avg, ATE_N, SE_avg, SE_N ) %>%
-  arrange( desc( ATE_avg ) ) %>%
+  dplyr::select( UniqueID, num_singletons, Range, ATE_N, Ratio, SE_Min, SE_Max, SE_N ) %>%
+  arrange( desc( Range ) ) %>%
+  knitr::kable( digits = 3 )
+```
+
+The study with the median ratio:
+```{r}
+rangesW %>%
+  dplyr::filter( group=="all", Covariates == "best" ) %>%
+  arrange( Ratio ) %>%
+  slice( n()/2 ) %>%
+  dplyr::select( UniqueID, num_singletons, Range, ATE_N, Ratio, SE_Min, SE_Max, SE_N ) %>%
   knitr::kable( digits = 2 )
 ```
 
+## CARES_DC_CST_COMPTOT_PTH study details
 
+We use this study as a given example in the text:
+
+```{r}
+combined %>% 
+  dplyr::filter( UniqueID == "CARES_DC_CST_COMPTOT_PTH", Covariates == "best" ) %>%
+  arrange( SE_hat_std ) %>%
+  dplyr::select( Estimator, Estimand, ATE_hat_std, SE_hat_std ) %>%
+  knitr::kable( digits = 3 )
+```
+
+The ratio for this study:
+```{r}
+rangesW %>%
+  dplyr::filter( UniqueID=="CARES_DC_CST_COMPTOT_PTH", group=="all", Covariates == "best" ) %>%
+  dplyr::select( UniqueID, num_singletons, Range, ATE_N, Ratio, SE_Min, SE_Max, SE_N ) %>%
+  knitr::kable( digits = 2 )
+```
 
 ## What is the average range and ratio?
 
 The following table shows the average range (for ATEs) and average ratio (for estimated SEs) across all our outcomes:
 
 This tells us, for example, that "On average, the largest standard error is around 33% larger than the smallest, across studies."
+This is for the "best" covariate adjustment:
 
 ```{r}
 ranges %>%
-  group_by( group, Covariates, measure ) %>%
+  dplyr::filter( Covariates == "best" ) %>%
+  dplyr::filter( !str_detect( measure, "noFI" ) ) %>%
+  group_by( group, Estimand, measure ) %>%
   summarise( avg = mean( Range ),
              sd = sd( Range ),
              Q05 = quantile( Range, 0.05 ),
              Q95 = quantile( Range, 0.95 ),
              n = sum( !is.na(Range) ) ) %>%
+  arrange( measure, group, Estimand ) %>%
   knitr::kable( digits = 2 )
 ```
 
 
 ## ATE range and SE ratios vs study characteristics
 
-Here is our "conservative df" for each study and the range across estimators and the ratio of SE estimates (all studies with 30 df or more have been topcoded at 30 to make the plots easier to read):
+We can see if  our "conservative df" for each study  predicts the range across estimators and the ratio of SE estimates (all studies with 30 df or more have been topcoded at 30 to make the plots easier to read):
 
 ```{r}
 ranges %>%
   filter( group=="all" ) %>%
   mutate( cons_df_adj = ifelse( cons_df > 30, 30, cons_df ) ) %>%
-ggplot( aes(cons_df_adj, Range, col=has_single ) ) +
+ggplot( aes(cons_df_adj, Range ) ) +
   #facet_grid(  measure ~ has_single, scales="free" ) +
   facet_wrap(  ~ measure, scales="free" ) +
-  geom_point() +
-  geom_smooth(method="lm", se=FALSE)
+  geom_jitter( aes( col=has_single  ), height=0, width=0.5 ) +
+  geom_smooth(method="lm", se=FALSE) +
+  geom_smooth( aes( col=has_single  ), method="lm", se=FALSE)
 ```
 
 Commentary: This plot does show there is some tendency for ranges and ratios to go down as DF goes up, but there is a lot of variation around that tendency.
 
 
-Here we look at the distribution of range/ratio of estimates across outcome, dividing by singleton status.  We see the studies with singletons tend to have smaller ATE ranges, and the range of SE estimates is marginally higher---note that the singleton studies SE ratios are over fewer estimators (none of the FI estimators), which would generally push the ratios _lower_ as there are fewer points to take the max and min from.
+We next look at the distribution of range/ratio of estimates across outcome, grouping by singleton status.  We see the studies with singletons tend to have smaller ATE ranges, and the range of SE estimates is marginally higher---note that the singleton studies SE ratios are over fewer estimators (none of the FI estimators are defined), which would generally push the ratios _lower_ as there are fewer points to take the max and min from.
 
 
 ```{r, fig.height=2}
@@ -305,7 +360,8 @@ ggplot( aes(has_single, Range ) ) +
   coord_flip()
 ```
 
-Commentary: I am not sure if these plots are useful or informative. 
+Commentary: I am not sure if these plots are useful or informative.
+I am not sure what they mean, either.
 
 
 \newpage
@@ -324,7 +380,18 @@ ss %>%
 ```
 
 
-### High range within Estimand
+## Range within Estimand
+
+If we go within study, we get the following average reduction across outcomes within estimand:
+```{r}
+  ssf %>% 
+    mutate( rat = Ratio.x / Ratio.y ) %>%
+    group_by( Estimand ) %>%
+    summarise( mean_rat = mean( rat ),
+               sd_rat = sd( rat ) ) %>%
+    knitr::kable( digits=2 )
+```
+
 
 Still a threshold of 0.15.
 
@@ -355,7 +422,7 @@ cc %>%
 ```
 
 
-```{r, fig.width = 8, fig.height = 6, out.height= "70%" }
+```{r, fig.width = 8, fig.height = 6, out.width= "100%" }
 
 ggplot( cc, aes(Estimator, ATE_hat_std, color = Estimand ) ) +
   facet_wrap( ~ UniqueID, scales="free_x", nrow=1 ) +
@@ -369,7 +436,7 @@ ggplot( cc, aes(Estimator, ATE_hat_std, color = Estimand ) ) +
 Note: The MLM estimators are circled to indicate they are not unbiased for either estimand, in principle.
 
 
-We can look at what study characteristics drive larger or smaller ranges, within estimand:
+Extending the overall plots from above, we can look at what study characteristics drive larger or smaller ranges, within estimand:
 
 ```{r}
 rr <- rangesW %>%
@@ -380,7 +447,8 @@ rr %>%
 ggplot( aes(cons_df_adj, Range, col=has_single ) ) +
   facet_wrap( . ~ Estimand,  nrow=1 ) +
   geom_point() +
-  geom_smooth(method="lm", se=FALSE)
+  geom_smooth(method="lm", se=FALSE) +
+  labs( title = 'Range of ATE estimates within estimand' )
 ```
 
 Range does go up as expected with average SE increasing:
@@ -459,6 +527,7 @@ ra %>%
 ```
 
 The low df studies tend to have higher ranges than the high df studies.
+
 
 
 \newpage

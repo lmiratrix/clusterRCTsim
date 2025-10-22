@@ -35,13 +35,16 @@ combined <-  read_rds( here::here( "empirical/results/master241204_combined.RDS"
   as_tibble()
 
 # add in literature info for curated studies 
-curated_litinfo <- read_excel(here::here("empirical/results/study_research_info.xlsx")) %>%
-  filter(Collection == 'Curated')
-
-combined <- left_join(combined, curated_litinfo %>%
-                        select(Project, Outcome, Trt_arm, lead_author:article_url))
-
-combined
+if ( FALSE ) {
+  warning( "This needs to be restored" )
+  curated_litinfo <- read_excel(here::here("empirical/results/study_research_info.xlsx")) %>%
+    filter(Collection == 'Curated')
+  
+  combined <- left_join(combined, curated_litinfo %>%
+                          select(Project, Outcome, Trt_arm, lead_author:article_url))
+  
+  combined
+}
 
 
 
@@ -137,8 +140,8 @@ combined$SE_hat[ drp ] <- NA
 combined$SE_hat_std[ drp ] <- NA
 
 if ( FALSE ) {
-filter( combined, UniqueID == "jg_crt_6", Covariates == "best") %>%
-  dplyr::select( Estimator, num_singletons, ATE_hat_std, SE_hat, SE_hat_std )
+  filter( combined, UniqueID == "jg_crt_6", Covariates == "best") %>%
+    dplyr::select( Estimator, num_singletons, ATE_hat_std, SE_hat, SE_hat_std )
 }
 
 rm( drp )

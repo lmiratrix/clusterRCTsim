@@ -5,122 +5,660 @@ date: "2025-08-05"
 output: pdf_document
 editor_options: 
   chunk_output_type: console
+fontsize: 12pt
 ---
 
 ```{r setup, include=FALSE}
 library(tidyverse)
 knitr::opts_chunk$set(echo = FALSE,
-          fig.width = 5,
-          fig.height = 3,
-          out.width = "100%",
-           message = FALSE,
-          fig.align = "center")
+                      fig.width = 8,
+                      fig.height = 4,
+                      out.width = "100%",
+                      message = FALSE,
+                      fig.align = "center")
 options(list(dplyr.summarise.inform = FALSE))
-theme_set( theme_classic() )
 
-```
+my_t = ggthemes::theme_tufte() + 
+  theme( legend.position="bottom", 
+         legend.direction="horizontal",
+         legend.key.width=unit(1,"cm"),
+         panel.border = element_blank(), 
+         axis.title=element_text(size=12))
+theme_set( my_t )
+rm( my_t )
 
-In our first empirically calibrated simulation we simply permuted the treatment assignment labels to create new datasets (with no treatment effect).
-In those simulations we found that the estimated standard errors would be systematically too high or too low across permutations.
-We wanted to assess whether this was a finite-sample property of the individual datasets, and thus made a new simulation where we generated data according to the distribution of cluster and block sizes, along with a few other descriptive statistics.
-
-In these simulations, we are generating entirely new datasets with each iteration, so are adhering to a superpopulation model rather than a finite population one.
-
-
-
-```{r, include=FALSE}
-
-
+library( roperators )
 library( clusterRCT )
 library( tidyverse )
 library( cli )
 
 source( here::here( "fingerprint/load_master_fingerprint_results.R" ) )
-```
 
+simdat = dat
 
-# Comparing method performances
+simdat$Covariates = "best"
 
-We next explore how well the methods work, across the scenarios considered.
+empirical_estimates <- filter( empirical_estimates, 
+                               Covariates == "best" ) %>%
+  rename( method = Estimator )
+empirical_estimates$ATE_hat = empirical_estimates$ATE_hat_std
+empirical_estimates$SE_hat = empirical_estimates$SE_hat_std
 
-```{r, include=FALSE}
-table( dat$method, useNA="always" )
+empirical_estimates <- semi_join( empirical_estimates, 
+                                  simdat,
+                                  by = "UniqueID" )
 
-meth_dat <- dat %>%
-  group_by( Collection, UniqueID ) %>%
-  nest() %>%
-  mutate( data = map( data, summarize_simulation_results, "method" ) ) %>%
-  unnest( data ) %>%
-  ungroup()
-
-meth_dat  
-
-nrow(studies)
-nrow(meth_dat) / nrow(studies)
-
-# Are the estimators SE estimates variously unstable? ----
-
-
-
-# Each method estimate for each study
-table( meth_dat$method )
-
+# Calculate some stability metrics by study.
 meth_dat <- meth_dat %>%
   group_by( UniqueID ) %>%
   mutate( cal = ESEhat / SE,
           rel_SE = SE / median(SE, na.rm=TRUE),
           stab = sdSEhat / median(SE, na.rm=TRUE) ) %>%
   ungroup()
+
+
+
+# Get range_dat ready
+range_dat <- range_dat %>%
+  dplyr::filter( weight == "Overall" ) %>%
+  left_join( studies, by=c( "Collection", "UniqueID" ) )
+
+
 ```
+
+
+
+In our first empirically calibrated simulation we simply permuted the treatment assignment labels to create entirely new datasets (with no treatment effect).
+In those simulations we found that the estimated standard errors would be systematically too high or too low across permutations.
+We wanted to assess whether this was a finite-sample property of the individual datasets, and thus made a new simulation where we generated entirely new data according to the distribution of cluster and block sizes, along with a few other descriptive statistics.
+
+In these simulations, we are generating entirely new datasets with each iteration, so are adhering to a superpopulation model rather than a finite population one.
+That said, there is no treatment effect or treatment effect heterogeneity in the data, so the cluster average effect is the same as the person average affect, and so forth.
+In other words, all estimands are the same, and any differences in the estimators are due to noise, not something structural.
+
+
+This report also replicates many of the figures of the rerandomization simulation report, but using the fingerprint simulation where we are generating new data with each iteration.
+
+
+Here are the datasets in the main paper that are _not_ included in the simulation:
+
+```{r}
+missing_sets
+```
+
 
 \newpage
-## Are some methods imperfectly calibrated?
 
-We first examine whether the standard errors are _calibrated_, meaning the average estimated standard error tends to be equal to the true standard error.
-This plots across the studies for each estimator.
 
-```{r, warning=FALSE}
-ggplot( meth_dat, aes( method, cal )) +
-  geom_boxplot() +
+# How to the empirical results compare to the simulation?
+
+In the following we see if the empirical results we see line up with what the simulation tends to generate.
+Remember, in the simulation there is no treatment effect at all, or treatment variation.
+We are thus asking if the variation we _empirically see_ is plausible in a world where there is nothing but noise driving our estimators apart.
+
+
+## How do the estimated SEs we saw compare to the true SE we get from simulation?
+
+For the most part, the average estimated SEs in the empirical data tend to be fairly close to the _true_ SEs from the simulation.
+Below, we compare the estimates we got on the original empirical data to these  true SEs.
+
+```{r, warning=FALSE, message=FALSE}
+
+mm <- meth_dat  %>%
+  dplyr::select( -weight, -biased ) %>%
+  left_join( empirical_estimates, 
+             by=c( "Collection", "UniqueID", "Covariates", "method" ) )
+
+mm <- mm %>%
+  filter( Covariates == "best" )
+
+ggplot( mm, aes( SE_hat, SE ) ) +
+  facet_wrap( ~ method, nrow=3 ) +
+  geom_point( alpha=0.5, size=0.5 ) +
+  coord_fixed() +
+  scale_x_log10() +
+  scale_y_log10() +
+  geom_abline( slope=1, intercept=0, lty=2 ) +
+  labs( x = "Estimated SE from empirical data",
+        y = "True SE from simulation" ) +
+  expand_limits(x = 0, y = 0)
+```
+Each point is an outcome in the above plot.
+Note that for many estimators, not all studies had estimible standard errors (or point estimates, in some cases), so the number of points varies by method.
+
+We can also look at the ratio of empirically estimated SE to true SE, by method ($\widehat{SE}/SE$):
+```{r warning=FALSE}
+mm <- mm %>%
+  mutate( SE_ratio = SE_hat / SE )
+ggplot( mm, aes( method, SE_ratio ) ) +
+  geom_boxplot( outliers=FALSE, fill="grey", col="darkgrey" ) +
+  geom_jitter( width = 0.2, height=0, size=0.5 ) + 
   coord_flip() +
-  labs( title = "Calibration of SE estimates (E[SE-hat]/SE)",
-        subtitle = "Ratio of estimated SE to true SE" ) +
-  theme_minimal() +
-  geom_hline( yintercept = 1 ) 
+  geom_hline( yintercept = 1, col="red" ) +
+  scale_y_log10( labels = scales::percent_format(scale = 100),
+                 breaks = c( 0.02, 0.05, 0.1, 0.2, 0.5, 0.7, 1, 1.5, 2, 3, 4, 5 ) ) +
+  labs( title = "Ratio of empirical estimated SE to true SE by method",
+        x = "", y = "Estimated SE / True SE" )
 ```
 
-Some methods do not have estimated standard errors at all for some scenarios.  We drop these missing values, and look at calibration across scenarios where the estimated SEs exist.
+For many methods there are some studies where the true SE from the simulation is way higher or way lower than what we estimated in the empirical data.
+We filter to those studies where this occurred, showing all studies where the estimated SE is more than 100% larger than the true SE or less than 50% of the true SE:
 
-Generally, methods are decently calibrated for more scenarios.
-The proportion of studies where the estimated standard error is notably less than or greater than the true standard error is shown below:
 ```{r}
-meth_dat %>%
-  group_by( method ) %>%
-  summarise( n = sum( !is.na( cal ) ),
-             below_75 = mean( cal <= 0.75, na.rm=TRUE ),
-             above_1.25 = mean( cal >= 1.25, na.rm=TRUE ) ) %>%
-  arrange( -below_75 ) %>%
+m2 <- mm %>%
+  ungroup() %>%
+  filter( SE > 2 * SE_hat | SE < 0.5*SE_hat ) %>%
+  arrange( desc( SE_hat ) ) %>%
+  dplyr::select( Collection, UniqueID, method, SE_hat, SE ) %>%
+  mutate( off_by = SE_hat / SE ) %>%
+  arrange( -off_by )
+
+m2 %>%
   knitr::kable( digits = 2 )
 ```
 
-We see that some estimators do have many scenarios where the standard errors are systematically too low (more than 25% too small, give or take some monte carlo uncertainty).
+`off_by` is $\widehat{SE} / SE$.
+If it is below 0.5, then our estimated SE is less than half what the simulation showed.
+If it is above 2, then our estimated SE is more than double what the simulation showed.
+
+
+Some stats on the studies that are responsible:
+
+```{r}
+m2 %>%
+  group_by( UniqueID ) %>%
+  summarise( num_show = n() ) %>%
+  left_join( studies, by="UniqueID" ) %>%
+  dplyr::select( UniqueID, Collection, num_show, n, J, Jcv, Jbar, cons_df ) %>%
+  knitr::kable( digits = 2 )
+```
+
+For the matched pairs design (TRIAD Scale Up), we often got an estimated SE that was way too small.
+<!--`jg_crt_63` is almost a matched pairs experiment (Jbar of 2.11), and shows similar issues.-->
+
+
+## How do the actual ATE ranges we saw compare to what we tend to get from simulation?
+
+For each study, we can look at the actual range of ATEs from the empirical data (red dot) vs. the ranges we get from the permutations (the boxplot).
+The boxplot shows what kinds of ranges we would "naturally" see when there is no treatment effect or treatment variation.
+
+```{r}
+if ( FALSE ) {
+  range_dat %>%
+    filter( Estimand == "Overall" ) %>%
+    group_by( UniqueID ) %>%
+    summarise( sdRange = sd( rangeATE ),
+               sdRatio = sd( ratioSE ) ) %>%
+    knitr::kable( digits = 2 )
+}
+
+emp_dat <- empirical_estimates %>%
+  group_by( UniqueID, Collection ) %>%
+  summarise( rangeATE = max( ATE_hat, na.rm=TRUE ) - min( ATE_hat, na.rm=TRUE ),
+             ratioSE = max( SE_hat, na.rm=TRUE ) / min( SE_hat, na.rm=TRUE ),
+             .groups = "drop" )
+
+
+# Plot the ranges of ATE estimates (over all estimators)
+ggplot( range_dat, aes( UniqueID, rangeATE ) ) +
+  geom_boxplot( outlier.size = 0.5 ) +
+  geom_point( data=emp_dat, color="red" ) +
+  coord_flip() +
+  scale_y_log10() +
+  labs( x = "", y = "Range of ATE estimates across methods",
+        caption = "Red dot is the empirical range of ATE estimates" )
+```
+
+
+The red dots generally lie in the range of the boxplots; this means the range we saw in our empirical data is entirely consistent with the ranges we would see if there were no treatment effect, or variation in treatment effect, whatsoever.
+Our observed range, therefore, does not appear to be driven by the estimators targeting different estimands.
+
+To quantify this, we can calculate the percent of studies where the empirical range is outside the 90% interval of the simulated ranges:
+
+```{r}
+tmp <- range_dat %>%
+  group_by(Collection, UniqueID) %>%
+  summarise(
+    mn_range = mean(rangeATE),
+    q95 = quantile(rangeATE, 0.95),
+    q05 = quantile(rangeATE, 0.05),
+    .groups = "drop"
+  ) %>%
+  left_join(emp_dat, by = c("Collection", "UniqueID")) %>%
+  mutate(
+    below05 = rangeATE < q05,
+    above95 = rangeATE > q95,
+    outside_90 = below05 | above95
+  )
+
+test <- tmp %>%
+  group_by(Collection) %>%
+  summarise(
+    per_below_05 = mean(below05) * 100,
+    per_above_95 = mean(above95) * 100,
+    percent_outside_90 = mean(outside_90) * 100,
+    .groups = "drop"
+  )
+tov <- tmp %>%
+      summarise(
+        Collection = "Overall",
+        per_below_05 = mean(below05) * 100,
+        per_above_95 = mean(above95) * 100,
+        percent_outside_90 = mean(outside_90) * 100
+      )
+
+bind_rows( test, tov ) %>%
+  knitr::kable(digits = 0)
+
+```
+
+Generally, 20% (rather than the expected 5%) of empirical ranges are less than the simulation (meaning they are smaller than we would expect).
+This is probably a sign of miscalibration of the simulations.
+
+9% is above---these could be evidence of the empirical data having heterogeniety or other factors driving up the ranges more than expected.
+
+We can look at the range of ATE estimates vs size of study (number of clusters).
+The empirical are plotted as "x"s on the lines.  The lines are the boxplots and whiskers showing the range of the simulation ranges for that outcome. 
+
+
+```{r}
+
+emp_dat_full <- left_join( emp_dat, studies, by=c( "Collection", "UniqueID" ) )
+
+ggplot( range_dat, aes( n, rangeATE, color=Collection, group=UniqueID ) ) +
+  geom_boxplot( outliers = FALSE ) +
+  #facet_wrap( ~ Collection ) +
+  geom_point( data=emp_dat_full, color="black", pch="X" ) +
+  scale_x_log10() +
+  labs( x = "Number of clusters",
+        y = "Range of ATE estimates",
+        title = "Range of ATE estimates by number of clusters" )
+```
+
+Note: When there are multiple outcomes for the same study, these lines are overplotted.
+
+We can fit a tree to predict when we see larger ranges across our simulation runs (we drop the TRIADScale-up study since it is a matched pairs design, which is very different from the others):
+```{r, out.width="75%"}
+source( here::here( "create_analysis_tree.R" ) )
+triad_id = "TRIADScale-up_rema2"
+create_analysis_tree( filter( range_dat, UniqueID != triad_id ), 
+                      "rangeATE",
+                      c("J", "Jbar", "K", "n", "nbar", "num_singletons",
+                        "num_doubletons", "ncv", "Jcv", "tx.cv", "na_SE" ),
+                      min_leaves = 10,
+                      max_leaves = 10, include_counts = TRUE
+)
+```
+
+We see larger ranges when we have few blocks and there is a lot of variation in the cluster size level (ncv).
+We also see one study where proportion treated varies, and this creates greater range as well.
+But this tree is not very interpretable.
+
+
+## How do the actual SE-hat ratios compare to what we tend to get from simulation?
+
+We next look at how much the ratio of the max to min estimated standard errors vary across the simulation iterations, and compare that to the ratios we saw from the empirical data.
+This is analogous to the range of ATE estimates above.
+
+
+```{r, fig.height = 7}
+
+range_dat$ratioSE[ range_dat$ratioSE > 5 ] = 5
+range_dat$smallJ = ifelse( range_dat$Jbar < 4.3, "< 4.3", "> 4.3" )
+range_dat$UniqueID = fct_reorder( range_dat$UniqueID, 
+                                   range_dat$ratioSE, 
+                                   .desc = TRUE )
+
+ggplot( range_dat, aes( UniqueID, ratioSE ) ) +
+  #facet_wrap( ~ Collection, scales="free_y" ) +
+  geom_boxplot( aes( fill=smallJ ), alpha=0.5, outlier.size=0.3 ) +
+  geom_point( data=emp_dat, color="red" ) +
+  coord_flip() +
+  labs( title = "ratio of SEs across simulation runs",
+        subtitle = "Windorizerd at ratio of 5" ) +
+  theme_minimal() +
+    scale_y_log10( breaks=c(1,2,3,4,5),
+                 labels = scales::percent_format(scale = 100) ) +
+  labs( x = "", y = "Ratio of max SE-hat to min SE-hat" )
+
+```
+
+For many studies, the ratio is in line with our simulation.
+For others, we see ratios well outside of what we would expect.
+In particular, there are several studies where the ratio is far smaller than the simulation would suggest we would find.
+
+The structure of the study seems to drive the ratio in many cases.
+jg_crt_31, for example, nearly always has a very large ratio, even though empirically we see a small ratio.
+
+We can look at how often the empirical ratios are outside what we would expect via simulation:
+
+```{r}
+tmp <- range_dat %>%
+  group_by(Collection, UniqueID) %>%
+  summarise(
+    mn_range = mean(ratioSE),
+    q95 = quantile(ratioSE, 0.95),
+    q05 = quantile(ratioSE, 0.05),
+    .groups = "drop"
+  ) %>%
+  left_join(emp_dat, by = c("Collection", "UniqueID")) %>%
+  mutate(
+    below05 = ratioSE < q05,
+    above95 = ratioSE > q95,
+    outside_90 = below05 | above95
+  )
+
+tmp %>%
+  group_by(Collection) %>%
+  summarise(
+    per_below_05 = mean(below05) * 100,
+    per_above_95 = mean(above95) * 100,
+    percent_outside_90 = mean(outside_90) * 100,
+    .groups = "drop"
+  ) %>%
+  bind_rows(
+    tmp %>%
+      summarise(
+        Collection = "Overall",
+        per_below_05 = mean(below05) * 100,
+        per_above_95 = mean(above95) * 100,
+        percent_outside_90 = mean(outside_90) * 100
+      )
+  ) %>%
+  knitr::kable(digits = 0)
+```
+
+40% of our empirical ratios are less than the 5th percentile of the simulation ratios--much more than the 5% we would expect.
+This would suggest that the superpopulation model we are using is generating much higher ratios than we would see in practice.
+Interestingly, this is in the opposite direction of what we would see if there were treatment variation--that would likely drive the ratios up, not down.
+One possibility is that the simulation is not generating clusters of varying sizes in a way that is sufficently correlated with the outcomes, which could also drive up the ratios.
+Or covariate relationships?
+This is, in short, evidence that our simulations are not perfectly calibrated to the empirical data.
+
+
+NO LONGER TRUE?: Overall, we are seeing more empirical values in the tails of the ranges--overall 23% of the studies have ratios in the 5% tails (10% total) of the simulated ranges.
+
+
+Generally we see our simulation ratios are failing to capture what ratios we are seeing in practice much of the time.
+
+
+Here it does seem that some studies tend to have much greater variability in the SE ratio across simulation iterations.
+
+
+
+
+### What makes a big SE ratio?
+
+The following plot shows the ratio of SE across methods depends (a little bit) on the average cluster size, but that even for a given cluster size, some studies tend to have much higher ratios than than others:
+
+```{r}
+rd = range_dat
+rd$ratioSE[ rd$ratioSE > 5 ] = 5
+ggplot( rd, aes( Jbar, ratioSE ) ) +
+  scale_x_log10() +
+  geom_smooth( se=FALSE, span=1, method="loess" ) + 
+  geom_jitter( size=0.5, width = 0.01 )+
+  theme_minimal() +
+  labs( title = "Typical ratio of SEs across methods",
+        subtitle = "Windorizerd at ratio of 5",
+        x = "Average cluster size (Jbar)",
+        y = "Mean ratio" )
+```
+
+<!--We next look more closely at studies where Jbar was less than 4.3:
+
+```{r, eval=FALSE}
+sb <- filter( range_dat, Jbar < 4.3 ) %>%
+  mutate( UniqueID = fct_reorder( UniqueID, Jbar, .desc = TRUE ) )
+
+rng <- range_dat %>% 
+  mutate( ratioSE = pmin( ratioSE, 5 ) ) %>%
+  group_by( Collection, UniqueID ) %>%
+  summarise( across( rangeATE:na_SE, list( mn = median, sd=sd,
+                                           Q95 = \(x) quantile(x,0.95),
+                                           Q05 = \(x) quantile(x,0.05) ) ),
+             .groups = "drop" )
+rd <- left_join( rng, studies, by="UniqueID" )
+rd %>% 
+  arrange( Jbar ) %>%
+  filter( Jbar < 4.3 ) %>%
+  dplyr::select( UniqueID, J, Jbar, K, ratioSE_mn, rangeATE_mn, na_SE_mn ) %>%
+  unique() %>%
+  print( n = 15 )
+
+sb <- range_dat %>%
+  filter( Jbar < 4.3 ) %>% 
+  mutate( UniqueID = fct_reorder( UniqueID, Jbar, .desc = TRUE ) )
+
+ggplot( sb,
+        aes( UniqueID, ratioSE ) ) +
+  geom_boxplot( fill="grey", outlier.size=0.3 ) +
+  coord_flip() +
+  labs( title = "ratio of SEs across simulation runs",
+        subtitle = "Studies with Jbar < 4.3; Windorizerd at ratio of 5" ) +
+  theme_minimal() +
+  scale_y_log10()
+```
+
+
+Some details of two interesting studies:
+```{r}
+uid = "jg_crt_17"
+clusterRCT:::print.clusterRCTstats( filter( studies, UniqueID == uid ) )
+
+clusterRCT:::print.clusterRCTstats( filter( studies, UniqueID == "TennStar_gktreadss" ) )
+```
+
+
+-->
+
+
+<!--
+We again look by number of clusters (the dots are the empirical values):
+
+```{r, eval=FALSE}
+ggplot( rr, aes( J, ratioSE, color=Collection, group=UniqueID ) ) +
+  geom_boxplot( outliers = FALSE ) +
+  geom_point( data=emp_dat_full, col="black", size=0.5 ) +
+  scale_x_log10() +
+  scale_y_log10( breaks=c(1,2,3,4,5),
+                 labels = scales::percent_format(scale = 100) ) +
+  labs( x = "Number of clusters",
+        y = "Range of ATE estimates",
+        title = "Ratio of SE estimates by number of clusters" )
+```
+
+-->
+
+Finally, we can look at the empirical ratio vs the true ratios we see in the simulation:
+
+```{r}
+mm <- meth_dat %>%
+  group_by( UniqueID ) %>%
+  summarise( medianSE = median(SE),
+             trueSEratio = max(SE, na.rm=TRUE) / min(SE, na.rm=TRUE) )
+
+ee = left_join( emp_dat, mm, by="UniqueID" )
+ggplot( ee, aes( trueSEratio, ratioSE ) ) +
+  geom_point() +
+  coord_fixed() +
+  scale_x_log10() +
+  scale_y_log10( ) +
+  geom_abline( slope=1, intercept=0, lty=2 ) +
+  labs( title = "Comparing the true SE ratio to the empirical ratios",
+        y = "Empirical SE-hat ratio",
+        x = "True SE ratio from simulation" )
+```
+
+We see a lot of extreme values for the true ratio, much higher than the empirical.  That said, for the empirical, we have a lot of modest values when the true ratio is very close to 1, suggesting that for many of the outcomes, there is in truth little difference among the different methods.
+Interestingly, the simulation suggests that for many of the outcomes, there really are substantial differences in how precise the methods are, much more than suggested by our empirical result.
+
+This could be driven by block-level variation---the simulation is a superpopulation model at the block level, and our estimators target a fixed block context.
+That said, our calibration results suggest that our estimated SEs in the simulation are about right, well-estimating the true standard errors.
+
+This leaves us with some uncertainty as to what is happening---or further evidence the simulation is not perfectly capturing the empirical data, making comparisons of empirical estimates to simulation results less compelling.
+
+That said, these simulations show that for at least some data generating processes (experimental designs) the methods can have very different standard errors, even if there is no treatment variation.
+This could be due to the methods taking advantage of covariates in different ways.
+
+
 
 \newpage
-## Are some methods more precise?
+# Calibration: Are the estimated SEs good estimates of the real SE?
+
+We here examine whether the standard errors are _calibrated_, meaning the average estimated standard error tends to be equal to the true standard error.
+For each scenario, we can calculate true standard errors (SEs) for each method by taking the standard deviation of the point estimates across all simulation trials.
+Each simulation iteration also gives an estimated standard error along with point estimate for each method.
+We can then check to see if the average of the estimated standard errors (across iterations) correspond to the true standard error; if they do, we say the standard errors are _calibrated_.
+Checking calibration tells us whether our estimated standard errors are accurately capturing uncertainty--in this case capturing superpopulation uncertainty when there is no treatment variation.
+
+In short, within simulation scenario and for each method, we can compare the average estimated SE to the standard deviation of point estimates.
+In the plot below we show the distribution of ratios of $E[\widehat{SE}] / SE$ across the studies, for each method.[^1]
+
+[^1]: We actually calculate $\sqrt{ E[\widehat{SE}^2] }$, because the variances are the things that are ideally unbiased estimators, not the standard errors.
+
+<!--In the figure below, each dot represents the outcome for a single study.-->
+
+```{r, warning=FALSE, message=FALSE}
+meth_dat <- meth_dat %>%
+  mutate( SE_ratio = ESEhat / SE )
+meth_dat <- left_join( meth_dat, 
+                       dplyr::select( studies, UniqueID, has_single ),
+                       by=c( "UniqueID" ) )
+ggplot( meth_dat, aes( method, SE_ratio ) ) +
+  geom_boxplot( outliers=FALSE, col="darkgrey", fill = "grey" ) +
+  geom_jitter( aes( color=has_single ), width=0.1, height=0, size=0.3 ) +
+  coord_flip() +
+  geom_hline( yintercept = 1, col="red" ) +
+  scale_y_log10( labels = scales::percent_format(scale = 100),
+                 breaks = c( 0.02, 0.05, 0.1, 0.2, 0.5, 0.7, 1, 1.5 ) ) +
+  labs( title = "Ratio of estimated SE to true SE by method",
+        x = "", y = "Estimated SE / True SE" )
+
+if ( FALSE ) {
+ # Alternative plot
+  ggplot( meth_dat, aes( SE, ESEhat ) ) +
+  facet_wrap( ~ method ) +
+  geom_point( alpha=0.5, size=0.5) +
+  coord_fixed() +
+  geom_abline( slope=1, intercept=0, lty=2 )
+}
+```
+
+```{r, include=FALSE}
+per_close <- round( mean( meth_dat$SE_ratio > 0.85 & meth_dat$SE_ratio < 1.15, na.rm=TRUE ) * 100 )
+per_close
+meth_dat$cal - meth_dat$SE_ratio
+```
+
+Some methods do not have estimated standard errors for some scenarios (if there are too few degrees of freedom or there are too few clusters in some blocks, then the standard error can be undefined, even if the point estimate is), so they are not in the above plot--note how some boxes have fewer points. (We have colored the points by studies with singleton clusters and studies without, to make this easier to see.)
+
+Generally, methods are decently calibrated for more scenarios.
+Across methods and studies, around `r per_close`% of the average estimated SEs are within 15% of the true SEs.
+The proportion of studies where the estimated standard error is notably smaller (more than 15% less) or larger (more than 15% more) the true standard error is shown below:
+```{r}
+meth_dat %>%
+  group_by( method ) %>%
+  summarise( n = sum( !is.na( SE_ratio ) ),
+             n_below_85 = sum( SE_ratio <= 0.85, na.rm=TRUE ),
+             below_85 = 100 * mean( SE_ratio <= 0.85, na.rm=TRUE ),
+             n_above_1.15 = sum( SE_ratio >= 1.15, na.rm=TRUE ),
+             above_1.15 = 100* mean( SE_ratio >= 1.15, na.rm=TRUE ) ) %>%
+  arrange( -below_85 ) %>%
+  knitr::kable( digits = 0 )
+```
+
+FIX THIS ONCE SIMS RERUN:
+The various FI estimators are the ones which struggle the most.
+Note the FI CRVE outliers: cluster robust standard errors can give extremely low values in some contexts.
+We apparently see it here.
+Our simulation should be able to show us whether this happens regularly or not in the context we are exploring.
+
+We see that some estimators do have many scenarios where the standard errors are systematically too low (more than 15% too small, give or take some monte carlo uncertainty).
+
+We can also look by study.
+Here we list all studies where at least one estimator was substantially miscalibrated.
+We see that a few studies were structurally hard to estimate uncertainty for:
+
+```{r}
+md <- left_join( meth_dat, studies, by=c( "Collection", "UniqueID" ) )
+md %>%
+  group_by( UniqueID, K, Jbar ) %>%
+  summarise( n_def = sum( !is.na( cal ) ),
+             n_below_85 = sum( cal <= 0.85, na.rm=TRUE ),
+             below_85 = 100 *mean( cal <= 0.85, na.rm=TRUE ),
+             n_above_1.15 = sum( cal >= 1.15, na.rm=TRUE ),
+             above_1.15 = 100*mean( cal >= 1.15, na.rm=TRUE ) ) %>%
+  arrange( -below_85 ) %>%
+  filter( below_85 > 0 | above_1.15 > 0 ) %>%
+  knitr::kable( digits = c( 0,0,1,0,0,0) )
+```
+
+It is clear that some study designs have systematically miscalibrated standard errors across most methods considered.
+The "study flashcard" document that prints out stats on these studies could provide some clues as to what is driving miscalibration.
+
+For the record, the outlier study-method combinations where the average estimated standard error is 70% or less than the true standard error are the following:
+
+```{r}
+meth_dat %>%
+  #filter( method == "LRicw-FIcw-crve" ) %>%
+  dplyr::filter( SE_ratio < 0.7  ) %>%
+  dplyr::select( method, UniqueID, SE, ESEhat, sdSEhat, SE_ratio ) %>%
+  arrange( UniqueID, method ) %>%
+  knitr::kable( digits = 2 )
+```
+
+
+As noted, some methods do not provide estimated standard errors for some of the study designs explored.
+Counts of the methods with and without standard errors are below.
+
+```{r}
+emp = empirical_estimates %>% 
+  group_by( method ) %>%
+  summarize( num_emp = sum( !is.na( ATE_hat ) ),
+             num_emp_SE = sum( !is.na( SE_hat ) ) ) 
+  
+meth_dat %>%
+  group_by( method ) %>%
+  summarise( n = n(),
+             SE_def = sum( !is.na( SE ) ),
+             ESEhat_def = sum( !is.na( ESEhat ) ) ) %>%
+  left_join( emp, by="method" ) %>%
+  arrange( desc( ESEhat_def ), method ) %>%
+  knitr::kable()
+```
+
+Here `num_emp` is the number of empirical (original) defined ATE estimates and standard errors across the set of studies.
+We would expect them to align with the defined SE and defined $\widehat{SE}$ columns from the simulations (if we have a defined ATE, we can have a defined SE).
+
+
+NOTE: we have more defined $\widehat{SE}$ than expected for some of our estimators --- this is the fully interacted issue I think?  Need to fix.
+
+
+
+
+\newpage
+# Precision: Do some methods have higher true standard errors than other methods?
 
 We next examine whether some methods are, for given scenarios, systematically more or less precise than others.
-We, for each scenario, calculate the ratio of the true standard error to the median standard error across methods.
+We, for each scenario, calculate the ratio of the true standard error to the median standard error across methods defined for that scenario.
 Above 1 means that method is more unstable relative to its peers for that scenario.
 Below 1 means it is notably more precise.
 
-```{r, message=FALSE}
-ggplot( meth_dat, aes( method, rel_SE )) +
-  geom_boxplot() +
+```{r, warning=FALSE, message=FALSE}
+meth_dat <- meth_dat %>%
+  group_by( UniqueID ) %>%
+  mutate( SE_std = SE / median( SE, na.rm=TRUE ) ) %>%
+  ungroup()
+
+ggplot( meth_dat, aes( method, SE_std ) ) +
+  geom_boxplot( outliers=FALSE, fill="grey", col="darkgrey" ) +
+  geom_jitter( aes( color = has_single ), width = 0.2, height=0, size=0.5 ) + 
   coord_flip() +
+  geom_hline( yintercept = 1, col="red" ) +
   labs( title = "Method true SE to median true SE within study",
         caption = "For TRIAD, 6 ATE estimators are undefined due to degrees of freedom concerns.") +
-  theme_minimal() +
-  geom_hline( yintercept = 1 ) 
+  theme_minimal()
 ```
 
 One study (TRIAD) is matched pairs, and for this study 6 methods did not even provide a point estimate, meaning there is no standard error.
@@ -130,7 +668,7 @@ Here are the performance stats on TRIADScale-up:
 
 ```{r}
 filter( meth_dat, UniqueID == "TRIADScale-up_rema2" ) %>%
-  dplyr::select( -c( UniqueID, Collection, weight, biased ) ) %>%
+  dplyr::select( -c( UniqueID, Covariates, Collection, p.noSE, p.noATE, weight, biased, EATE, Q10, Q90 ) ) %>%
   knitr::kable( digits = 2 )
 ```
 
@@ -155,18 +693,51 @@ ggplot( mm, aes( trueSEratio, fill=low_df ) ) +
   geom_dotplot( method="histodot", binwidth=0.1 ) 
 ```
 
-We are looking at `r nrow(mm)` studies.
+In the above, we are looking at `r nrow(mm)` studies.
+These ratios are all inflated by simulation error (we do not fully know the true SEs).
+That said, we are seeing many large ratios suggesting that for many studies we really would expect the SEs to vary substantially based on estimator choice.
 
-We can look at the ranges of true SE by study, to see which studies have greater opportunity for an estimator to be preferred:
 
-```{r}
+We can can also look at the true SEs for all methods, study by study, to see which studies have greater opportunity for an estimator to be preferred.
+Here, for each study, we simply plot the true SE for each method that is defined for that study:
+
+```{r, message=FALSE}
 ggplot( meth_dat, aes( UniqueID, SE )) +
-  geom_boxplot() +
+  geom_boxplot( outliers=FALSE, fill="grey", col="darkgrey" ) +
+  geom_jitter( width = 0.2, height=0, size=0.5 ) + 
   coord_flip() +
   labs( title = "Range of True SEs of methods by study" ) +
   scale_y_log10() +
   theme_minimal()
 ```
+
+It is notable how for some designs, there is virtually no variation across methods, and for some there is a lot.
+
+
+We can organize these same values by study to see if some studies naturally lead to bigger ranges of true SE:
+
+```{r, warning=FALSE}
+meth_dat <- left_join( meth_dat,
+                       dplyr::select( mm, UniqueID, trueSEratio ),
+                       by="UniqueID" )
+
+meth_dat$UniqueID = fct_reorder( meth_dat$UniqueID, 
+                                   meth_dat$trueSEratio, 
+                                   .fun = median,
+                                   .desc = TRUE )
+ggplot( meth_dat, aes( UniqueID, SE_std ) ) +
+  #facet_wrap( ~ Collection, scales="free_y" ) +
+  geom_boxplot( outliers=FALSE, fill="grey", col="darkgrey" ) +
+  geom_jitter( width = 0.2, height=0, size=0.5 ) + 
+  geom_hline( yintercept = 1, col="red" ) +
+  coord_flip() +
+  labs( y = "SE / median(SE)",
+        title = "relative SE to methods in study", x="" )
+```
+
+
+The above plot shows that some studies indeed have a wider range of true SEs than other studies.  For example, some estimators in `jg_crt_31` have larger SEs and some have smaller SEs.  By contrast, almost everyone in `Beacon_S8TGPA` have the same true SE (note the very narrow boxplot).
+We also see clustering of estimators within study --- this is partly due to some estimators being virtually identical.
 
 
 We can look at which studies have the larger differences, by printing out the studies in order of smallest to largest true SE ratio:
@@ -179,15 +750,68 @@ mm %>%
   knitr::kable( digits=2 )
 ```
 
+
+
+Discussion: All the methods have a SE ratio that is, at the median across studies, about the same as the other methods.  This suggests that the methods all have the same overall performance across datasets, on average.
+This is because for many studies, all the SEs are about the same (see the range by study plot above).
+That said, some methods have long right tails, meaning there are some studies where their true SEs are more than 50% larger than the median performing method.
+Other methods have studies where they are notably more stable than other methods, by even 50% or more.
+
+
+
+
+<!--
+```{r, eval=FALSE}
+
+rg_emp <- left_join( range_dat, true_se,
+                     by=c( "UniqueID" ) )
+ggplot( rg_emp, aes( ratioSE, true_rat ) ) +
+  geom_point( alpha=0.5, size=0.5 ) +
+  coord_fixed() +
+  geom_abline( slope=1, intercept=0, lty=2 ) +
+  labs( x = "Estimated SE ratio",
+        y = "True SE ratio",
+        title = "Estimated vs True SE ratio by study" )
+```
+
+The above plot shows how the true ratio is very different from the max/min ratio of the estimated SEs for many of our studies.
+It also shows how the estimated ratios can be very much larger than the true ones.
+-->
+
+<!-- We can look at it in light of the figure from the main paper:
+
+```{r, eval=FALSE}
+#ggplot( rg_emp, aes( true_rat ) ) +
+#  geom_density( data=range_dat, aes( x=ratioSE ), 
+#                fill="grey", alpha=0.5, adjust=0.5 ) +
+#  geom_dotplot( method = "histodot", binwidth = 0.01 ) +
+#  labs( title = "Ratio of highest to lowest true SE by study" )
+rg_L <- rg_emp %>%
+  pivot_longer( cols = c( ratioSE, true_rat ),
+                names_to = "type", values_to = "ratioSE" )
+ggplot( rg_L, aes( ratioSE, fill=type ) ) +
+  facet_wrap( ~ type, ncol=1 ) +
+  #geom_dotplot( method = "histodot", binwidth = 0.025 ) +
+  geom_density() + 
+  labs( title = "Ratio of highest to lowest true SE by study" )
+
+```
+
+In the above we see the clear contraction of the ratios when we look at _true_ SE ratios vs _estimated_ SE ratios.
+
+-->
+
+
 We can ask what drives these differences, making a tree that predicts which studies have greater instability in the true SE:
 
-```{r}
+```{r, out.width = "50%"}
 source( here::here( "create_analysis_tree.R" ) )
 create_analysis_tree( mm, "trueSEratio",
                       c("J", "Jbar", "K", "num_singletons",
                         "num_doubletons", "ncv", "Jcv", "tx.cv",
                         "p.tx", "R2.1", "cluster_ICC" ),
-                      min_leaves = 4, max_leaves = 7
+                      min_leaves = 4, max_leaves = 7,
+                      include_counts = TRUE
                       )
 
 if ( FALSE ) {
@@ -203,48 +827,93 @@ if ( FALSE ) {
 This says those studies with larger R2.1 values have greater differences.
 This implies that some estimators are taking advantage of the covariates better than others?
 
+We can look at this directly:
+```{r}
+ggplot( mm, aes( R2.1, trueSEratio ) ) +
+  geom_point() +
+  geom_smooth( se=FALSE, method="loess", span=1 ) +
+  scale_x_continuous( limits=c(0,1) ) +
+  scale_y_log10() +
+  labs( title = "True SE ratio by R2.1" )
+```
 
-We can look at the stats of `jg_crt_12`, but nothing jumps out as being particularly exciting as an explanation.
+<!--
+We can look at the stats of `jg_crt_12` (one of the studies with variation), but nothing jumps out as being particularly exciting as an explanation.
 
 ```{r}
 uid = "jg_crt_12"
 clusterRCT:::print.clusterRCTstats( filter( studies, UniqueID == uid ) )
 ```
+-->
+
+```{r, include=FALSE}
+n_rep = n_distinct( simdat$runID )
+n_rep
+```
 
 \newpage
-## Are estimated SEs more unstable for some methods?
 
-We next look at whether some methods have more variation in how their estimated standard errors vary across simulation runs for given scenarios.
-We compare the standard deviation of SE hat, normalizing by the true median SE (across methods for that scenario) to put everything on the same scale.
 
-```{r}
-ggplot( meth_dat, aes( method, stab )) +
-  geom_boxplot() +
-  coord_flip() +
-  labs( title = "sd(SE-hat) / median(SE)" ) +
-  theme_minimal()
-```
+## Which studies generate the highest SE ranges?
 
-Overall, all the methods have estimated standard errors that seem about the same wiggly, relative to their respective true standard errors.
+We can then explore across the scenarios what characteristics lead to situations where some methods truly are more precise than other methods
 
-If we look by study, we see some studies have very reliable stabilities across method.
-Other studies have very different stabilities.
-```{r}
-ggplot( meth_dat, aes( UniqueID, stab )) +
-  geom_boxplot() +
-  coord_flip() +
-  labs( title = "sd(SE-hat) / median(SE)" ) +
-  scale_y_log10() +
-  theme_minimal()
+```{r, out.width = "75%"}
+
+source( here::here( "create_analysis_tree.R" ) )
+create_analysis_tree( range_dat, "ratioSE",
+                      c("J", "Jbar", "K", "num_singletons",
+                        "num_doubletons", "ncv", "Jcv", "tx.cv", "na_SE" ),
+                      max_leaves = 7, include_counts =TRUE 
+                      )
+
+
 ```
 
 
-# Looking at true SEs for person vs cluster weighting
+
+
+## Addendum: Modeling to understand variation in true SE
+
+**NOTE: This part is rough work in progress**
+
+The true SEs are estimated with error, across only `r n_rep` simulation replicates.
+We can account for this uncertainty by fitting a model where we regress $log( (\widehat{ATE}-E[\widehat{ATE}])^2 )$ onto a random effect for study, method, and study by method.
+
+The average error is essentially the log of the estimated SE.
+Note that 
+$$ SE = E\left[ \left(\widehat{ATE}-E\left[\widehat{ATE}\right]\right)^2 \right] .$$
+We then plug in estimated $E[ATE]$ to get individual permutation estimates of the standard error:
+$$ err = \left(\widehat{ATE} - \frac{1}{R}\sum_{r=1}^R \widehat{ATE}_r\right)^2$$
+where $R$ is the number of permutations.
+Then regressing the log of these onto method and study will let us know if some methods have systematically higher or lower SEs than others, controlling for study.
+We include interactions to allow these differences to be different for some studies.
+
+```{r}
+library( lme4 )
+simdat <- simdat %>%
+  group_by( UniqueID, method ) %>%
+  mutate( err = log( ( ATE_hat - mean(ATE_hat) )^2 ) ) %>%
+  ungroup()
+#summary( simdat$err )
+M <- lmer( err ~ 1 + (1|method) + (1|UniqueID) + (1|method:UniqueID), data=simdat )
+arm::display( M )
+
+VarCorr(M)
+#rr <- ranef(M)
+#rr$`method:UniqueID`
+```
+
+This shows we are seeing variation by method in terms of the log of the squared error--i.e., some methods have larger errors than other methods.
+
+
+
+## Are SEs different for person vs cluster weighting?
 
 We can see if true standard errors were systematically different for some scenarios.
-In this plot, we look at how much variation across estimators there were for 
+In this plot, we divide the estimators by target estimand, and look at their range of estimates within study:
 
-```{r, out.width="100%"}
+```{r, out.width="100%", fig.height=7, warning=FALSE}
 wts <- meth_dat %>%
   group_by( Collection, UniqueID, weight ) %>%
   summarise( meanSE = median(SE, na.rm=TRUE),
@@ -254,10 +923,12 @@ wts <- meth_dat %>%
 
 ggplot( wts, aes( UniqueID, meanSE, col=weight ) ) +
  # facet_wrap( ~ Collection, scales="free" ) +
-  geom_point( size=3, position=position_dodge(width=0.5), pch="|" ) +
+  geom_point( size=4, 
+              #position=position_dodge(width=0.5), 
+              pch="|" ) +
   geom_point( data=meth_dat, aes( y = SE ),
               size = 1,
-              alpha=0.5,
+              alpha=0.15,
               position=position_dodge(width=0.5) ) +
   geom_errorbar( aes( ymin=minSE, ymax=maxSE ),
                  width=0.2, position=position_dodge(width=0.5),
@@ -267,154 +938,131 @@ ggplot( wts, aes( UniqueID, meanSE, col=weight ) ) +
   theme_minimal()
 ```
 
-Note the axis is on a log scale so that studies with overall small SEs are not artifically compressed.
+Note the axis is on a log scale so that studies with overall small SEs are not artificially compressed.
 
 We see that some scenarios have very different SEs for some methods, and other scenarios have a very narrow range of SEs.
 We do not see systematic differences by estimand--in those studies with different SEs for different methods, the range of SEs within estimand is about the same.
 Possible exceptions are jg_crt_6 and jg_crt_17, where some of the the cluster-weighted methods have notibly larger SEs than any of the other methods.
 
-
-# How different are different studies?
-
-## Which studies tend to have larger differences across methods?
-
-We next look at what kinds of ranges we would see for each study.
-For each study we calculate the median range across simulation runs, and then plot the middle 90% interval of ranges observed.
-We use a log scale, to again account for how some studies just tend to have larger ranges than other studies.
+A quick model fit can give us a sense of whether these systematically differ (although this model does not allow for greater or lesser variation of methods by study, so it is inappropriate for formal inference):
 
 ```{r}
-rng <- range_dat %>% 
-  mutate( ratioSE = pmin( ratioSE, 5 ) ) %>%
-  group_by( Collection, UniqueID ) %>%
-  summarise( across( rangeATE:na_SE, list( mn = median, sd=sd,
-                                           Q95 = \(x) quantile(x,0.95),
-                                           Q05 = \(x) quantile(x,0.05) ) ),
-             .groups = "drop" )
-
-ggplot( rng, aes( UniqueID, rangeATE_mn ) ) +
-  geom_point() +
-  geom_errorbar( aes( ymin=rangeATE_Q05, ymax=rangeATE_Q95 ),
-                 width=0, alpha=0.5 ) +
-  coord_flip() +
-  scale_y_log10() +
-  labs( title = "Mean rangeATE across studies",
-        subtitle = "Range of ATEs for each study" ) +
-  theme_minimal()
+M = lmer( log(SE) ~ 1 + weight + (1+weight|UniqueID) + (1|method),
+          data=meth_dat )
+arm::display( M )
 ```
 
-The relative ranges of each study seems about the same.
-I.e., the variation in range for a given study seems to be mainly dependant on the size of the median range itself.
-
-
-We can do the same thing for ratio of SE across methods.
+We have no real evidence the person weighting is more precise than cluster weighting on average.
 
 ```{r}
-
-ggplot( rng, aes( UniqueID, ratioSE_mn ) ) +
-  geom_point() +
-  geom_errorbar( aes( ymin=ratioSE_Q05, ymax=ratioSE_Q95 ),
-                 width=0, alpha=0.5 ) +
-  coord_flip() +
-  scale_y_log10() +
-  labs( title = "Mean ratioSE across studies",
-        subtitle = "Ratio of SEs across permutations for each study" ) +
-  theme_minimal()
+M0 <- lmer( log(SE) ~ 1 + weight + (1|UniqueID) + (1|method),
+         data=meth_dat )
+anova( M0, M )
 ```
 
-Here it does seem that some studies tend to have much greater variability in the SE ratio across simulation iterations.
+We also have no evidence that the effect of weighting varies by study.
 
 
-```{r, include=FALSE, eval=FALSE}
-range_dat$ratioSE[ range_dat$ratioSE > 5 ] = 5
-range_dat$UniqueID = fct_reorder( range_dat$UniqueID, 
-                                   range_dat$ratioSE, 
-                                   .desc = TRUE )
+\newpage
 
-ggplot( range_dat, aes( UniqueID, ratioSE ) ) +
-  facet_wrap( ~ Collection, scales="free_y" ) +
-  geom_boxplot( fill="grey", outlier.size=0.3 ) +
-  coord_flip() +
-  labs( title = "ratio of SEs across simulation runs",
-        subtitle = "Windorizerd at ratio of 5" ) +
-  theme_minimal() +
-  scale_y_log10()
+
+# Stability in Uncertainty Estimation: Do some methods have more trouble estimating their standard error?
+
+
+We next look at whether some methods have more variation in how their estimated standard errors vary across simulation runs for given scenarios.
+For each estimator in each study, we can calculate $sd( \widehat{SE} ) / SE$.  We then make boxplots of those values for each study.
+
+```{r, warning=FALSE}
+meth_dat <- meth_dat %>%
+  mutate( sdSEhat_ratio = sdSEhat / SE )
+ggplot( meth_dat, aes( UniqueID, sdSEhat_ratio ) ) +
+  #facet_wrap( ~ Collection, scales="free_y" ) +
+  geom_boxplot( outlier.size = 0.5 ) +
+  coord_flip( ylim=c(0.00001,1 ) ) +
+    scale_y_log10() +
+  
+  labs( title = "sd( SE-hat ) / SE for estimators within study" )
 ```
 
-We see the ratio of SE across methods depends on the average cluster size, but that even for a given cluster size, some studies tend to have much higher ratios than than others:
+These relative standard deviations can be generally quite small (note the log scale)--this suggests most standard errors are precisely estimated, and that the estimates are very stable across differently generated datasets.
+
+We can look at these relative to a single overall median SE, which more directly measures estimation instability within study to a common benchmark amount of variation (this takes out effects of some estimators being more variable than others in the true SE):
+
+```{r, warning=FALSE}
+meth_dat <- meth_dat %>%
+  group_by( UniqueID ) %>%
+  mutate( relSE = sdSEhat / median( SE, na.rm=TRUE ) ) %>%
+  ungroup()
+
+# sd( SE-hat ) across study
+ggplot( meth_dat, aes( UniqueID, relSE ) ) +
+  #facet_wrap( ~ Collection, scales="free_y" ) +
+  geom_boxplot( outlier.size = 0.5 ) +
+  coord_flip( ylim=c(0.0001,1 ) ) +
+    scale_y_log10() +
+  geom_hline( yintercept = 0.05, col="red" ) +
+  labs( title = "sd( SE-hat ) / median(SE-hat) for estimators within study",
+        caption = "Red line at 0.05" )
+```
+
+Again, many of the $sd( \widehat{SE} )$ values are quite low, indicating the estimated SEs are quite stable.
+
+The most stable we see are the following:
 
 ```{r}
-rd = left_join( rng, studies, by="UniqueID" )
-
-ggplot( rd, aes( Jbar, ratioSE_mn ) ) +
-  scale_x_log10() +
-  geom_smooth( se=FALSE, span=1, method="loess" ) + 
-  geom_point()+
-  theme_minimal() +
-  labs( title = "Typical ratio of SEs across methods",
-        subtitle = "Windorizerd at ratio of 5",
-        x = "Average cluster size (Jbar)",
-        y = "Mean ratio" )
+meth_dat %>%
+  arrange( relSE ) %>%
+  mutate( calib = sqrt( ESEhat^2 / SE^2 ) ) %>%
+  dplyr::select( UniqueID, method, SE, ESEhat, calib, sdSEhat, relSE ) %>%
+  slice_head( n = 20 ) %>%
+  knitr::kable( digits = 3 )
 ```
 
-We next look more closely at studies where Jbar was less than 4.3:
+We can see if some estimators are notably less stable than others by grouping by estimator:
+
+```{r, warning=FALSE}
+ggplot( meth_dat, aes( method, relSE ) ) +
+  geom_boxplot( fill="lightgrey" ) +
+  geom_jitter( aes( color=has_single ), width=0.2, height=0, size=0.5 ) +
+  coord_flip( ) +
+  #  scale_y_log10() +
+  geom_hline( yintercept = c( 0.05, 0.1), col="red" ) +
+  labs( x= "",
+        y = "sd(SE-hat) / median(SE)",
+        title = "sd( SE-hat ) / median(SE-hat) for estimators across studies",
+        caption = "red line at 0.05 and 0.10; log scale x-axis!" )
+```
+Overall, all the methods have estimated standard errors that seem about the same wiggly, relative to their respective true standard errors.
+
+Nothing jumps out in the above plot.
+To complement the plot, we can fit a model to adjust for study effects:
 
 ```{r}
-range_dat = left_join( range_dat, studies, by="UniqueID" )
-sb <- filter( range_dat, Jbar < 4.3 ) %>%
-  mutate( UniqueID = fct_reorder( UniqueID, Jbar, .desc = TRUE ) )
+MM <- lmer( log( relSE ) ~ 1 + (1|method) + (1|UniqueID), data=meth_dat )
+arm::display(MM)
 
-rd %>% 
-  arrange( Jbar ) %>%
-  filter( Jbar < 4.3 ) %>%
-  dplyr::select( UniqueID, J, Jbar, K, ratioSE_mn, rangeATE_mn, na_SE_mn ) %>%
-  unique() %>%
-  print( n = 15 )
-
-ggplot( sb,
-        aes( UniqueID, ratioSE ) ) +
-  geom_boxplot( fill="grey", outlier.size=0.3 ) +
-  coord_flip() +
-  labs( title = "ratio of SEs across simulation runs",
-        subtitle = "Studies with Jbar < 4.3; Windorizerd at ratio of 5" ) +
-  theme_minimal() +
-  scale_y_log10()
+VarCorr(MM) %>% 
+  as.data.frame() %>% 
+  select(grp, vcov) %>% 
+  mutate(ICC = vcov / sum(vcov) )
 ```
 
+In the above, we are estimating the variation across estimators and across study.
+We see that study effects are very important: some studies the SEs are very well estimated, relative to the overall amount of uncertainty.
+The method effects are small, suggesting no method is systematically and substantially more or less stable in its estimated SEs.
 
-Some details of two interesting studies:
+A formal test:
 ```{r}
-uid = "jg_crt_17"
-clusterRCT:::print.clusterRCTstats( filter( studies, UniqueID == uid ) )
-
-clusterRCT:::print.clusterRCTstats( filter( studies, UniqueID == "TennStar_gktreadss" ) )
+M0 <- lmer( log( relSE ) ~ 1 + (1|UniqueID), data=meth_dat )
+anova( M0, MM )
 ```
 
+This says there is variation, even if the variation is small.
 
 
-## Which studies generate the highest SE ranges?
-
-We can then explore across the scenarios what characteristics lead to times when some methods truly are more precise than other methods
-
-```{r}
 
 
-source( here::here( "create_analysis_tree.R" ) )
-create_analysis_tree( range_dat, "ratioSE",
-                      c("J", "Jbar", "K", "num_singletons",
-                        "num_doubletons", "ncv", "Jcv", "tx.cv", "na_SE" ),
-                      max_leaves = 7
-                      )
 
-
-triad_id = "TRIADScale-up_rema2"
-create_analysis_tree( filter( range_dat, UniqueID != triad_id ), 
-                      "rangeATE",
-                      c("J", "Jbar", "K", "n", "nbar", "num_singletons",
-                        "num_doubletons", "ncv", "Jcv", "tx.cv", "na_SE" ),
-                      min_leaves = 10,
-                      max_leaves = 10
-)
-```
 
 
 \newpage
@@ -449,4 +1097,242 @@ ggplot( sub_dat, aes( ratioSE ) ) +
         subtitle = "(Ratios windsorized at 5x)" ) +
   theme_minimal()
 ```
+
+
+
+
+\newpage
+
+## Digging into TRIADScale-up_rema2
+
+We can look at `TRIADScale-up_rema2`.
+
+
+### How do the point estimates correlate? 
+
+Here we look at how point estimates of the different methods correlate with other point estimates across the replicates.
+Each point corresponds to two estimators applied to a single shared dataset.
+We are looking at all of the estimators that are unique, several estimators were dropped because they are not defined for this data set.
+
+```{r, warning=FALSE}
+triad <- filter( simdat, UniqueID == "TRIADScale-up_rema2",
+                 Covariates == "best" ) %>%
+  dplyr::select( -UniqueID, -Covariates, -Collection )
+
+triad_emp = triad %>%
+  dplyr::filter( runID == "empirical" )
+triad <- triad %>%
+  dplyr::filter( runID != "empirical" )
+
+
+tt <- triad %>%
+  dplyr::filter( method %in% core.methods, !is.na( ATE_hat ) ) %>%
+  dplyr::select( runID, method, ATE_hat ) %>%
+  pivot_wider( names_from = method, values_from = ATE_hat )
+
+
+
+plot( tt[,-1] )
+
+```
+
+### How do the estimated SEs look?
+
+We look at the estimated standard errors across the simulations. We are seeing some estimators reliabily give very different standard error estimates.
+
+The red lines showed the true standard error across the replicates.
+The histogram shows the range of estimated standard errors.
+Some of the estimators are giving systematically wrong standard errors that do not match the true standard error.
+
+This could be due to the randomness of the blocks, which the estimators do not take into account---they are assuming there is no block variation.
+That said, there is no block treatment variation---this is just randomness of the block intercepts.
+
+
+```{r}
+
+ttt <- filter( triad, !is.na( SE_hat ) )
+
+trueSE <- triad %>% 
+  group_by( method ) %>%
+  summarise( trueSE = sd( ATE_hat, na.rm=TRUE ) ) %>%
+  filter( method %in% ttt$method )
+
+ggplot( ttt, aes( SE_hat ) ) +
+  facet_wrap( ~method ) +
+#  geom_dotplot( method="histodot", binwidth = 0.005 ) +
+  geom_histogram() +
+  geom_vline( data=trueSE, aes( xintercept = trueSE ), col="red" ) +
+  theme(panel.border = element_rect(color = "black", fill = NA))
+
+
+#triad %>% 
+#  group_by( runID ) %>%
+#  filter( !is.na( SE_hat ) ) %>%
+#  summarise( SE_ratio = max( SE_hat ) / min( SE_hat ) ) %>%
+#  knitr::kable( digits = 2 )
+
+if ( FALSE ) {
+  tt <- triad %>%
+  dplyr::filter(method %in% core.methods.se) %>%
+  dplyr::select(runID, method, SE_hat) %>%
+  pivot_wider(names_from = method, values_from = SE_hat) %>%
+  dplyr::select(where(~ !all(is.na(.))))
+}
+
+```
+
+And how do the estimators perform?
+
+```{r}
+triad %>% group_by( method ) %>%
+  summarise( SE = sd( ATE_hat ),
+             ESEhat = mean( SE_hat ),
+             sdSEhat = sd( SE_hat ),
+             cal = ESEhat / SE ) %>%
+  arrange( -sdSEhat ) %>%
+  knitr::kable( digits = 3 )
+```
+
+
+## Digging into jg_crt_63
+
+We can look at `jg_crt_63`, the other "nearly a matched pair" scenario:
+
+
+### How do the point estimates correlate? 
+
+```{r}
+triad <- filter( simdat, UniqueID == "jg_crt_63",
+                 Covariates == "best" ) %>%
+  dplyr::select( -UniqueID, -Covariates, -Collection )
+
+triad_emp = triad %>%
+  dplyr::filter( runID == "empirical" )
+triad <- triad %>%
+  dplyr::filter( runID != "empirical" )
+
+tt <- triad %>%
+  dplyr::filter( method %in% core.methods, !is.na( ATE_hat ) ) %>%
+  dplyr::select( runID, method, ATE_hat ) %>%
+  pivot_wider( names_from = method, values_from = ATE_hat )
+
+
+
+plot( tt[,-1] )
+
+```
+
+### How do the estimated SEs work?
+```{r}
+
+ttt <- filter( triad, !is.na( SE_hat ) )
+
+trueSE <- triad %>% 
+  group_by( method ) %>%
+  summarise( trueSE = sd( ATE_hat, na.rm=TRUE ) ) %>%
+  filter( method %in% ttt$method )
+
+ggplot( ttt, aes( SE_hat ) ) +
+  facet_wrap( ~method ) +
+#  geom_dotplot( method="histodot", binwidth = 0.005 ) +
+  geom_histogram() +
+  geom_vline( data=trueSE, aes( xintercept = trueSE ), col="red" ) +
+  theme(panel.border = element_rect(color = "black", fill = NA))
+
+
+if ( FALSE ) {
+  triad %>% 
+  group_by( runID ) %>%
+  filter( !is.na( SE_hat ) ) %>%
+  summarise( SE_ratio = max( SE_hat ) / min( SE_hat ) ) %>%
+  knitr::kable( digits = 2 )
+
+
+tt <- triad %>%
+  dplyr::filter(method %in% core.methods.se) %>%
+  dplyr::select(runID, method, SE_hat) %>%
+  pivot_wider(names_from = method, values_from = SE_hat) %>%
+  dplyr::select(where(~ !all(is.na(.))))
+
+}
+
+```
+
+### And how do the estimators perform?
+
+```{r}
+triad %>% group_by( method ) %>%
+  summarise( SE = sd( ATE_hat ),
+             ESEhat = mean( SE_hat ),
+             sdSEhat = sd( SE_hat ),
+             cal = ESEhat / SE ) %>%
+  arrange( -sdSEhat ) %>%
+  knitr::kable( digits = 3 )
+```
+
+
+
+
+
+
+
+
+
+
+## Digging into jg_crt_23
+
+We can look at `jg_crt_23`, one of the studies that was not remarkable in terms of poor performance of anything.
+
+
+### How do the point estimates correlate? 
+
+```{r}
+triad <- filter( simdat, UniqueID == "jg_crt_23",
+                 Covariates == "best" ) %>%
+  dplyr::select( -UniqueID, -Covariates, -Collection )
+
+triad_emp = triad %>%
+  dplyr::filter( runID == "empirical" )
+triad <- triad %>%
+  dplyr::filter( runID != "empirical" )
+
+tt <- triad %>%
+  dplyr::filter( method %in% core.methods, !is.na( ATE_hat ) ) %>%
+  dplyr::select( runID, method, ATE_hat ) %>%
+  pivot_wider( names_from = method, values_from = ATE_hat )
+
+plot( tt[,-1] )
+
+```
+
+### How do the estimated SEs work?
+```{r}
+
+ttt <- filter( triad, !is.na( SE_hat ) )
+
+trueSE <- triad %>% 
+  group_by( method ) %>%
+  summarise( trueSE = sd( ATE_hat, na.rm=TRUE ) ) %>%
+  filter( method %in% ttt$method )
+
+ggplot( ttt, aes( SE_hat ) ) +
+  facet_wrap( ~method ) +
+  geom_histogram() +
+  geom_vline( data=trueSE, aes( xintercept = trueSE ), col="red" ) +
+  theme(panel.border = element_rect(color = "black", fill = NA))
+
+```
+
+### And how do the estimators perform?
+
+```{r}
+triad %>% group_by( method ) %>%
+  summarise( SE = sd( ATE_hat ),
+             ESEhat = mean( SE_hat ),
+             sdSEhat = sd( SE_hat ),
+             cal = ESEhat / SE ) %>%
+  arrange( -sdSEhat ) %>%
+  knitr::kable( digits = 3 )
+```
+
 

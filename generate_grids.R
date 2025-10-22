@@ -34,7 +34,7 @@ source( "R/simulation_support_code_fixed_district.R" )
 
 #Blocks all the same: 
 btype1<-data.frame( cv.district=0,
-                    sd.ATE=0,
+                    sd.district=0,
                     size.impact.cor = 0, 
                     nbar.J.cor = 0,   
                     proptx.impact.cor = 0,
@@ -44,7 +44,7 @@ btype1<-data.frame( cv.district=0,
 
 #Blocks all messy: 
 btype2<-data.frame( cv.district=.85, 
-                    sd.ATE=.6, 
+                    sd.district=.6, 
                     size.impact.cor = .8, 
                     nbar.J.cor = .8,   
                     proptx.impact.cor = .8, 
@@ -55,7 +55,7 @@ btype2<-data.frame( cv.district=.85,
                 
 #Blocks vaguely reasonable
 btype3<-data.frame( cv.district=.33,
-                    sd.ATE=0.2, 
+                    sd.district=0.2, 
                     size.impact.cor = .2, 
                     nbar.J.cor = .3,   
                     proptx.impact.cor = 0,
@@ -113,6 +113,19 @@ scenarios <- left_join(scenarios, blockvars, by="blocktype") %>%
   relocate( ID ) %>%
   as_tibble()
 
+if ( FALSE ) {
+  # some testing code
+  key_ID <- 1067
+  set.seed( 44040 )
+  debug( build_districts )
+  grid <- do.call( build_districts, 
+           scenarios[ scenarios$ID == key_ID, ] %>%
+             dplyr::select( -ID, -blocktype ) %>% 
+             as.list() )
+  
+  describe_district_grid(grid)
+  
+}
 
 #make the grid 
 scenarios$grid <- pmap( dplyr::select( scenarios, -ID, -blocktype ),
@@ -120,6 +133,7 @@ scenarios$grid <- pmap( dplyr::select( scenarios, -ID, -blocktype ),
 
 scenarios
 
+# Check a specific scenario
 scenarios[131,] %>%
   dplyr::select( blocktype, grid ) %>%
   unnest( cols = grid ) %>%
@@ -127,5 +141,6 @@ scenarios[131,] %>%
 
 #scenarios$run = map(scenarios$grid, run.scenario.fixed.district, R=1 , parallel=F)
 
+scenarios$group = "full_factor"
 saveRDS( scenarios, "scenarios.rds" )
 
