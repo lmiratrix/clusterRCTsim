@@ -15,7 +15,7 @@ rm(list=ls())
 
 
 source( "R/data_generation_code.R" )
-source( "R/simulation_support_code_fixed_district.R" )
+source( "R/simulation_support_code_fixed_block.R" )
 
 # Which set of simulation scenarios should we run?
 #
@@ -131,7 +131,7 @@ scat( "Running %d trials per scenario for %d scenarios\n",
       NUM_TRIALS_PER_SCENARIO,
       nrow(scenarios) )
 
-scenarios$run = map( scenarios$grid, run.scenario.fixed.district, 
+scenarios$run = map( scenarios$grid, run.scenario.fixed.block, 
                      R = NUM_TRIALS_PER_SCENARIO, parallel=FALSE )
 
 scat("**\n**\tTotal time elapsed:\n")
@@ -160,22 +160,22 @@ scenarios
 # Add in (estimated) superpopulation person weighted ATE by averaging across the runs.
 scenarios = mutate( scenarios, 
                     ATE.super.student = map_dbl( run, ~ mean( .$ATE.finite.student ) ),
-                    ATE.super.school = map_dbl( run, ~ mean(.$ATE.finite.school )),
+                    ATE.super.cluster = map_dbl( run, ~ mean(.$ATE.finite.cluster )),
                     ATE.super.dist.student = map_dbl( run, ~ mean(.$ATE.finite.dist.student ) ),
-                    ATE.super.dist.school = map_dbl( run, ~ mean(.$ATE.finite.dist.school ) ))
+                    ATE.super.dist.cluster = map_dbl( run, ~ mean(.$ATE.finite.dist.cluster ) ))
 
 # Rearrange and foreground relevant columns
 scenarios = dplyr::select( scenarios, 
-                           ID, K, J.bar, p.bar, sd.ATE, ICC.district, 
-                           variable.p, n.bar, sd.school, ICC.school,
-                           size.impact.cor, size.impact.cor.school,
+                           ID, K, J.bar, p.bar, sd.ATE, ICC.block, 
+                           variable.p, n.bar, sd.cluster, ICC.cluster,
+                           size.impact.cor, size.impact.cor.cluster,
                            proptx.impact.cor,
                            
-                           ATE.super.district = ATE, 
-                           ATE.super.school, 
+                           ATE.super.block = ATE, 
+                           ATE.super.cluster, 
                            ATE.super.student, 
                            ATE.super.dist.student,
-                           ATE.super.dist.school,
+                           ATE.super.dist.cluster,
                            everything() ) %>% 
   mutate(group=group)
 

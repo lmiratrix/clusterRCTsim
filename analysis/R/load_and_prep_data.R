@@ -16,6 +16,17 @@ require(pander)
 
 load( here::here( "results_agg/combined_simulation_results.RData" ) )
 
+# replace 'block' with 'block' for all names in sruns dataframe:
+sruns <- sruns %>%
+  rename_with(~ str_replace_all(., "district", "block")) %>%
+  rename_with(~ str_replace_all(., ".dist", ".block")) %>%
+  rename_with(~ str_replace_all(., "school", "cluster")) %>%
+  rename_with(~ str_replace_all(., ".sch", ".clu"))
+  
+  
+  
+
+
 #figure out what didn't run in the low df 
 lowdf<-sruns %>% filter(group=="lowdf")
 with(lowdf,table(is.na(mean.SE.hat),method))
@@ -23,10 +34,10 @@ with(lowdf,table(is.na(mean.ATE.hat),method))
 #there are estimates for all the methods for all the scenarios, but not SEs 
 
      
-DGP_vars <- c("K", "J.bar", "p.bar", "sd.ATE", "ICC.district", "variable.p", 
-              "n.bar", "sd.school", "ICC.school", "size.impact.cor", "size.impact.cor.school", 
-              "proptx.impact.cor", "num.cov.district", "num.cov.school", "cv.school", 
-              "num.cov.indiv", "empirical", "cv.district", "nbar.J.cor", 
+DGP_vars <- c("K", "J.bar", "p.bar", "sd.ATE", "ICC.block", "variable.p", 
+              "n.bar", "sd.cluster", "ICC.cluster", "size.impact.cor", "size.impact.cor.cluster", 
+              "proptx.impact.cor", "num.cov.block", "num.cov.cluster", "cv.cluster", 
+              "num.cov.indiv", "empirical", "cv.block", "nbar.J.cor", 
               "size.intercept.cor", "cv.nbar", "R")
 
 
@@ -157,19 +168,19 @@ create_labeled_factor_by_group <- function(data, variable, group_var) {
 # Drop impossible combos ---
 
 # Check combos of simulations
-table( cv.school = sruns$cv.school, 
-       sd.school = sruns$sd.school,
-       size.impact.cor.school = sruns$size.impact.cor.school )
+table( cv.cluster = sruns$cv.cluster, 
+       sd.cluster = sruns$sd.cluster,
+       size.impact.cor.cluster = sruns$size.impact.cor.cluster )
 
 
 table( sruns$variable.p, sruns$proptx.impact.cor )
 
-table( sruns$size.impact.cor, sruns$sd.school )
+table( sruns$size.impact.cor, sruns$sd.cluster )
 
 
 sruns <- sruns %>%
-  filter( !(size.impact.cor.school != 0 & sd.school == 0) ) %>%
-  filter( !(size.impact.cor.school != 0 & cv.school == 0) ) 
+  filter( !(size.impact.cor.cluster != 0 & sd.cluster == 0) ) %>%
+  filter( !(size.impact.cor.cluster != 0 & cv.cluster == 0) ) 
 
 
 
@@ -188,7 +199,7 @@ sruns.clean <- sruns %>%
   # Create a different block type variable for the full factor and the low df data sets 
   mutate(block_type = case_when(
     # Blocks all the same (btype1)
-    cv.district == 0 &
+    cv.block == 0 &
       sd.ATE == 0 & 
       size.impact.cor == 0 & 
       nbar.J.cor == 0 &
@@ -199,7 +210,7 @@ sruns.clean <- sruns %>%
       group=="full_factor" ~ 1,
     
     # Blocks all messy (btype2)
-    cv.district == 0.85 &
+    cv.block == 0.85 &
       sd.ATE == 0.6 & 
       size.impact.cor == 0.8 & 
       nbar.J.cor == 0.8 &
@@ -209,7 +220,7 @@ sruns.clean <- sruns %>%
       cv.nbar == 0.33 & group=="full_factor" ~ 3,
     
     # Blocks vaguely reasonable (btype3)
-    cv.district == 0.33 &
+    cv.block == 0.33 &
       sd.ATE == 0.2 & 
       size.impact.cor == 0.2 & 
       nbar.J.cor == 0.3 &
@@ -240,15 +251,15 @@ sruns.clean <- sruns %>%
   )) %>% 
   mutate(
     bias.s.estimand = case_when(
-      weight == "Cluster" ~ bias.s.sch,
+      weight == "Cluster" ~ bias.s.clu,
       weight == "Person" ~ bias.s.stu
     ),
     cover.s.estimand = case_when(
-      weight == "Cluster" ~ cover.s.sch,
+      weight == "Cluster" ~ cover.s.clu,
       weight == "Person" ~ cover.s.stu
     ),
     RMSE.s.estimand = case_when(
-      weight == "Cluster" ~ RMSE.s.sch,
+      weight == "Cluster" ~ RMSE.s.clu,
       weight == "Person" ~ RMSE.s.stu
     )
   ) %>%
@@ -257,13 +268,13 @@ sruns.clean <- sruns %>%
   create_labeled_factor_by_group("size.impact.cor", "group") %>%
   create_labeled_factor_by_group("J.bar", "group") %>%
   create_labeled_factor_by_group("p.bar", "group") %>%
-  create_labeled_factor_by_group("sd.school", "group") %>%
-  create_labeled_factor_by_group("ICC.school", "group") %>%
-  create_labeled_factor_by_group("cv.school", "group") %>%
-  create_labeled_factor_by_group("num.cov.school", "group") %>%
+  create_labeled_factor_by_group("sd.cluster", "group") %>%
+  create_labeled_factor_by_group("ICC.cluster", "group") %>%
+  create_labeled_factor_by_group("cv.cluster", "group") %>%
+  create_labeled_factor_by_group("num.cov.cluster", "group") %>%
   create_labeled_factor_by_group("proptx.impact.cor", "group") %>%
   create_labeled_factor_by_group("size.intercept.cor", "group") %>%
-  create_labeled_factor_by_group("size.impact.cor.school", "group") %>%
+  create_labeled_factor_by_group("size.impact.cor.cluster", "group") %>%
   mutate(
     # Fix for the factor problem - explicitly define levels based on your block types
     block_type = factor(block_type, 
@@ -274,12 +285,12 @@ sruns.clean <- sruns %>%
                               labels = c("Same", "Reas", "Mess")),
     bias.s.estimand.mag = abs(bias.s.estimand),
     method = reorder(method, -biased),
-    bias.ratio.sch = round(bias.f.sch/bias.s.sch, 4),
+    bias.ratio.clu = round(bias.f.clu/bias.s.clu, 4),
     bias.ratio.stu = round(bias.f.stu/bias.s.stu, 4),
-    RMSE.ratio.sch = round(RMSE.f.sch/RMSE.s.sch, 4),
+    RMSE.ratio.clu = round(RMSE.f.clu/RMSE.s.clu, 4),
     RMSE.ratio.stu = round(RMSE.f.stu/RMSE.s.stu, 4),
     cover.ratio.stu = round(cover.f.stu/cover.s.stu, 4),
-    cover.ratio.sch = round(cover.f.sch/cover.s.sch, 4),    
+    cover.ratio.clu = round(cover.f.clu/cover.s.clu, 4),    
     true.se.ratio = round(SE.f/SE.s, 2)
   ) %>%
   mutate(
@@ -295,9 +306,9 @@ table(sruns.clean$block_type)
 levels(sruns.clean$block_type_lowdf)
 table(sruns.clean$block_type_lowdf)
 levels(sruns.clean$J.bar)
-levels(sruns.clean$ICC.school)
+levels(sruns.clean$ICC.cluster)
 levels(sruns.clean$sd.ATE)
-levels(sruns.clean$sd.school)
+levels(sruns.clean$sd.cluster)
 table(sruns.clean$ID)
 
 

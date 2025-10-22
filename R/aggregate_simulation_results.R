@@ -36,7 +36,7 @@ calculate_range_statistics <- function( simdata ) {
 #' given a nested simulation
 calculate_performance_statistics <- function( simdata, 
                                               ATE.super.student = NULL,
-                                              ATE.super.school = NULL,
+                                              ATE.super.cluster = NULL,
                                               align = TRUE, 
                                               runID = "run" ) {
   
@@ -50,7 +50,7 @@ calculate_performance_statistics <- function( simdata,
   
   if ( is.null( ATE.super.student ) ) {
     ATE.super.student = mean( simdata$ATE.finite.student )
-    ATE.super.school = mean( simdata$ATE.finite.school )
+    ATE.super.cluster = mean( simdata$ATE.finite.cluster )
   }
   
   cover.vector = function( ATE.hat, SE.hat, estimand ) {
@@ -60,14 +60,14 @@ calculate_performance_statistics <- function( simdata,
   
   simdata = mutate( simdata, 
                     cov.f.stu = cover.vector( ATE.hat, SE.hat, ATE.finite.student ),
-                    cov.f.sch = cover.vector( ATE.hat, SE.hat, ATE.finite.school),
+                    cov.f.clu = cover.vector( ATE.hat, SE.hat, ATE.finite.cluster),
                     #cov.f.dstu = cover.vector( ATE.hat, SE.hat, ATE.finite.dist.student ),
-                    #cov.f.dsch = cover.vector( ATE.hat, SE.hat, ATE.finite.dist.school),
+                    #cov.f..clu = cover.vector( ATE.hat, SE.hat, ATE.finite.dist.cluster),
                     
                     cov.s.stu = cover.vector( ATE.hat, SE.hat, ATE.super.student ),
-                    cov.s.sch = cover.vector( ATE.hat, SE.hat, ATE.super.school ),
+                    cov.s.clu = cover.vector( ATE.hat, SE.hat, ATE.super.cluster ),
                     #cov.s.dstu = cover.vector( ATE.hat, SE.hat, ATE.super.dist.student ),
-                    #cov.s.dsch = cover.vector( ATE.hat, SE.hat, ATE.super.dist.school ))
+                    #cov.s..clu = cover.vector( ATE.hat, SE.hat, ATE.super.dist.cluster ))
   )
   
   
@@ -83,27 +83,27 @@ calculate_performance_statistics <- function( simdata,
                
                # bias of estimators for each estimand
                bias.f.stu = mean( ATE.hat - ATE.finite.student ),
-               bias.f.sch = mean( ATE.hat - ATE.finite.school ),
+               bias.f.clu = mean( ATE.hat - ATE.finite.cluster ),
                #bias.f.dstu = mean( ATE.hat - ATE.finite.dist.student ),
-               #bias.f.dsch = mean( ATE.hat - ATE.finite.dist.school ),
+               #bias.f..clu = mean( ATE.hat - ATE.finite.dist.cluster ),
                bias.s.stu = mean( ATE.hat - ATE.super.student ),
-               bias.s.sch = mean( ATE.hat - ATE.super.school ),
+               bias.s.clu = mean( ATE.hat - ATE.super.cluster ),
                #bias.s.dstu = mean( ATE.hat - ATE.super.dist.student ),
-               #bias.s.dsch = mean( ATE.hat - ATE.super.dist.school ),
+               #bias.s..clu = mean( ATE.hat - ATE.super.dist.cluster ),
                MCSE.bias = pmax( MCSE_bias( ATE.hat - ATE.finite.student ),
-                                 MCSE_bias( ATE.hat - ATE.finite.school ) ),
+                                 MCSE_bias( ATE.hat - ATE.finite.cluster ) ),
                
                # RMSE of estimators for each estimand
                RMSE.f.stu = sqrt( mean( ( ATE.hat - ATE.finite.student )^2 ) ),
-               RMSE.f.sch = sqrt( mean( ( ATE.hat - ATE.finite.school   )^2 ) ),
+               RMSE.f.clu = sqrt( mean( ( ATE.hat - ATE.finite.cluster   )^2 ) ),
                #RMSE.f.dstu = sqrt( mean( ( ATE.hat - ATE.finite.dist.student )^2 ) ),
-               #RMSE.f.dsch = sqrt( mean( ( ATE.hat - ATE.finite.dist.school   )^2 ) ),
+               #RMSE.f..clu = sqrt( mean( ( ATE.hat - ATE.finite.dist.cluster   )^2 ) ),
                RMSE.s.stu = sqrt( mean( ( ATE.hat - ATE.super.student  )^2 ) ),
-               RMSE.s.sch = sqrt( mean( ( ATE.hat - ATE.super.school )^2 ) ),
+               RMSE.s.clu = sqrt( mean( ( ATE.hat - ATE.super.cluster )^2 ) ),
                #RMSE.s.dstu = sqrt( mean( ( ATE.hat - ATE.super.dist.student  )^2 ) ),
-               #RMSE.s.dsch = sqrt( mean( ( ATE.hat - ATE.super.dist.school )^2 ) ),
+               #RMSE.s..clu = sqrt( mean( ( ATE.hat - ATE.super.dist.cluster )^2 ) ),
                MCSE.RMSE = pmax( MCSE_SE( ATE.hat - ATE.finite.student ),
-                                 MCSE_SE( ATE.hat - ATE.finite.school ) ),
+                                 MCSE_SE( ATE.hat - ATE.finite.cluster ) ),
                
                # true superpopulation sd of estimate
                SE.s = sd( ATE.hat ),
@@ -114,15 +114,15 @@ calculate_performance_statistics <- function( simdata,
                
                # coverage rates
                cover.f.stu = mean( cov.f.stu, na.rm=TRUE ),
-               cover.f.sch = mean( cov.f.sch, na.rm=TRUE ),
+               cover.f.clu = mean( cov.f.clu, na.rm=TRUE ),
                #cover.f.dstu = mean( cov.f.dstu ),
-               #cover.f.dsch = mean( cov.f.dsch ),
+               #cover.f..clu = mean( cov.f..clu ),
                cover.s.stu = mean( cov.s.stu, na.rm=TRUE ),
-               cover.s.sch = mean( cov.s.sch, na.rm=TRUE ),
+               cover.s.clu = mean( cov.s.clu, na.rm=TRUE ),
                #cover.s.dstu = mean( cov.s.dstu ),
-               #cover.s.dsch = mean( cov.s.dsch ),
+               #cover.s..clu = mean( cov.s..clu ),
                MCSE.cover = pmax( MCSE_bias( cov.f.stu ),
-                                  MCSE_bias( cov.f.sch ) ),
+                                  MCSE_bias( cov.f.clu ) ),
                
                avg.df = mean( df, na.rm=TRUE ),
                
@@ -130,14 +130,14 @@ calculate_performance_statistics <- function( simdata,
                
                # # SD of finite-sample estimands (?)
                # sd.ATE.f.stu = sd( ATE.finite.student ),
-               # sd.ATE.f.sch = sd( ATE.finite.school ),
+               # sd.ATE.f.clu = sd( ATE.finite.cluster ),
                # sd.ATE.f.dstu = sd( ATE.finite.dist.student ),
-               # sd.ATE.f.dsch = sd( ATE.finite.dist.school ),
+               # sd.ATE.f..clu = sd( ATE.finite.dist.cluster ),
                
                # var.err2.s.stu = var( ATE.hat - ATE.super.student ),
-               # var.err2.s.sch = var( ATE.hat - ATE.super.school ),
+               # var.err2.s.clu = var( ATE.hat - ATE.super.cluster ),
                # var.err2.s.dstu = var( ATE.hat - ATE.super.dist.student ),
-               # var.err2.s.dsch = var( ATE.hat - ATE.super.dist.school )
+               # var.err2.s..clu = var( ATE.hat - ATE.super.dist.cluster )
                
                .groups = "drop"
     )
@@ -198,11 +198,11 @@ align_performance_stats <- function( stats ) {
   stats %>%
     mutate( 
       bias = ifelse( grepl( "Student|Person", weight ),
-                     bias.f.stu, bias.f.sch ),
+                     bias.f.stu, bias.f.clu ),
       RMSE = ifelse( grepl( "Student|Person", weight ), 
-                     RMSE.f.stu, RMSE.f.sch ),
+                     RMSE.f.stu, RMSE.f.clu ),
       cover = ifelse( grepl( "Student|Person", weight ),
-                      cover.f.stu, cover.f.sch )
+                      cover.f.stu, cover.f.clu )
     ) %>%
     dplyr::select( method, weight, 
                    mean.SE.hat, mean.ATE.hat, 

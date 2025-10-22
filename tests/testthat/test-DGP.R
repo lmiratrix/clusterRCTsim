@@ -32,34 +32,34 @@ test_that( "single block DGP code works", {
 })
 
 
-test_that( "district generation function works", {
+test_that( "block generation function works", {
   
-  df <- generate_districts(
+  df <- generate_blocks(
     K = 3, 
     J.bar = 20,
     p.bar = 0.3,
-    ATE.district = 0.3,
-    sd.district = 0.2,
-    ICC.district = 0.3,
+    ATE.block = 0.3,
+    sd.block = 0.2,
+    ICC.block = 0.3,
     variable.p = TRUE,
     
     # cluster-level params
     n.bar = 30, 
-    sd.school = 0.4, 
-    ICC.school = 0.2,
+    sd.cluster = 0.4, 
+    ICC.cluster = 0.2,
     
     # size and correlation params
-    cv.district = 1,
-    cv.school = 1,
-    size.impact.cor.district = TRUE,
-    size.intercept.cor.district = TRUE,
-    size.impact.cor.school = TRUE,
-    proptx.impact.cor.district = TRUE )
+    cv.block = 1,
+    cv.cluster = 1,
+    size.impact.cor.block = TRUE,
+    size.intercept.cor.block = TRUE,
+    size.impact.cor.cluster = TRUE,
+    proptx.impact.cor.block = TRUE )
   
   
-  districts = attr( df, "district_key" )
-  districts
-  expect_equal( nrow(districts), 3 )
+  blocks = attr( df, "block_key" )
+  blocks
+  expect_equal( nrow(blocks), 3 )
   
 })
 
@@ -141,16 +141,16 @@ test_that( "generating R2 covariates works", {
 
 
 
-#### Check building set of districts ####
+#### Check building set of blocks ####
 
 test_that( "build_disticts() works", {
   
   
   set.seed( 40404 )
-  grid <- build_districts( K = 10, J.bar = 200, p.bar = 0.7,
-                           ATE = 0.2, sd.district = 0.1,
+  grid <- build_blocks( K = 10, J.bar = 200, p.bar = 0.7,
+                           ATE = 0.2, sd.block = 0.1,
                            n.bar = 20,
-                           ICC.district = 0.2,
+                           ICC.block = 0.2,
                            variable.p = FALSE, 
                            R2 = 0.7)
   
@@ -167,19 +167,19 @@ test_that( "build_disticts() works", {
   
   set.seed( 430404 )
   
-  grid <- build_districts( K = 10, J.bar = 100, p.bar = 0.7,
-                           ATE = 0.2, sd.district = 0.1,
-                           ICC.district = 0,
-                           cv.district = 0.6,
+  grid <- build_blocks( K = 10, J.bar = 100, p.bar = 0.7,
+                           ATE = 0.2, sd.block = 0.1,
+                           ICC.block = 0,
+                           cv.block = 0.6,
                            variable.p = TRUE,
                            n.bar = 40,
-                           num.cov.district = 5,
+                           num.cov.block = 5,
                            proptx.impact.cor = 1.0 )
   
   
   grid
-  cor( grid$p, grid$district.tau ) 
-  expect_true( cor( grid$district.tau, grid$p ) > 0.9 )
+  cor( grid$p, grid$block.tau ) 
+  expect_true( cor( grid$block.tau, grid$p ) > 0.9 )
   expect_true( !is.null( grid$Xd5 ) )
   expect_equal( sd( grid$Xd5 ), 1, tolerance=0.3 )  
   
@@ -189,61 +189,61 @@ test_that( "build_disticts() works", {
 
 
 
-#### Check limiting variation of districts ####
+#### Check limiting variation of blocks ####
 
-test_that( "limiting variation of districts works", {
+test_that( "limiting variation of blocks works", {
   
   set.seed( 40404 )
-  grid <- build_districts( K = 10, J.bar = 200, p.bar = 0.7,
-                           ATE = 0.2, sd.district = 0.1,
-                           ICC.district = 0.2,
+  grid <- build_blocks( K = 10, J.bar = 200, p.bar = 0.7,
+                           ATE = 0.2, sd.block = 0.1,
+                           ICC.block = 0.2,
                            n.bar = 35,
                            variable.p = FALSE,
-                           cv.district = 0 )
+                           cv.block = 0 )
   
   expect_true( sd( grid$J ) == 0 )
   
   set.seed( 40404 )
-  grid <- build_districts( K = 10, J.bar = 200, p.bar = 0.7,
-                           ATE = 0.2, sd.district = 0.1,
+  grid <- build_blocks( K = 10, J.bar = 200, p.bar = 0.7,
+                           ATE = 0.2, sd.block = 0.1,
                            n.bar = 35,
-                           ICC.district = 0.2,
+                           ICC.block = 0.2,
                            variable.p = FALSE,
-                           cv.district = 0.5 )
+                           cv.block = 0.5 )
   
   expect_true( sd( grid$J ) > 0 )
   
   
   
-  df <- generate_districts(
+  df <- generate_blocks(
     K = 3, 
     J.bar = 20,
     p.bar = 0.2,
-    ATE.district = 0.3,
-    sd.district = 0,
-    ICC.district = 0,
+    ATE.block = 0.3,
+    sd.block = 0,
+    ICC.block = 0,
     variable.p = TRUE,
     
     # cluster-level params
     n.bar = 30, 
-    sd.school = 0.4, 
-    ICC.school = 0.2,
+    sd.cluster = 0.4, 
+    ICC.cluster = 0.2,
 
     # size and correlation params
-    cv.district = 1,
-    cv.school = 1,
-    size.impact.cor.district = FALSE,
-    size.intercept.cor.district = FALSE,
-    size.impact.cor.school = TRUE,
-    proptx.impact.cor.district = TRUE )
+    cv.block = 1,
+    cv.cluster = 1,
+    size.impact.cor.block = FALSE,
+    size.intercept.cor.block = FALSE,
+    size.impact.cor.cluster = TRUE,
+    proptx.impact.cor.block = TRUE )
   
   
-  districts = attr( df, "district_key" )
-  districts
+  blocks = attr( df, "block_key" )
+  blocks
   
-  expect_equal( nrow(districts), 3 )
-  expect_equal( sd( districts$district.tau ), 0 )
-  expect_equal( sd( districts$district.alpha ), 0 )
+  expect_equal( nrow(blocks), 3 )
+  expect_equal( sd( blocks$block.tau ), 0 )
+  expect_equal( sd( blocks$block.alpha ), 0 )
   
 })
 
@@ -253,32 +253,32 @@ test_that( "limiting variation of districts works", {
 
 test_that( "overall variation is 1", {
   
-  df <- generate_districts(
+  df <- generate_blocks(
     K = 25,
     J.bar = 50, 
     p.bar = 0.5,
-    ATE.district = 0.2, 
-    sd.district = 0.1,
-    ICC.district = 0.5,
+    ATE.block = 0.2, 
+    sd.block = 0.1,
+    ICC.block = 0.5,
     variable.p = T,
     
     # correlation params at cluster level
-    cv.district = 0.6, 
-    size.impact.cor.district = 0.2,
-    proptx.impact.cor.district = 0.2,
-    size.intercept.cor.district = 0.2,
+    cv.block = 0.6, 
+    size.impact.cor.block = 0.2,
+    proptx.impact.cor.block = 0.2,
+    size.intercept.cor.block = 0.2,
     
-    # school-level params
+    # cluster-level params
     n.bar = 50, 
-    sd.school = 0.1, 
-    ICC.school = 0.2,
+    sd.cluster = 0.1, 
+    ICC.cluster = 0.2,
     
     # correlation params at individual level
-    cv.school = 0.6,
-    size.impact.cor.school = 0
+    cv.cluster = 0.6,
+    size.impact.cor.cluster = 0
   )
   
-  dist <- attr( df, "district_key")
+  dist <- attr( df, "block_key")
   expect_equal( nrow(dist), 25 )
   
   expect_equal( sd( df$Y0 ), 1, tolerance = 0.05 )  
@@ -291,38 +291,38 @@ test_that( "overall variation is 1", {
 
 test_that( "School- and individual-level covariates generate", {
   
-  df <- generate_districts(
+  df <- generate_blocks(
     K = 25,
     J.bar = 50, 
     p.bar = 0.5,
-    ATE.district = 0.2, 
-    sd.district = 0.1,
-    ICC.district = 0.5,
+    ATE.block = 0.2, 
+    sd.block = 0.1,
+    ICC.block = 0.5,
     variable.p = T,
     
-    num.cov.district = 5,
-    num.cov.school = 2,
+    num.cov.block = 5,
+    num.cov.cluster = 2,
     num.cov.indiv = 3,
-    R2.district = 0.5,
-    R2.school = 0.3,
+    R2.block = 0.5,
+    R2.cluster = 0.3,
     R2.indiv = 0.7,
     
     # correlation params at cluster level
-    cv.district = 0.6, 
-    size.impact.cor.district = 0.2,
-    proptx.impact.cor.district = 0.2,
-    size.intercept.cor.district = 0.2,
+    cv.block = 0.6, 
+    size.impact.cor.block = 0.2,
+    proptx.impact.cor.block = 0.2,
+    size.intercept.cor.block = 0.2,
     
-    # school-level params
+    # cluster-level params
     n.bar = 50, 
-    sd.school = 0.1, 
-    ICC.school = 0.2,
+    sd.cluster = 0.1, 
+    ICC.cluster = 0.2,
     
     # correlation params at individual level
-    cv.school = 0.6,
-    size.impact.cor.school = 0  )
+    cv.cluster = 0.6,
+    size.impact.cor.cluster = 0  )
   
-  dist <- attr( df, "district_key")
+  dist <- attr( df, "block_key")
   expect_equal( nrow(dist), 25 )
   head( dist )
   expect_true( all( paste0( "Xd", 1:5 ) %in% colnames(dist) ) )
@@ -339,26 +339,26 @@ test_that( "School- and individual-level covariates generate", {
   R2.i = 0.5
   
   
-  df <- generate_districts(
+  df <- generate_blocks(
     
-    ICC.district = ICC.d,
-    ICC.school = ICC.s,
-    R2.district = R2.d,
-    R2.school = R2.s,
+    ICC.block = ICC.d,
+    ICC.cluster = ICC.s,
+    R2.block = R2.d,
+    R2.cluster = R2.s,
     R2.indiv = R2.i,
     
     K = 25, J.bar = 50, p.bar = 0.5,
-    ATE.district = 0.2, sd.district = 0.1,
+    ATE.block = 0.2, sd.block = 0.1,
     variable.p = T,
-    cv.district = 0.6, 
-    size.impact.cor.district = 0.2,
-    proptx.impact.cor.district = 0.2,
-    size.intercept.cor.district = 0.2,
-    n.bar = 50, sd.school = 0.1, 
-    cv.school = 0.6,
-    size.impact.cor.school = 0  )
+    cv.block = 0.6, 
+    size.impact.cor.block = 0.2,
+    proptx.impact.cor.block = 0.2,
+    size.intercept.cor.block = 0.2,
+    n.bar = 50, sd.cluster = 0.1, 
+    cv.cluster = 0.6,
+    size.impact.cor.cluster = 0  )
   
-  dist <- attr( df, "district_key")
+  dist <- attr( df, "block_key")
   expect_equal( nrow(dist), 25 )
   head( dist )
   expect_true( "Xd1" %in% colnames(dist) )
@@ -385,24 +385,24 @@ test_that( "School- and individual-level covariates capture ICC and R2", {
     
     rrr <- replicate( 5, 
                       { 
-                        df <- generate_districts(
+                        df <- generate_blocks(
                           
-                          ICC.district = ICC.d,
-                          ICC.school = ICC.s,
-                          R2.district = R2.d,
-                          R2.school = R2.s,
+                          ICC.block = ICC.d,
+                          ICC.cluster = ICC.s,
+                          R2.block = R2.d,
+                          R2.cluster = R2.s,
                           R2.indiv = R2.i,
                           
                           K = 40, J.bar = 40, p.bar = 0.5,
-                          ATE.district = 0.2, sd.district = 0.1,
+                          ATE.block = 0.2, sd.block = 0.1,
                           variable.p = T,
-                          cv.district = 0.6, 
-                          size.impact.cor.district = 0.2,
-                          proptx.impact.cor.district = 0.2,
-                          size.intercept.cor.district = 0.2,
-                          n.bar = 50, sd.school = 0.1, 
-                          cv.school = 0.6,
-                          size.impact.cor.school = 0 )
+                          cv.block = 0.6, 
+                          size.impact.cor.block = 0.2,
+                          proptx.impact.cor.block = 0.2,
+                          size.intercept.cor.block = 0.2,
+                          n.bar = 50, sd.cluster = 0.1, 
+                          cv.cluster = 0.6,
+                          size.impact.cor.cluster = 0 )
                         
                         expect_equal( sd( df$Y0 ), 1, tolerance = 0.15 )
                         
@@ -496,32 +496,32 @@ test_that( "ICC = 0 works", {
   expect_true( VarCorr( M )$sid < 0.03 )
   
   
-  df <- generate_districts(
+  df <- generate_blocks(
     K = 25,
     J.bar = 50, 
     p.bar = 0.5,
-    ATE.district = 0.2, 
-    sd.district = 0.1,
-    ICC.district = 0.5,
+    ATE.block = 0.2, 
+    sd.block = 0.1,
+    ICC.block = 0.5,
     variable.p = T,
     
     # correlation params at cluster level
-    cv.district = 0.6, 
-    size.impact.cor.district = 0.2,
-    proptx.impact.cor.district = 0.2,
-    size.intercept.cor.district = 0.2,
+    cv.block = 0.6, 
+    size.impact.cor.block = 0.2,
+    proptx.impact.cor.block = 0.2,
+    size.intercept.cor.block = 0.2,
     
-    # school-level params
+    # cluster-level params
     n.bar = 50, 
-    sd.school = 0.1, 
-    ICC.school = 0,
+    sd.cluster = 0.1, 
+    ICC.cluster = 0,
     
     # correlation params at individual level
-    cv.school = 0.6,
-    size.impact.cor.school = 0
+    cv.cluster = 0.6,
+    size.impact.cor.cluster = 0
   )
   
-  dist <- attr( df, "district_key")
+  dist <- attr( df, "block_key")
   expect_equal( nrow(dist), 25 )
   
   library( lme4 )
