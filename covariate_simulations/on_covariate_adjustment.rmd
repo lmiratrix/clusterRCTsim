@@ -1,0 +1,66 @@
+---
+title: "Covariate Adustment"
+author: "Miratrix"
+date: "2025-09-17"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+We can think of three kinds of covariates:
+
+ * Level 2 covariates: these are characteristics of the clusters (e.g., school size, urbanicity, average income in the area)
+ * Level 1 covariates: these are characteristics of the individuals (e.g., student pretest). Now a level 1 covariate can be aggregated at the cluster level, making a level 2 covariate.  Due to random variation, even if the true means of the clusters were all the same, we would expect mild differences in our sample.  If we group mean center our level 1 covariate, however, then we have a "pure" level 1 covariate.
+ * Dual level covariates: these are level 1 covariates that have real variation in their means when aggregated to level 2.  I.e., if high achieving students tend to cluster together, our level 1 covariate has a "meaningful" amount of level 2 covariate "in it."
+ 
+Now in the case of matched pairs or close to matched pairs experiments, if we include a level 2 covariate we lose a degree of freedom for the fully interacted models.
+Indeed, for a pure matched pairs experiment, our overall estimator is no longer identified due to colinearity of the treatment with the covariate.
+
+For an individual-level regression we can, however, include a level 1 covariate---this will explain variation within cluster, reducing cluster variation, and thus give us a more precise estimate of the ATE.
+
+So what happens when our level 1 covariate is actually a dual level covariate?  That is, it has real variation in its means when aggregated to level 2.
+For example, what if our level 1 covariate is simply a level 2 covariate plus some residual noise?
+
+We have the following notes:
+
+## Fixed effect estimators
+
+These are all fine, regardless of level one or level two considerations.
+Our conservative degrees of freedom is $df = J - K - 1 - g$, where $g$ is the number of covariates.
+In a matched pairs experiment, $J = 2K$, and so we have $df = K - 1 - g$ which will be generally fine provided we have a decent number of pairs.
+
+
+## Fully interacted estimators (aggregated data)
+
+Here we do not have level 1 covariates.
+Any level 1 covariate has been turned into a level 2 covariate by aggregation.
+For matched pairs, then, adjusting for anything will be impossible.
+For close to matched pairs, we can adjust for level 2 covariates, but we lose a degree of freedom for each one, and this can create instability in our ability to estimate standard errors.
+
+
+## Fully interacted estimators (individual data)
+
+Here we can include level 1 covariates, and this can help us.
+
+If we include a level 2 covariate, however, we will lose a degree of freedom, as with aggregated data.
+
+For a dual level covariate, we can include it, and our estimators will be defined, but if the level 1 variation is small, relative to level 2 variation, then the covariate can introduce instability into the overall ATE estimate, making the SEs _worse_ than for no adjustment at all.  If the variation is large, then the covariate adjustment has little to no effect, giving us essentially the same performance as the estimator without covariate adjustment.
+
+For standard errors, they are not generally defined for fully interacted estimators when there are singletons in some clusters.
+The multilevel model, however, does have standard errors.
+In the case of a small amount of variation at level 1 in the covariate, the estimated standard errors are very unstable.
+
+
+
+# Evidence
+
+We can run a small set of simulations illustrating the above points.
+In particular, we run a set of demonstrations varying the following factors
+
+ * Structure: Matched pairs; Matched pairs with a single strata with 4 clusters; Small experiment with 4 strata of 4 clusters each
+ * Level 1 Covariate: Equal to level 2 covariate with a small amount of noise; Equal to level 2 covariate with a medium amount of noise
+
+For each experiment we fit each of our estimators three times: adjusting for the individual level covariate, adjusting for the level 2 covariate, and adjusting for no covariate.
+
