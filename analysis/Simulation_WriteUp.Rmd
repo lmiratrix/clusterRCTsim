@@ -196,13 +196,13 @@ Variation of number of clusters in the blocks (coefficient of variation) & 0 (no
 \hline
 Block-Level Average Treatment Effect Standard Deviation & 0 & .2 & .6 \\
 \hline
-Correlation Between Treatment Effect and Cluster Size & 0 & .2 & .8 \\
+Correlation Between Block Average Treatment Effect and Block Average Cluster Size & 0 & .2 & .8 \\
 \hline
-Correlation Between Average Number of Observations Per Cluster and Total Number of Clusters & 0 & .3 & .8 \\
+Correlation Between Block Average Cluster Size and Total Number of Clusters & 0 & .3 & .8 \\
 \hline
-Correlation of Proportion of Clusters Treated per Block and Impact & 0 & 0 & .8 \\
+Correlation of Block's Proportion of Clusters Treated and Block Average Impact & 0 & 0 & .8 \\
 \hline
-Correlation Between Outcome Intercept and Cluster Size & 0 & .3 & .8 \\
+Correlation between control-side cluster average outcome and cluster size & 0 & .3 & .8 \\
 \hline
 \end{tabular}
 \end{table}
@@ -405,6 +405,11 @@ Given two vectors of numbers, $x$ and $y$, that we wish to correlate with target
 If $x$ and $y$ are not normal, then this will not produce correlations that have the target correlation on average, but it will generally give high correlations when $\rho$ is high, and negative correlations when $\rho$ is negative.
 We are correlating based on the normal transform of the ranks, so this is somewhat akin to a rank correlation.
 
+If we have multiple correlations, then we do these in sequence, holding one of the variables as fixed so we do not undo any of the other correlations.
+For example, say we need to generate a scenario with both a correlation between the number of clusters in a block and average impact in the block, and a correlation of proportion treated in a block and average impact in the block.
+To do this, we first generate the three vectors of number of clusters, average impact, and proportion treated.
+We then rearrange, as described above, the number of clusters so it correlates with average impact, and next rearrange the proportion of clusters treated so it correlates with impact.
+This will induce a correlation between number of clusters in a block and proportion treated in a block, because they are both correlated with the block-level ATE.
 
 
 ## How we generate distributions of sizes
