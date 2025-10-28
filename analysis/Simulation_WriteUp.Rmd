@@ -262,7 +262,7 @@ In 90% of the scenarios we tested, the magnitude of bias was less than 0.01 for 
 
 ```{r bias, include=TRUE, echo=FALSE, fig.width=6, fig.height=4, dpi=150}
 
-sruns.graph.bias<-sruns.clean  %>% filter(method %in% core.methods) 
+sruns.graph.bias<-sruns.clean  %>% filter(method %in% core.methods) %>% mutate(method = str_remove(method, "-db$"),     method_ordered = str_remove(method_ordered, "-db$"))
 
 fig1cap<-"Figure 1: Boxplot of superpopulation mean bias against an estimators targeted estimand across the different scenarios by method. The faint horizontal lines go out to the full range, the bars are the 1% to 99%, and the boxes are the 10% to 90%."
 
