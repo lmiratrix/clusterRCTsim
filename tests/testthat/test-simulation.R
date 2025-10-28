@@ -17,24 +17,24 @@ test_that( "single.CRT() works", {
   rr = single.CRT( K = 10, 
                    J.bar = 10,
                    p.bar = 0.5,
-                   ATE.district = 0.2, 
-                   sd.district = 0.1,
-                   ICC.district = 0.2,
+                   ATE.block = 0.2, 
+                   sd.block = 0.1,
+                   ICC.block = 0.2,
                    variable.p = T,
                    
                    # cluster-level params
                    n.bar = 50, 
-                   sd.school = 0.1, 
-                   ICC.school = 0.2,
-                   cv.school = 0.2,
-                   cv.district = 0.2,
+                   sd.cluster = 0.1, 
+                   ICC.cluster = 0.2,
+                   cv.cluster = 0.2,
+                   cv.block = 0.2,
 
                     
                    # size and correlation params
-                   size.impact.cor.district = 0,
-                   size.intercept.cor.district = 0.5,
-                   size.impact.cor.school = 0,
-                   proptx.impact.cor.district = 0,
+                   size.impact.cor.block = 0,
+                   size.intercept.cor.block = 0.5,
+                   size.impact.cor.cluster = 0,
+                   proptx.impact.cor.block = 0,
                    
                    include_method_characteristics=FALSE)
   
@@ -42,8 +42,8 @@ test_that( "single.CRT() works", {
   head( rr )
   
   expect_equal( length( unique( rr$subrun ) ), 3 )
-  expect_equal( sd( rr$ATE.finite.dist.school ), 0 )
-  expect_equal( sd( rr$ATE.finite.school ), 0 )
+  expect_equal( sd( rr$ATE.finite.dist.cluster ), 0 )
+  expect_equal( sd( rr$ATE.finite.cluster ), 0 )
   expect_equal( sd( rr$ATE.finite.student ), 0 )
   expect_equal( sd( rr$ATE.finite.dist.student ), 0 )
   
@@ -57,22 +57,22 @@ test_that( "single.CRT() works", {
   rr2 = single.CRT( K = 10, 
                     J.bar = 10,
                     p.bar = 0.5,
-                    ATE.district = 0.2, 
-                    sd.district = 0.1,
-                    ICC.district = 0.2,
+                    ATE.block = 0.2, 
+                    sd.block = 0.1,
+                    ICC.block = 0.2,
                     variable.p = T,
                     
                     # cluster-level params
                     n.bar = 50, 
-                    sd.school = 0.1, 
-                    ICC.school = 0.2,
-                    cv.school = 0.2,
+                    sd.cluster = 0.1, 
+                    ICC.cluster = 0.2,
+                    cv.cluster = 0.2,
                     
                     # size and correlation params
-                    size.impact.cor.district = 0,
-                    size.intercept.cor.district = 0.5,
-                    size.impact.cor.school = 0,
-                    proptx.impact.cor.district = 0,
+                    size.impact.cor.block = 0,
+                    size.intercept.cor.block = 0.5,
+                    size.impact.cor.cluster = 0,
+                    proptx.impact.cor.block = 0,
                     
                     include_MLM=FALSE)
   

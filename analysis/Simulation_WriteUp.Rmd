@@ -1,6 +1,6 @@
 ---
 title: "Simulation Analysis"
-author: "Sophie Litschwartz"
+author: "Sophie Li.cluwartz"
 date: '2025-05-30'
 output:
   pdf_document:
@@ -90,23 +90,23 @@ my_t = theme_tufte() +
          axis.title=element_text(size=12))
 theme_set( my_t )
 
-DGP_vars <- c("K", "J.bar", "p.bar", "sd.ATE", "ICC", "variable.p", "n.bar", "sd.school", "ICC.school", 
-                 "size.impact.cor", "num.cov.district","cv.nbar", "R2.school", 
-                 "num.cov.school", "cv.school", "num.cov.indiv", 
-                 "empirical", "cv.district", "nbar.J.cor", "size.intercept.cor")
+DGP_vars <- c("K", "J.bar", "p.bar", "sd.ATE", "ICC", "variable.p", "n.bar", "sd.cluster", "ICC.cluster", 
+                 "size.impact.cor", "num.cov.block","cv.nbar", "R2.cluster", 
+                 "num.cov.cluster", "cv.cluster", "num.cov.indiv", 
+                 "empirical", "cv.block", "nbar.J.cor", "size.intercept.cor")
 
-source( here::here( "analysis/Simulation_Write_Up/load_and_prep_data.R" ) )
+source( here::here( "analysis/R/load_and_prep_data.R" ) )
 
-source( here::here( "analysis/Simulation_Write_Up/create_custom_boxplot.R" ) )
+source( here::here( "analysis/R/create_custom_boxplot.R" ) )
 
-source( here::here( "analysis/Simulation_Write_Up/create_analysis_tree.R" ) )
+source( here::here( "analysis/R/create_analysis_tree.R" ) )
 
 
 ```
 
 # Introduction
 
-Blocked cluster randomized controlled trials (CRTs) are a widely used experimental evaluation design in which entire groups (clusters) such as schools or classrooms are randomly assigned to treatment or control conditions within defined strata or blocks. The effectiveness of the program or treatment is then typically quantified using the average treatment effect (ATE). However, within this relatively straightforward quantity, researchers must make a variety of choices. Researchers need to decide whether to target a person-weighted average or cluster-weighted average; they need to decide whether they are targeting an estimate just for the clusters in the study (finite sample) or an estimate representative of some broader population (super-population); and they need to decide from among different methods or estimators that can be used to estimate the ATE.
+Blocked cluster randomized controlled trials (CRTs) are a widely used experimental evaluation design in which entire groups (clusters) such as clusters or classrooms are randomly assigned to treatment or control conditions within defined strata or blocks. The effectiveness of the program or treatment is then typically quantified using the average treatment effect (ATE). However, within this relatively straightforward quantity, researchers must make a variety of choices. Researchers need to decide whether to target a person-weighted average or cluster-weighted average; they need to decide whether they are targeting an estimate just for the clusters in the study (finite sample) or an estimate representative of some broader population (super-population); and they need to decide from among different methods or estimators that can be used to estimate the ATE.
 
 This paper contains simulations that complement research examining empirically the implications of different choices researchers make when performing CRTs (CITATION). Simulations, unlike empirical analyses, allow us to compare estimated quantities to their true values, which we cannot observe in empirical contexts. This in turn allows us to evaluate how well different statistical methods perform. Additionally, we can systematically vary data conditions and identify which factors impact method performance.
 
@@ -121,13 +121,17 @@ With this in mind, these simulations answer the following research questions:
 4. Do any of the estimated standard errors target finite versus super-population uncertainty?
 5. Are the estimation problems caused by low degrees of freedom due to estimate instability or bias?
 
-# Data Generating Process
 
-- these are the parameters, but I'm confused on exactly how we're getting the output 
+# The Simulation
 
-- Note I have doubled checked all of these parameters and I'm sure they're correct at this point 
+We ran a series of multifactor simulations, which are simulations where we systematically vary a set of factors to understand how the factors influence the performance of the various estimators, and how the factors interact with each other.
+In general we are close to full multi-factorial designs, where we vary all factors independently, but we do drop combinations that do not make sense (in particular, we drop scenarios that call for correlations between quantities that do not vary).
 
-The simulations are a fully factored experiment with the following data generating parameters.
+
+## The data generation parameters
+
+The main simulation is a fully factored experiment with the following data generating parameters:
+
 
 \begin{table}[H]
 \centering
@@ -135,9 +139,9 @@ The simulations are a fully factored experiment with the following data generati
 \renewcommand{\arraystretch}{2.0}
 \begin{tabular}{|p{8cm}|p{6cm}|}
 \hline
-\rule{0pt}{4ex}\parbox[c]{8cm}{\centering\textbf{Parameter}}\rule[-2ex]{0pt}{0pt} & \parbox[c]{6cm}{\centering\textbf{Values}}\rule[-2ex]{0pt}{0pt} \\
+\rule{0pt}{4ex}\parbox[c]{8cm}{\centering\textbf{Parameter}}\rule[-2ex]{0pt}{0pt} & \parbox[c]{6cm}{\centering\textbf{Value(s)}}\rule[-2ex]{0pt}{0pt} \\
 \hline
-\multicolumn{2}{|c|}{\textbf{Block-Level Fixed}} \\
+\multicolumn{2}{|c|}{\textbf{Parameters fixed across all scenarios}} \\
 \hline
 Number of Blocks & 5 \\
 \hline
@@ -149,7 +153,7 @@ Average Number of Observations Per Cluster & 20 \\
 \hline
 Number of Block Level Covariates & 0 \\
 \hline
-\multicolumn{2}{|c|}{\textbf{Block-Level Varying}} \\
+\multicolumn{2}{|c|}{\textbf{Block-Level (Varies across scenarios)}} \\
 \hline
 Block Type & Same, Messy, Reasonable \\
 \hline
@@ -157,7 +161,7 @@ Average Number of Clusters per Block & 5, 10, 20 \\
 \hline
 Proportion of Clusters Treated & .5, .7 \\
 \hline
-\multicolumn{2}{|c|}{\textbf{Cluster-Level Varying}} \\
+\multicolumn{2}{|c|}{\textbf{Cluster-Level (Varies across scenarios)}} \\
 \hline
 Correlation of Impact and Size of Cluster & 0, .8 \\
 \hline
@@ -165,13 +169,20 @@ Cluster Level Treatment Effect Standard Deviation & 0, .3 \\
 \hline
 Cluster Level ICC & 0, .2 \\
 \hline
-How much does the size of clusters vary (coefficient of variation)? & 0, .33, .6 \\
+Variation in cluster size (coefficient of variation) & 0, .33, .6 \\
 \hline
 Number of Cluster-Level Covariates & 0, 1, 5 [$R^2$ Always .5] \\
 \hline
 \end{tabular}
 \end{table}
 
+One of our factors is "block type," which is a set of seven parameters that define how similar or different the blocks are from each other.
+We did not independently vary these factors so we could control the total number of simulation scenarios.
+All code is public; others can easily adapt the code to run additional scenarios that are of interest.
+We have three levels of block type, which we call "Blocks All The Same," "Blocks All Reasonable," and "Blocks All Messy."
+The "Same" case is where all blocks are identical in their characteristics.
+The "Reasonable" case is what we might imagine we would see in actual practice.
+The "Messy" case pushes our simulation to the limits so we can see how various methods fail in extreme circumstance.
 
 \begin{table}[H]
 \centering
@@ -179,24 +190,28 @@ Number of Cluster-Level Covariates & 0, 1, 5 [$R^2$ Always .5] \\
 \renewcommand{\arraystretch}{2.0}
 \begin{tabular}{|p{6cm}|p{2.5cm}|p{2.5cm}|p{2.5cm}|}
 \hline
-\rule{0pt}{4ex}\parbox[c]{6cm}{\centering\textbf{Parameter}}\rule[-2ex]{0pt}{0pt} & \parbox[c]{2.5cm}{\centering\textbf{Blocks All The Same}}\rule[-2ex]{0pt}{0pt} & \parbox[c]{2.5cm}{\centering\textbf{Blocks All Messy}}\rule[-2ex]{0pt}{0pt} & \parbox[c]{2.5cm}{\centering\textbf{Blocks All Reasonable}}\rule[-2ex]{0pt}{0pt} \\
+\rule{0pt}{4ex}\parbox[c]{6cm}{\centering\textbf{Parameter}}\rule[-2ex]{0pt}{0pt} & \parbox[c]{2.5cm}{\centering\textbf{Blocks All The Same}}\rule[-2ex]{0pt}{0pt} & \parbox[c]{2.5cm}{\centering\textbf{Blocks All Reasonable}}\rule[-2ex]{0pt}{0pt} & \parbox[c]{2.5cm}{\centering\textbf{Blocks All Messy}}\rule[-2ex]{0pt}{0pt} \\
 \hline
-How much do number clusters per block vary (coefficient of variation)? & 0 (none) & .85 (big) & .33 (average) \\
+Variation of number of clusters in the blocks (coefficient of variation) & 0 (none) & .33 (average) & .85 (big) \\
 \hline
-Block-Level Average Treatment Effect Standard Deviation & 0 & .6 & .2 \\
+Block-Level Average Treatment Effect Standard Deviation & 0 & .2 & .6 \\
 \hline
-Correlation Between Treatment Effect and Cluster Size & 0 & .8 & .2 \\
+Correlation Between Block Average Treatment Effect and Block Average Cluster Size & 0 & .2 & .8 \\
 \hline
-Correlation Between Average Number of Observations Per Cluster and Total Number of Clusters & 0 & .8 & .3 \\
+Correlation Between Block Average Cluster Size and Total Number of Clusters & 0 & .3 & .8 \\
 \hline
-Correlation of Proportion of Clusters Treated per Block and Impact & 0 & .8 & 0 \\
+Correlation of Block's Proportion of Clusters Treated and Block Average Impact & 0 & 0 & .8 \\
 \hline
-Correlation Between Outcome Intercept and Cluster Size & 0 & .8 & .3 \\
+Correlation between control-side cluster average outcome and cluster size & 0 & .3 & .8 \\
 \hline
 \end{tabular}
 \end{table}
 
-We also ran a separate set of simulations to evaluate how standard errors perform for fully interacted models in matched studies. These simulations were also fully factorer and the parameters for those simulations were as follows:  
+
+Each scenario would have a specific combination of these parameters.
+We drop all scenarios with a correlation of a quantity that does not vary (e.g., if there is no treatment effect variation, then we drop scenarios with nonzero correlation between treatment effect and cluster size).
+
+We also ran a separate set of simulations to evaluate how standard errors perform for fully interacted models in matched studies. These simulations were also fully factored and the parameters for those simulations were as follows:  
 
 
 \begin{table}[H]
@@ -255,6 +270,169 @@ How much does the size of clusters vary (coefficient of variation)? & 0, .33, .6
 \end{table}
 
 
+# Data Generating Process
+
+For most of our simulations, for each scenario defined by sample size, target correlation, predictiveness of covariates, and so forth, we used the following data generating process (DGP):
+
+1. Randomly generate a single set of blocks based on the simulation scenario parameters. Each generated block has a set of characteristics such as the average treatment effect of the block, average cluster size, amount of cluster variation, and so forth.
+
+2. Then, for each simulation iteration:
+   a. Generate a sample of clusters within each block according to the block characteristics.
+   b. Generate individual-level data within each cluster.
+   c. Calculate the true ATEs (both cluster-weighted and individual-weighted) for the generated dataset. These are our target finite-sample estimands.
+   d. Assign a proportion of clusters to treatment according to the target block-level proportion.
+   
+At this point we have a complete set of generated data.
+Next, for each simulation iteration we actually conduct a small number of iterations. For each iteration we:
+
+  a. Permute treatment across clusters within block to generate a new random assignment.
+  b. Calculate observed outcomes based on the generated data and the new treatment assignment.
+  c. Estimate the ATE and SE using all our methods.
+
+The nested permutation approach means that for each fixed set of clusters and blocks, we can calculate finite sample performance.
+For example, the standard deviation of the ATE estimates within a given dataset across the permutations gives us the true finite sample standard error for that dataset.
+If we look at the standard deviation of the ATE estimates across all our datasets within a scenario, we have the true cluster-level superpopulation standard error.
+This standard error _does not_ take into account uncertainty at the block level, as the block characteristics are all fixed.
+So, for example, if there is treatment variation across blocks, our true standard error will not reflect uncertainty due to which blocks were generated, only uncertainty due to which clusters and individuals were generated.
+
+For our target estimands we can use, within each generated dataset, the finite sample estimand.
+We can also calculate the superpopulation estimand (both person-weighted and cluster-weighted) by averaging the finite sample estimands across all generated datasets within a scenario.
+
+
+We next outline the data generation parameters that drive our DGP, and then give some further technical detail of how we implemented the above steps.
+
+
+
+
+## How the data are generated
+
+For a given scenario, we start with a set of data generating parameters as described above.
+
+Here is one of the more extreme scenarios from our main simulation:
+
+```{r}
+scenarios = readRDS( here::here( "scenarios.rds" ) )
+
+strp <- scenarios %>%
+  dplyr::select( -grid ) %>%
+  select(where(~ n_distinct(.x) > 1))
+
+strp2 <- strp %>%
+  filter( sd.cluster != 0,
+          blocktype == "messy",
+          p.bar == 0.7,
+          J.bar == 10,
+          cv.block != 0,
+          cv.cluster != 0.6,
+          sd.block != 0,
+          num.cov.cluster == 5,
+          size.intercept.cor != 0,
+          ICC.cluster != 0,
+          cv.cluster != 0,
+          size.impact.cor.cluster != 0,
+          size.impact.cor != 0 
+          )
+#strp2
+
+key_ID <- strp2$ID
+key_scen <- filter( scenarios, ID == key_ID )
+
+key_scen %>%
+  dplyr::select( -ID, -blocktype, -grid, -group,
+                 -num.cov.block ) %>%
+    mutate(across(everything(), as.character)) %>%
+  pivot_longer(everything(), names_to = "variable", values_to = "value") %>%
+  group_by( variable ) %>%
+  summarise( value = paste( sort( unique( value ) ), collapse=", " ) ) %>%
+  knitr::kable( caption = "Simulation Scenario Parameters" )
+```
+
+
+Then, to generate the individual blocks, we use a multivariate normal distributions to generate the block-level pairs of average control-side outcome and average treatment effect (in the case of treatment variation).
+Other block characteristics that are to vary across block (e.g., proportion of clusters treated) are then generated according to various specified distributions.
+Finally, we induce correlations between block level quantities as described below, if the relevant correlation parameters are nonzero.
+
+When generating block mean outcomes and mean effects, we use the "empirical" setting to make sure our multivariate normal distributions for the amount of cross-block impact variation and so forth equals our set values.
+This mitigates worry that the simulation results might be dependent on _which_ blocks we have generated, as we would expect all sets generated, given a specific set of parameters, would lead to the similar final results.
+That said, we generate these values to target _block averages_, but if we have variable numbers of clusters per block, the cluster-average effects can deviate from these targets quite substantially, especially if number of clusters and treatment effect are correlated.
+
+Overall, however, the finite nature of the blocks should not be a large concern.
+In particular, because we have a large number of factors in our experiment, when we look at the main effect of a given factors, we will be averaging across many different scenarios with a different specific set of blocks for each scenario, so any dependencies on the specific set of blocks generated would be ameliorated.
+
+Once generated, we store the block characteristics as a small dataset, which we call a "grid," with each row being a block, and each column a characteristic we need for generating the within-block data (number of clusters, average cluster size, etc.).
+To illustrate, here is the "grid" of block-level characteristics for the above scenario in our main simulation:
+
+```{r}
+gd <- key_scen$grid[[1]]
+
+rename( gd,
+        tau = block.tau,
+        alpha = block.alpha,
+        cor.clu = size.impact.cor.cluster,
+        k.clu = num.cov.cluster,
+        k.indiv = num.cov.indiv ) %>%
+  knitr::kable( digits=1 )
+
+```
+
+and here is a set of descriptive features for data we would get from this fixed set of blocks:
+
+```{r describe_scenario, cache=TRUE}
+source( here::here( "R/data_generation_code.R" ) )
+describe_block_grid( gd )
+```
+
+The block ATE is the simple average of the block-level cluster-average ATEs. It is as we targeted.
+The bottom line are ATEs for a large dataset generated for this set of blocks: these are our target superpopulation parameters for this scenario, so we can estimate the true cluster- and individidual average ATEs.
+In this specific example, these are different from each other and from the block average.
+We also see fairly high correlations of all sorts of features of the data.
+In this given scenario, the number of clusters per block is varying around 5.
+The numbers in parentheses are the standard deviations of a given value.
+
+Given our grid of block characteristics we then, for each block in turn, use a multilevel model data generating process (as described more fully in <<CITE WEISS MIRATRIX MULTISITE>>) to generate the target number of clusters and individuals.
+
+To keep everything in effect size units, we have a target within-block total variation of $1 - ICC_3$, where $ICC_3$ is the target intraclass correlation for the blocks.
+Note that we have $ICC_3 + ICC_2 + \frac{\sigma^2_\epsilon}{R^2_1} = 1$, with $ICC_2$ being the cluster-level ICC and $\sigma^2_\epsilon$ the individual-level residual variance.
+
+
+## How we correlate block-level quantities
+
+Given two vectors of numbers, $x$ and $y$, that we wish to correlate with target correlation $\rho$, we do the following:
+
+1. Generate a bivariate standard normal with correlation $\rho$.
+2. Re-order the $y$ values so the pairs of the ranks of $x$ and the ranks of the reordered $y$ correspond to the pairs of ranks of the bivariate distribution.
+
+If $x$ and $y$ are not normal, then this will not produce correlations that have the target correlation on average, but it will generally give high correlations when $\rho$ is high, and negative correlations when $\rho$ is negative.
+We are correlating based on the normal transform of the ranks, so this is somewhat akin to a rank correlation.
+
+If we have multiple correlations, then we do these in sequence, holding one of the variables as fixed so we do not undo any of the other correlations.
+For example, say we need to generate a scenario with both a correlation between the number of clusters in a block and average impact in the block, and a correlation of proportion treated in a block and average impact in the block.
+To do this, we first generate the three vectors of number of clusters, average impact, and proportion treated.
+We then rearrange, as described above, the number of clusters so it correlates with average impact, and next rearrange the proportion of clusters treated so it correlates with impact.
+This will induce a correlation between number of clusters in a block and proportion treated in a block, because they are both correlated with the block-level ATE.
+
+
+## How we generate distributions of sizes
+
+We have three kinds of sizes to generate: number of clusters per block, number of individuals per cluster, and average size of cluster for each block.
+
+For each of these we use a similar approach.
+We first specify the desired mean and coefficient of variation (cv).
+For example, we might want an average of 8 clusters per block with a cv of 0.75.
+This means the standard deviation of our values would be $sd = cv * mean = 0.75 * 8 = 6$.
+
+We then have three possibilities: either the variance is less than the mean (in which case we can use a binomial distribution), or the variance is larger than the mean (in which case we can use a negative binomial distribution).
+If the variance is very close to the mean, we use a poisson distribution.
+
+We use this approach for the average cluster size across blocks, even though the average cluster sizes could be fractional.
+
+
+
+
+
+
+
+
 # Are any of the estimators ever substantially biased? When? 
 
 In 90% of the scenarios we tested, the magnitude of bias was less than 0.01 for all estimators (Figure 1), and the scenarios with bias require the confluence of multiple bias-causing factors (Figure 2). The estimators that theory predicts are unbiased do indeed have nearly no bias (or very low bias) across the full range of simulations. The person-weighted fully interacted estimator had bias as severe as -0.033 in the worst 5% of scenarios tested, which the regression tree shows requires a correlation between the treatment effect and cluster size combined with a small number of clusters per block (Figure 2). For the remaining estimators, except the multilevel fully interacted model, we observe bias as severe as -0.2 in some simulations, primarily driven by the combination of dissimilar blocks and unbalanced treatment assignment of clusters. The multilevel fully interacted model performed well with dissimilar blocks and unbalanced treatment assignment, and instead was most biased when there was a combination of correlation between the number of clusters and the treatment effect, zero cluster-level ICC, and substantial variation in cluster sizes.
@@ -308,8 +486,8 @@ for (method_name in methods) {
   create_analysis_tree(
     sruns.graph.bias %>% filter(method == method_name, group == "full_factor"), 
     outcome_var = "bias.s.estimand.mag", 
-    predictor_vars = c("block_type", "J.bar", "cor_J_tau", "sd.sch", "ICC.sch", 
-                       "cv.sch", "num.cov", "p.bar"),
+    predictor_vars = c("block_type", "J.bar", "cor_J_tau", "sd.clu", "ICC.clu", 
+                       "cv.clu", "num.cov", "p.bar"),
     tree_title = paste(method_name)
   )
 }
@@ -321,7 +499,7 @@ par(mfrow = c(1, 1), oma = c(0, 0, 0, 0))
 
 # Are any of the estimators generally more precise than others? When? 
 
-In general, all the different estimators have comparable precision (Figure 3). Excluding the multilevel estimators, within a given scenario and targeted estimand (person-weighted vs. cluster-weighted), all the estimators have standard errors that are at most 10% larger than the median across methods. The multilevel estimators become more precise than the other estimators when there is a combination of large variation in cluster size and zero school ICC; otherwise, their precision is close to that of the other estimators (Figure 4).
+In general, all the different estimators have comparable precision (Figure 3). Excluding the multilevel estimators, within a given scenario and targeted estimand (person-weighted vs. cluster-weighted), all the estimators have standard errors that are at most 10% larger than the median across methods. The multilevel estimators become more precise than the other estimators when there is a combination of large variation in cluster size and zero cluster ICC; otherwise, their precision is close to that of the other estimators (Figure 4).
 
 ```{r standard errors, include=TRUE, echo=FALSE,  fig.width=6, fig.height=4}
 
@@ -372,7 +550,7 @@ tree2 <- create_analysis_tree(
   sruns.graph.stab %>% filter(group == "full_factor"), 
   outcome_var = "SE.s.norm.weight", 
   predictor_vars = c("is_MLM", "block_type", "J.bar", "cor_J_tau",
-                     "sd.sch", "ICC.sch", "cv.sch", "num.cov", "p.bar"),
+                     "sd.clu", "ICC.clu", "cv.clu", "num.cov", "p.bar"),
   tree_title = ""
 )
 
@@ -476,7 +654,7 @@ tree7 <- create_analysis_tree(
   sruns.graph.infl.ff %>% filter(is_cw==1 & is_MLM==1), 
   outcome_var = "inflate.s", 
   predictor_vars = c("block_type", "J.bar", "cor_J_tau",
-                     "sd.sch", "ICC.sch", "cv.sch", "num.cov", "p.bar"),
+                     "sd.clu", "ICC.clu", "cv.clu", "num.cov", "p.bar"),
   tree_title = ""
 )
 # Add caption using mtext to match your other base R plots
@@ -489,7 +667,7 @@ tree8 <- create_analysis_tree(
   sruns.graph.infl.ff %>% filter(is_FI==0 | is_MLM==0), 
   outcome_var = "inflate.s", 
   predictor_vars = c("is_cw", "block_type", "J.bar", "cor_J_tau",
-                     "sd.sch", "ICC.sch", "cv.sch", "num.cov", "p.bar"),
+                     "sd.clu", "ICC.clu", "cv.clu", "num.cov", "p.bar"),
   tree_title = ""
 )
 # Add caption using mtext to match your other base R plots
@@ -535,7 +713,7 @@ tree10 <- create_analysis_tree(
   sruns.cov %>% filter(is_MLM==T & group=="full_factor"), 
   outcome_var = "cover.s.estimand", 
   predictor_vars = c("block_type", "J.bar", "cor_J_tau",
-                     "sd.sch", "ICC.sch", "cv.sch", "num.cov", "p.bar"),
+                     "sd.clu", "ICC.clu", "cv.clu", "num.cov", "p.bar"),
   tree_title = ""
 )
 # Add caption using mtext to match your other base R plots
@@ -544,7 +722,7 @@ mtext(str_wrap(fig10cap, width = 110), side = 1, line = 4, cex = 0.75,
 
 ```
 
-```{r low df checks, include=FALSE, echo=FALSE}
+```{r low df checks, cache=TRUE, include=FALSE, echo=FALSE}
 
 #I've moved all the low df stuff to a section that doesn't print in the document
 #it looks like the whole issue was the CRVE 
@@ -575,7 +753,7 @@ print(inf_plot_lowdf)
 tree10<-create_analysis_tree( crve, 
                             outcome_var = "inflate.s", 
                              predictor_vars = c("block_type_lowdf","J.bar", "cor_J_tau",
-                                                "sd.sch", "ICC.sch", "cv.sch", "num.cov", "p.bar"),
+                                                "sd.clu", "ICC.clu", "cv.clu", "num.cov", "p.bar"),
                             tree_title = "Decision Tree for Super Population True Standard Error")
 
 
@@ -643,7 +821,7 @@ tree11 <- create_analysis_tree(
   sruns.graph.stab %>% filter(group=="full_factor"), 
   outcome_var = "true.se.ratio", 
   predictor_vars = c("is_MLM", "block_type", "J.bar", "cor_J_tau",
-                     "sd.sch", "ICC.sch", "cv.sch", "num.cov", "p.bar"),
+                     "sd.clu", "ICC.clu", "cv.clu", "num.cov", "p.bar"),
   tree_title = ""
 )
 # Add caption using mtext to match your other base R plots
@@ -654,7 +832,7 @@ fig12cap <- "Figure 12: Boxplot of estimated standard error inflation for across
 
 # Create individual plots WITHOUT ggtitle
 fin_plot4 <- create_custom_boxplot2(
-  sruns.clean %>% filter(group=="full_factor" & (ICC.school==0 & sd.school=="+")), 
+  sruns.clean %>% filter(group=="full_factor" & (ICC.cluster==0 & sd.cluster=="+")), 
   "inflate.s", 
   "", 
   "Ratio of Estimated SE over True SE",
@@ -673,7 +851,7 @@ theme(
 )
 
 fin_plot5 <- create_custom_boxplot2(
-  sruns.clean %>% filter(group=="full_factor" & (ICC.school==0 & sd.school=="+")), 
+  sruns.clean %>% filter(group=="full_factor" & (ICC.cluster==0 & sd.cluster=="+")), 
   "inflate.f", 
   "", 
   "",
@@ -725,7 +903,7 @@ ggdraw() +
 ```{r finiteexplore, include=FALSE, echo=FALSE}
 
 fin_plot3 <- create_custom_boxplot2(
-sruns.clean %>% filter(group=="full_factor" & (sd.school=="+" & ICC.school==0)) , 
+sruns.clean %>% filter(group=="full_factor" & (sd.cluster=="+" & ICC.cluster==0)) , 
   "true.se.ratio", 
   "How Close True Finite SEs are to True Super SEs by Method", 
   "Ratio of True Finite SE over True Super SE",
@@ -737,7 +915,7 @@ sruns.clean %>% filter(group=="full_factor" & (sd.school=="+" & ICC.school==0)) 
 print(fin_plot3)
 
 fin_plot4 <- create_custom_boxplot2(
-sruns.clean %>% filter(group=="full_factor" & !( sd.school=="+"  & ICC.school==0)) , 
+sruns.clean %>% filter(group=="full_factor" & !( sd.cluster=="+"  & ICC.cluster==0)) , 
   "true.se.ratio", 
   "How Close True Finite SEs are to True Super SEs by Method", 
   "Ratio of True Finite SE over True Super SE",
@@ -753,13 +931,13 @@ sruns.clean %>% filter(group=="full_factor" & !( sd.school=="+"  & ICC.school==0
 tree2<-create_analysis_tree( sruns.graph.stab %>% filter(group=="full_factor"), 
                             outcome_var =  "true.se.ratio", 
                              predictor_vars = c("is_MLM", "block_type","J.bar", "cor_J_tau",
-                                                "sd.sch", "ICC.sch", "cv.sch", "num.cov", "p.bar"),
+                                                "sd.clu", "ICC.clu", "cv.clu", "num.cov", "p.bar"),
                             tree_title = "Decision Tree for Ratio of True Finite SE over True Super SE")
 
 
-#they should all be the same when ICC.school==0 and 
+#they should all be the same when ICC.cluster==0 and 
 fin_plot1 <- create_custom_boxplot2(
-sruns.clean %>% filter(group=="full_factor" & (sd.school==0)) , 
+sruns.clean %>% filter(group=="full_factor" & (sd.cluster==0)) , 
   "true.se.ratio", 
   "How Close True Finite SEs are to True Super SEs by Method", 
   "Ratio of True Finite SE over True Super SE",
@@ -769,7 +947,7 @@ sruns.clean %>% filter(group=="full_factor" & (sd.school==0)) ,
 print(fin_plot1)
 
 fin_plot2 <- create_custom_boxplot2(
-sruns.clean %>% filter(group=="full_factor" & (ICC.school=="+")) , 
+sruns.clean %>% filter(group=="full_factor" & (ICC.cluster=="+")) , 
   "true.se.ratio", 
   "How Close True Finite SEs are to True Super SEs by Method", 
   "Ratio of True Finite SE over True Super SE",
@@ -779,7 +957,7 @@ sruns.clean %>% filter(group=="full_factor" & (ICC.school=="+")) ,
 print(fin_plot2)
 
 fin_plot3 <- create_custom_boxplot2(
-sruns.clean %>% filter(group=="full_factor" & (ICC.school==0 & sd.school=="+")) , 
+sruns.clean %>% filter(group=="full_factor" & (ICC.cluster==0 & sd.cluster=="+")) , 
   "true.se.ratio", 
   "How Close True Finite SEs are to True Super SEs by Method", 
   "Ratio of True Finite SE over True Super SE",
@@ -789,7 +967,7 @@ sruns.clean %>% filter(group=="full_factor" & (ICC.school==0 & sd.school=="+")) 
 print(fin_plot3)
 
 fin_plot4 <- create_custom_boxplot2(
-  sruns.clean %>% filter(group=="full_factor" & (ICC.school==0 & sd.school=="+")) ,  
+  sruns.clean %>% filter(group=="full_factor" & (ICC.cluster==0 & sd.cluster=="+")) ,  
   "inflate.s", 
   "Super Population Estimated Standard Error Accuracy by Method", 
   "Ratio of Estimated SE over True Super SE",
@@ -800,7 +978,7 @@ fin_plot4 <- create_custom_boxplot2(
 #print(fin_plot4)
 
 fin_plot5 <- create_custom_boxplot2(
-  sruns.clean %>% filter(group=="full_factor" & (ICC.school==0 & sd.school=="+")) ,  
+  sruns.clean %>% filter(group=="full_factor" & (ICC.cluster==0 & sd.cluster=="+")) ,  
   "inflate.f", 
   "Super Population Estimated Standard Error Accuracy by Method", 
   "Ratio of Estimated SE over True Finite SE",
@@ -813,20 +991,20 @@ fin_plot4 + fin_plot5 + plot_layout(widths = c(2, 3))
 
 # Arrange side by side
 
-tree5<-create_analysis_tree(  sruns.clean %>% filter(group=="full_factor" & (ICC.school==0 & sd.school=="+" & is_pw==T & is_FI==T)), 
+tree5<-create_analysis_tree(  sruns.clean %>% filter(group=="full_factor" & (ICC.cluster==0 & sd.cluster=="+" & is_pw==T & is_FI==T)), 
                             outcome_var =  "inflate.s", 
                              predictor_vars = c( "block_type","J.bar", "cor_J_tau",
-                                                 "cv.sch", "num.cov", "p.bar"),
+                                                 "cv.clu", "num.cov", "p.bar"),
                             tree_title = "Decision Tree for Ratio of Estimated SE over True Super SE")
 
-tree6<-create_analysis_tree(  sruns.clean %>% filter(group=="full_factor" & (ICC.school==0 & sd.school=="+" & is_pw==T & is_FI==T)), 
+tree6<-create_analysis_tree(  sruns.clean %>% filter(group=="full_factor" & (ICC.cluster==0 & sd.cluster=="+" & is_pw==T & is_FI==T)), 
                             outcome_var =  "inflate.f", 
                              predictor_vars = c( "block_type","J.bar", "cor_J_tau",
-                                                 "cv.sch", "num.cov", "p.bar"),
+                                                 "cv.clu", "num.cov", "p.bar"),
                             tree_title = "Decision Tree for Ratio of Estimated SE over True Finite SE")
 
 fin_plot6 <- create_custom_boxplot2(
-  sruns.clean %>% filter(group=="full_factor" & (ICC.school==0 & sd.school=="+" & is_pw==T & is_FI==T & J.bar=="S"& cv.school=="L" & block_type=="Mess")) ,  
+  sruns.clean %>% filter(group=="full_factor" & (ICC.cluster==0 & sd.cluster=="+" & is_pw==T & is_FI==T & J.bar=="S"& cv.cluster=="L" & block_type=="Mess")) ,  
   "inflate.s", 
   "Super Population Estimated Standard Error Accuracy by Method", 
   "Ratio of Estimated SE over True Super SE",
@@ -835,7 +1013,7 @@ fin_plot6 <- create_custom_boxplot2(
 ) + theme(legend.position = "none")
 
 fin_plot7 <- create_custom_boxplot2(
-  sruns.clean %>% filter(group=="full_factor" & (ICC.school==0 & sd.school=="+" & is_pw==T & is_FI==T& J.bar=="S" & cv.school=="L" & block_type=="Mess")) ,  
+  sruns.clean %>% filter(group=="full_factor" & (ICC.cluster==0 & sd.cluster=="+" & is_pw==T & is_FI==T& J.bar=="S" & cv.cluster=="L" & block_type=="Mess")) ,  
   "inflate.f", 
   "Super Population Estimated Standard Error Accuracy by Method", 
   "Ratio of Estimated SE over True Finite SE",

@@ -11,14 +11,14 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 require(tidyverse)
 
-ESTIMAND_LEVELS <- c("stu", "dstu", "sch", "dsch")
+ESTIMAND_LEVELS <- c("stu", "dstu", .clu", ".clu")
 ESTIMATOR_LEVELS <- c("LR w/ CRSE", "LR (agg, wt)", "DB_indiv (FE)", "DB_indiv (int)",
                       "LR (agg)", "DB_clust (int)", "DB_clust (FE)",
                       "MLM")
 MAIN_ESTIMATORS <- c("LR w/ CRSE", "LR (agg)", "MLM")
 
-COR_COLS <- c("size.impact.cor.district", "size.intercept.cor.district",
-              "size.impact.cor.school", "proptx.impact.cor.district")
+COR_COLS <- c("size.impact.cor.block", "size.intercept.cor.block",
+              "size.impact.cor.cluster", "proptx.impact.cor.block")
 ```
 
 ## Overview
@@ -26,17 +26,17 @@ COR_COLS <- c("size.impact.cor.district", "size.intercept.cor.district",
 This note covers the second set of simulations.
 These include two different scenarios:
 
-1. Simulation with district intercepts correlated with district sizes
+1. Simulation with block intercepts correlated with block sizes
 
     * Hypothesis: CRSE is biased?
 
-2. Simulation with only 4 districts and 6 schools per district on average
+2. Simulation with only 4 blocks and 6 clusters per block on average
 
     * Hypothesis: if there are very few blocks, CRSE should blow it
     
 We're also using $\bar{p}=0.75$ instead of 0.5 to avoid "nice" cancellations.
 
-    * Hypothesis: if there is correlation with district-level impact, CRSE should be biased
+    * Hypothesis: if there is correlation with block-level impact, CRSE should be biased
     * Since $p_j(1-p_j)$ weights can be quite low/high for particular clusters
 
 TODO: in blkvar, implement correlations between site-level intercepts and site sizes?
@@ -47,9 +47,9 @@ Recall key for estimand names.
 We'll focus more on the first two, since none of our estimators target the second two:
 
 * "stu": student-weighted
-* "sch": school-weighted
-* ("dstu": district-weighted student-weighted)
-* ("dsch": district-weighted school-weighted)
+* .clu": cluster-weighted
+* ("dstu": block-weighted student-weighted)
+* (".clu": block-weighted cluster-weighted)
 
 Recall also the three representative methods:
 
@@ -59,7 +59,7 @@ Recall also the three representative methods:
 
 \newpage
 
-## Simulation 1: correlation between district-level intercepts and sizes
+## Simulation 1: correlation between block-level intercepts and sizes
 
 ```{r}
 load( "results/aggregated_simulation_results_interceptcor.RData" )
@@ -68,7 +68,7 @@ load( "results/aggregated_simulation_results_interceptcor.RData" )
 
 ### Overview of results
 
-Absolute bias behaves roughly as expected, though weird results for dstu still (student-weighted estimators not much better than school-weighted).
+Absolute bias behaves roughly as expected, though weird results for dstu still (student-weighted estimators not much better than cluster-weighted).
 
 ```{r}
 sruns %>% 
@@ -86,7 +86,7 @@ sruns %>%
   coord_flip()  
 ```
 
-RMSE is basically same as before, but still student-weighted methods are strictly dominated by school-weighted methods??
+RMSE is basically same as before, but still student-weighted methods are strictly dominated by cluster-weighted methods??
 
 ```{r}
 RMSE.table
@@ -149,18 +149,18 @@ Note that I messed up some recording in the run, so I've manually fixed things.
 ```{r}
 size.intercept.table <- tibble(
   ID = 1:16,
-  size.intercept.cor.district = c(rep(0, 8), rep(0.8, 8))
+  size.intercept.cor.block = c(rep(0, 8), rep(0.8, 8))
 )
 sruns2 <- sruns %>% 
   left_join(size.intercept.table, by="ID") %>% 
-  relocate(size.intercept.cor.district, .after=size.impact.cor.district)
+  relocate(size.intercept.cor.block, .after=size.impact.cor.block)
 
 # sruns2 %>% 
 #   group_by(across(all_of(c("ID", COR_COLS)))) %>% 
 #   summarize(n = n())
 ```
 
-Absolute bias behaves roughly as expected, though weird results for dstu still (student-weighted estimators not much better than school-weighted).
+Absolute bias behaves roughly as expected, though weird results for dstu still (student-weighted estimators not much better than cluster-weighted).
 
 ```{r}
 # all 2^4 settings
@@ -204,14 +204,14 @@ Checking if proptx has any effect now: some effects
 ```{r}
 COR_COLS
 marginal_plot(2,4, "stu")
-marginal_plot(2,4, "sch")
+marginal_plot(2,4, .clu")
 
 # marginal_plot(2,4, "dstu")
-# marginal_plot(2,4, "dsch")
+# marginal_plot(2,4, ".clu")
 
 # other side
 marginal_plot(1,3, "stu")
-marginal_plot(1,3, "sch")
+marginal_plot(1,3, .clu")
 
 ```
 

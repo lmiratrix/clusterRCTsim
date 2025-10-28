@@ -16,29 +16,29 @@ scenarios = expand.grid(
   K = c(10), 
   J.bar = c(20,50),
   p.bar = c(0.5),
-  ATE.district = 0.2, 
-  sd.district = 0.1,
-  ICC.district = 0.2,
+  ATE.block = 0.2, 
+  sd.block = 0.1,
+  ICC.block = 0.2,
   variable.J = c(T,F),
   variable.p = c(T,F),
   
   # cluster-level params
   n.bar = c(50), 
-  sd.school = c(0.1), 
-  ICC.school = 0.2,
+  sd.cluster = c(0.1), 
+  ICC.cluster = 0.2,
   variable.n = c(T,F),
   
   # size and correlation params
-  size.impact.cor.district = c(0,0.75),
-  size.impact.cor.school = c(0,1),
-  proptx.impact.cor.district = c(0,0.75))
+  size.impact.cor.block = c(0,0.75),
+  size.impact.cor.cluster = c(0,1),
+  proptx.impact.cor.block = c(0,0.75))
 
 vary_colsJ <- c("J.bar", "variable.J", "variable.n", "variable.p", 
-               "size.impact.cor.district", "size.impact.cor.school",
-               "proptx.impact.cor.district")
+               "size.impact.cor.block", "size.impact.cor.cluster",
+               "proptx.impact.cor.block")
 vary_cols <- c("variable.J", "variable.n", "variable.p", 
-               "size.impact.cor.district", "size.impact.cor.school",
-               "proptx.impact.cor.district")
+               "size.impact.cor.block", "size.impact.cor.cluster",
+               "proptx.impact.cor.block")
 
 key_methods <- c("LR w/ CRSE", "LR (agg)", "MLM")
 ```
@@ -60,8 +60,8 @@ cor_mat <- function(d, value, lab=F) {
 names(sruns)
 cor_mat(sruns, bias.f.stu)
 cor_mat(sruns, bias.f.dstu)
-cor_mat(sruns, bias.f.sch)
-cor_mat(sruns, bias.f.dsch)
+cor_mat(sruns, bias.f.clu)
+cor_mat(sruns, bias.f..clu)
 
 cor_mat(sruns, RMSE.f.stu, lab=T)
 ```
@@ -93,19 +93,19 @@ sruns2 <- sruns %>%
   filter(method %in% c("LR w/ CRSE", "LR (agg)", "MLM"))
 
 cor_mat(sruns2, bias.f.stu, lab=T)
-cor_mat(sruns2, bias.f.sch, lab=T)
+cor_mat(sruns2, bias.f.clu, lab=T)
 ```
 
 
 
 ## Breaking down simulations
 
-Let's identify when models are biased for the non-district-weighted estimands.
+Let's identify when models are biased for the non-block-weighted estimands.
 
 ```{r}
 sruns2 %>%
-  select(ID, method, bias.f.stu, bias.f.sch) %>% 
-  ggplot(aes(x=abs(bias.f.stu), y=abs(bias.f.sch), label=ID)) +
+  select(ID, method, bias.f.stu, bias.f.clu) %>% 
+  ggplot(aes(x=abs(bias.f.stu), y=abs(bias.f.clu), label=ID)) +
   geom_text() +
   geom_abline() +
   facet_wrap(~method) 
@@ -128,17 +128,17 @@ sruns2 %>%
   arrange(ID)
 ```
 
-Conclusion: for usual estimands, correlating treatment effects with school sizes induces expected biases.
+Conclusion: for usual estimands, correlating treatment effects with cluster sizes induces expected biases.
 
 
-## Same as above, but for district stuff
+## Same as above, but for block stuff
 
-Now for the district-weighted estimands.
+Now for the block-weighted estimands.
 
 ```{r}
 sruns2 %>%
-  select(ID, method, bias.f.dstu, bias.f.dsch) %>% 
-  ggplot(aes(x=abs(bias.f.dstu), y=abs(bias.f.dsch), label=ID)) +
+  select(ID, method, bias.f.dstu, bias.f..clu) %>% 
+  ggplot(aes(x=abs(bias.f.dstu), y=abs(bias.f..clu), label=ID)) +
   geom_text() +
   geom_abline() +
   facet_wrap(~method)
@@ -151,16 +151,16 @@ Also, J.bar doesn't affect the clumps, so I'll just look at J.bar = 50.
 
 ```{r}
 b_neither <- sruns %>% 
-  filter(method == "LR (agg)", abs(bias.f.dstu) < 0.01, abs(bias.f.dsch) < 0.01) %>% 
+  filter(method == "LR (agg)", abs(bias.f.dstu) < 0.01, abs(bias.f..clu) < 0.01) %>% 
   pull(ID)
 b_both <- sruns %>% 
-  filter(method == "LR (agg)", abs(bias.f.dstu) > 0.02, abs(bias.f.dsch) > 0.02) %>% 
+  filter(method == "LR (agg)", abs(bias.f.dstu) > 0.02, abs(bias.f..clu) > 0.02) %>% 
   pull(ID)
 b_weird <- sruns %>% 
-  filter(method == "LR (agg)", abs(bias.f.dstu) < 0.01, abs(bias.f.dsch) > 0.02) %>% 
+  filter(method == "LR (agg)", abs(bias.f.dstu) < 0.01, abs(bias.f..clu) > 0.02) %>% 
   pull(ID)
 b_expected <- sruns %>% 
-  filter(method == "LR (agg)", abs(bias.f.dstu) > 0.02, abs(bias.f.dsch) < 0.01) %>% 
+  filter(method == "LR (agg)", abs(bias.f.dstu) > 0.02, abs(bias.f..clu) < 0.01) %>% 
   pull(ID)
 
 sruns %>% 
@@ -173,10 +173,10 @@ sruns %>%
 ```
 
 Conclusions:
-* Unbiased when: no size-impact correlations at school and district level
-* Biased as expected when: size-impact correlation at school level but not at district level
-* Biased for both when: size-impact correlation at district level but not at school level
-* Weird when: size-impact correlation at both school and district level
+* Unbiased when: no size-impact correlations at cluster and block level
+* Biased as expected when: size-impact correlation at cluster level but not at block level
+* Biased for both when: size-impact correlation at block level but not at cluster level
+* Weird when: size-impact correlation at both cluster and block level
 
 Takeaways:
 * Only thing that matters is size-impact correlations (i.e., proptx correlations, J.bar don't matter)
@@ -189,23 +189,23 @@ We can facet by these size-impact correlations.
 
 ```{r}
 sruns2 %>% 
-  group_by(method, size.impact.cor.school, size.impact.cor.district) %>% 
+  group_by(method, size.impact.cor.cluster, size.impact.cor.block) %>% 
   summarize(across(starts_with("bias"), ~mean(abs(.)))) %>% 
   pivot_longer(starts_with("bias")) %>%
   mutate(finite = str_detect(name, ".f"),
          estimand = as.factor(str_extract(name, "([^.]+$)"))) %>% 
-  mutate(estimand = factor(estimand, levels= c("stu", "dstu", "sch", "dsch"))) %>% 
+  mutate(estimand = factor(estimand, levels= c("stu", "dstu", .clu", ".clu"))) %>% 
   filter(finite) %>% 
   ggplot(aes(x=method, y=value, fill=estimand)) +
   geom_col(position="dodge") +
-  facet_grid(size.impact.cor.school ~ size.impact.cor.district, labeller = "label_both")
+  facet_grid(size.impact.cor.cluster ~ size.impact.cor.block, labeller = "label_both")
 ```
 
 For bias, we see the expected stories:
 * no bias if no correlations
-* bias for district-weighted estimands if only district correlations
-* expected bias for non-district-weighted estimands if only school correlations
-* chaos if both! expected bias for non-district-weighted estimands; for district-weighted estimands, backwards bias for LR (agg) and MLM, just much more bias than expected for LR w/ CRSE.
+* bias for block-weighted estimands if only block correlations
+* expected bias for non-block-weighted estimands if only cluster correlations
+* chaos if both! expected bias for non-block-weighted estimands; for block-weighted estimands, backwards bias for LR (agg) and MLM, just much more bias than expected for LR w/ CRSE.
 
 
 ## Checking: SEs by factor
@@ -213,13 +213,13 @@ For bias, we see the expected stories:
 ```{r}
 sruns %>% 
   filter(method %in% key_methods) %>% 
-  group_by(method, size.impact.cor.district, size.impact.cor.school) %>% 
+  group_by(method, size.impact.cor.block, size.impact.cor.cluster) %>% 
   summarize(across(starts_with("SE."), ~mean(.)), 
             mean.SE.hat = mean(mean.SE.hat)) %>% 
   pivot_longer(contains("SE")) %>%
   ggplot(aes(x=method, y=value, group=name, fill=name)) +
   geom_col(position="dodge") +
-  facet_grid(size.impact.cor.district ~ size.impact.cor.school) +
+  facet_grid(size.impact.cor.block ~ size.impact.cor.cluster) +
   coord_flip(ylim = c(0.05, 0.08))
 ```
 
@@ -231,7 +231,7 @@ sruns %>%
   pivot_longer(cols = c(SE.f, mean.SE.hat)) %>%
   ggplot(aes(x=method, y=value, fill=name)) +
   geom_boxplot() +
-  facet_grid(size.impact.cor.district ~ size.impact.cor.school) +
+  facet_grid(size.impact.cor.block ~ size.impact.cor.cluster) +
   coord_flip()
 ```
 
@@ -239,15 +239,15 @@ Uhhh... not clear that any of these are actually that far off?
 
 ## Checking: is MLM always targeting student-weighted?
 
-MLM is pretty consistently worse at sch (which it's good at nonetheless), and better at stu (which it's bad at regardless)
+MLM is pretty consistently worse at.clu (which it's good at nonetheless), and better at stu (which it's bad at regardless)
 
 ```{r}
 sruns %>% 
   filter(method %in% c("LR (agg)", "MLM"),
-         size.impact.cor.district == 0,
-         size.impact.cor.school == 1) %>% 
+         size.impact.cor.block == 0,
+         size.impact.cor.cluster == 1) %>% 
   select(ID, method, starts_with("bias")) %>% 
-  ggplot(aes(x=abs(bias.f.stu), y=abs(bias.f.sch), color=method, label=ID)) +
+  ggplot(aes(x=abs(bias.f.stu), y=abs(bias.f.clu), color=method, label=ID)) +
   geom_text() +
   coord_cartesian(ylim=c(0,0.012), xlim=c(0,0.055))
 ```
@@ -269,25 +269,25 @@ load( "~/R/clusterRCTsim/results/aggregated_simulation_results2.RData" )
 ```{r}
 sruns %>% 
   filter(method %in% key_methods) %>% 
-  group_by(method, size.impact.cor.school, size.impact.cor.district) %>% 
+  group_by(method, size.impact.cor.cluster, size.impact.cor.block) %>% 
   summarize(across(starts_with("bias"), ~mean(abs(.)))) %>% 
   pivot_longer(starts_with("bias")) %>%
   mutate(finite = str_detect(name, ".f"),
          estimand = as.factor(str_extract(name, "([^.]+$)"))) %>% 
-  mutate(estimand = factor(estimand, levels= c("stu", "dstu", "sch", "dsch"))) %>% 
+  mutate(estimand = factor(estimand, levels= c("stu", "dstu", .clu", ".clu"))) %>% 
   filter(finite) %>% 
   ggplot(aes(x=method, y=value, fill=estimand)) +
   geom_col(position="dodge") +
-  facet_grid(size.impact.cor.school ~ size.impact.cor.district, labeller = "label_both")
+  facet_grid(size.impact.cor.cluster ~ size.impact.cor.block, labeller = "label_both")
 ```
 
 Results:
-* zero school-level correlation: all methods unbiased for non-district-weighted estimands. If district-level correlation is nonzero, all methods biased for district-weighted estimands.
-* zero district-level correlation: if school-level correlation is nonzero, all methods biased as expected for student/school estimands.
+* zero cluster-level correlation: all methods unbiased for non-block-weighted estimands. If block-level correlation is nonzero, all methods biased for block-weighted estimands.
+* zero block-level correlation: if cluster-level correlation is nonzero, all methods biased as expected for student/cluster estimands.
 
 Chaos reigns on the diagonals! LR (agg) and MLM are the same, but...
-* Same sign correlation: MLM and LR (agg) biased for stu (expected) and dsch (why?), LR w/ CRSE biased for dstu (why?), sch (expected), dsch (expected but magnitude is huge)
-* Different sign correlation: in reverse! LR w/ CRSE biased for sch (expected) and dstu (why?), other two biased for dsch (why?), stu (expected), dstu (expected but magnitude is huge)
+* Same sign correlation: MLM and LR (agg) biased for stu (expected) and .clu (why?), LR w/ CRSE biased for dstu (why?),.clu (expected), .clu (expected but magnitude is huge)
+* Different sign correlation: in reverse! LR w/ CRSE biased for.clu (expected) and dstu (why?), other two biased for .clu (why?), stu (expected), dstu (expected but magnitude is huge)
 
 
 
@@ -297,16 +297,16 @@ Clearly the corners of the plot below are just sums of the sides
 ```{r}
 sruns %>% 
   filter(method %in% key_methods) %>% 
-  group_by(method, size.impact.cor.school, size.impact.cor.district) %>% 
+  group_by(method, size.impact.cor.cluster, size.impact.cor.block) %>% 
   summarize(across(starts_with("bias"), mean)) %>% 
   pivot_longer(starts_with("bias")) %>%
   mutate(finite = str_detect(name, ".f"),
          estimand = as.factor(str_extract(name, "([^.]+$)"))) %>% 
-  mutate(estimand = factor(estimand, levels= c("stu", "dstu", "sch", "dsch"))) %>% 
+  mutate(estimand = factor(estimand, levels= c("stu", "dstu", .clu", ".clu"))) %>% 
   filter(finite) %>% 
   ggplot(aes(x=method, y=value, fill=estimand)) +
   geom_col(position="dodge") +
-  facet_grid(size.impact.cor.school ~ size.impact.cor.district, labeller = "label_both")
+  facet_grid(size.impact.cor.cluster ~ size.impact.cor.block, labeller = "label_both")
 ```
 
 ### Checking sample sizes
@@ -314,13 +314,13 @@ sruns %>%
 ```{r}
 sruns %>% 
   filter(method %in% key_methods) %>%
-  filter(size.impact.cor.district == 0) %>% 
+  filter(size.impact.cor.block == 0) %>% 
   group_by(method, n.bar) %>% 
   summarize(across(starts_with("bias"), ~mean(abs(.)))) %>% 
   pivot_longer(starts_with("bias")) %>%
   mutate(finite = str_detect(name, ".f"),
          estimand = as.factor(str_extract(name, "([^.]+$)"))) %>% 
-  mutate(estimand = factor(estimand, levels= c("stu", "dstu", "sch", "dsch"))) %>% 
+  mutate(estimand = factor(estimand, levels= c("stu", "dstu", .clu", ".clu"))) %>% 
   filter(finite) %>% 
   ggplot(aes(x=method, y=value, fill=estimand)) +
   geom_col(position="dodge") +
@@ -328,13 +328,13 @@ sruns %>%
 
 sruns %>% 
   filter(method %in% key_methods) %>%
-  filter(size.impact.cor.school == 0) %>% 
+  filter(size.impact.cor.cluster == 0) %>% 
   group_by(method, n.bar) %>% 
   summarize(across(starts_with("bias"), ~mean(abs(.)))) %>% 
   pivot_longer(starts_with("bias")) %>%
   mutate(finite = str_detect(name, ".f"),
          estimand = as.factor(str_extract(name, "([^.]+$)"))) %>% 
-  mutate(estimand = factor(estimand, levels= c("stu", "dstu", "sch", "dsch"))) %>% 
+  mutate(estimand = factor(estimand, levels= c("stu", "dstu", .clu", ".clu"))) %>% 
   filter(finite) %>% 
   ggplot(aes(x=method, y=value, fill=estimand)) +
   geom_col(position="dodge") +
@@ -351,8 +351,8 @@ Sometimes the effects magically cancel out and you're left with no bias!
 
 So:
 
-1. Correlating district impacts with district sizes leads to bias for district-weighted estimands
-2. Correlating school impacts with school sizes leads to bias for non-target estimands (both district-weighted and non-district-weighted)
+1. Correlating block impacts with block sizes leads to bias for block-weighted estimands
+2. Correlating cluster impacts with cluster sizes leads to bias for non-target estimands (both block-weighted and non-block-weighted)
 
 Also, sample size might matter?
 
@@ -374,7 +374,7 @@ Check ranges of true estimand values
 
 ```{r}
 sruns %>% 
-  select(-ATE.super.district) %>% 
+  select(-ATE.super.block) %>% 
   group_by(ID) %>% 
   summarize(across(starts_with("ATE."), first)) %>% 
   pivot_longer(starts_with("ATE.")) %>% 
@@ -391,14 +391,14 @@ See if faceting by sample sizes does anything? Nope. Pretty flat lines.
 ```{r}
 sruns %>% 
   filter(method %in% key_methods) %>% 
-  # filter(size.impact.cor.district == 0) %>%
-  filter(size.impact.cor.school == 0) %>%
+  # filter(size.impact.cor.block == 0) %>%
+  filter(size.impact.cor.cluster == 0) %>%
   group_by(method, n.bar) %>% 
   summarize(across(starts_with("bias"), ~mean(abs(.)))) %>% 
   pivot_longer(starts_with("bias")) %>%
   mutate(finite = str_detect(name, ".f"),
          estimand = as.factor(str_extract(name, "([^.]+$)"))) %>% 
-  mutate(estimand = factor(estimand, levels= c("stu", "dstu", "sch", "dsch"))) %>% 
+  mutate(estimand = factor(estimand, levels= c("stu", "dstu", .clu", ".clu"))) %>% 
   filter(finite) %>% 
   ggplot(aes(x=n.bar, y=value, color=method)) +
   geom_point() +
@@ -406,19 +406,19 @@ sruns %>%
   facet_grid( ~ estimand, labeller = "label_both")
 ```
 
-Seems to be a jump; once J increases, district-weighted estimands get worse?
+Seems to be a jump; once J increases, block-weighted estimands get worse?
 
 ```{r}
 sruns %>% 
   filter(method %in% key_methods) %>% 
-  # filter(size.impact.cor.district == 0) %>%
-  filter(size.impact.cor.school == 0) %>%
+  # filter(size.impact.cor.block == 0) %>%
+  filter(size.impact.cor.cluster == 0) %>%
   group_by(method, J.bar) %>% 
   summarize(across(starts_with("bias"), ~mean(abs(.)))) %>% 
   pivot_longer(starts_with("bias")) %>%
   mutate(finite = str_detect(name, ".f"),
          estimand = as.factor(str_extract(name, "([^.]+$)"))) %>% 
-  mutate(estimand = factor(estimand, levels= c("stu", "dstu", "sch", "dsch"))) %>% 
+  mutate(estimand = factor(estimand, levels= c("stu", "dstu", .clu", ".clu"))) %>% 
   filter(finite) %>% 
   ggplot(aes(x=J.bar, y=value, color=method)) +
   geom_point() +
@@ -427,19 +427,19 @@ sruns %>%
 ```
 
 Now changing K... again, not much happens.
-Greater K might make district-weighted results worse.
+Greater K might make block-weighted results worse.
 
 ```{r}
 sruns %>% 
   filter(method %in% key_methods) %>% 
-  # filter(size.impact.cor.district == 0) %>%
-  filter(size.impact.cor.school == 0) %>%
+  # filter(size.impact.cor.block == 0) %>%
+  filter(size.impact.cor.cluster == 0) %>%
   group_by(method, K) %>% 
   summarize(across(starts_with("bias"), ~mean(abs(.)))) %>% 
   pivot_longer(starts_with("bias")) %>%
   mutate(finite = str_detect(name, ".f"),
          estimand = as.factor(str_extract(name, "([^.]+$)"))) %>% 
-  mutate(estimand = factor(estimand, levels= c("stu", "dstu", "sch", "dsch"))) %>% 
+  mutate(estimand = factor(estimand, levels= c("stu", "dstu", .clu", ".clu"))) %>% 
   filter(finite) %>% 
   ggplot(aes(x=K, y=value, color=method)) +
   geom_point() +
@@ -449,28 +449,28 @@ sruns %>%
 
 
 Conclusion: 
-* when there is only school-effect correlation: maybe increasing n.bar and J makes estimators worse for their non-target estimand?
-* when there is only district-effect correlation: maybe increasing J and K makes estimators worse for the district-weighted estimands?
+* when there is only cluster-effect correlation: maybe increasing n.bar and J makes estimators worse for their non-target estimand?
+* when there is only block-effect correlation: maybe increasing J and K makes estimators worse for the block-weighted estimands?
 
 Unclear overall, not too much effect.
 
 
 ### Exploring MLMs again
 
-MLM is pretty consistently worse at sch (which it's good at nonetheless), and better at stu (which it's bad at regardless)
+MLM is pretty consistently worse at.clu (which it's good at nonetheless), and better at stu (which it's bad at regardless)
 
 ```{r}
 sruns %>% 
   filter(method %in% c("LR (agg)", "MLM"),
-         size.impact.cor.district == 0,
-         size.impact.cor.school == 1) %>% 
-  ggplot(aes(x=abs(bias.f.stu), y=abs(bias.f.sch), color=method, label=ID)) +
+         size.impact.cor.block == 0,
+         size.impact.cor.cluster == 1) %>% 
+  ggplot(aes(x=abs(bias.f.stu), y=abs(bias.f.clu), color=method, label=ID)) +
   geom_line(aes(group=ID), color="black", alpha=0.3) +
   geom_text() +
   facet_wrap(~n.bar)
 ```
 
-Across almost all settings, MLM just has slightly less student bias, and slightly more school bias.
+Across almost all settings, MLM just has slightly less student bias, and slightly more cluster bias.
 There's no real patterns to see...?
 
 
@@ -483,81 +483,81 @@ load( "~/R/clusterRCTsim/results/aggregated_simulation_results_icc.RData" )
 ```{r}
 sruns %>% 
   filter(method %in% key_methods) %>% 
-  group_by(method, size.impact.cor.school, size.impact.cor.district) %>% 
+  group_by(method, size.impact.cor.cluster, size.impact.cor.block) %>% 
   summarize(across(starts_with("bias"), ~mean(abs(.)))) %>% 
   pivot_longer(starts_with("bias")) %>%
   mutate(finite = str_detect(name, ".f"),
          estimand = as.factor(str_extract(name, "([^.]+$)"))) %>% 
-  mutate(estimand = factor(estimand, levels= c("stu", "dstu", "sch", "dsch"))) %>% 
+  mutate(estimand = factor(estimand, levels= c("stu", "dstu", .clu", ".clu"))) %>% 
   filter(finite) %>% 
   ggplot(aes(x=method, y=value, fill=estimand)) +
   geom_col(position="dodge") +
-  facet_grid(size.impact.cor.school ~ size.impact.cor.district, labeller = "label_both")
+  facet_grid(size.impact.cor.cluster ~ size.impact.cor.block, labeller = "label_both")
 ```
 
-Increasing ICC.school maybe makes things worse for MLMs?
+Increasing ICC.cluster maybe makes things worse for MLMs?
 
 ```{r}
 sruns %>% 
   filter(method %in% key_methods) %>%
-  filter(size.impact.cor.district == 0) %>% 
-  group_by(method, ICC.district) %>% 
+  filter(size.impact.cor.block == 0) %>% 
+  group_by(method, ICC.block) %>% 
   summarize(across(starts_with("bias"), ~mean(abs(.)))) %>% 
   pivot_longer(starts_with("bias")) %>%
   mutate(finite = str_detect(name, ".f"),
          estimand = as.factor(str_extract(name, "([^.]+$)"))) %>% 
-  mutate(estimand = factor(estimand, levels= c("stu", "dstu", "sch", "dsch"))) %>% 
+  mutate(estimand = factor(estimand, levels= c("stu", "dstu", .clu", ".clu"))) %>% 
   filter(finite) %>% 
-  ggplot(aes(x=ICC.district, y=value, color=method)) +
+  ggplot(aes(x=ICC.block, y=value, color=method)) +
   geom_point() +
   geom_line() +
   facet_grid( ~ estimand, labeller = "label_both")
 
 sruns %>% 
   filter(method %in% key_methods) %>%
-  filter(size.impact.cor.district == 0) %>% 
-  group_by(method, ICC.school) %>% 
+  filter(size.impact.cor.block == 0) %>% 
+  group_by(method, ICC.cluster) %>% 
   summarize(across(starts_with("bias"), ~mean(abs(.)))) %>% 
   pivot_longer(starts_with("bias")) %>%
   mutate(finite = str_detect(name, ".f"),
          estimand = as.factor(str_extract(name, "([^.]+$)"))) %>% 
-  mutate(estimand = factor(estimand, levels= c("stu", "dstu", "sch", "dsch"))) %>% 
+  mutate(estimand = factor(estimand, levels= c("stu", "dstu", .clu", ".clu"))) %>% 
   filter(finite) %>% 
-  ggplot(aes(x=ICC.school, y=value, color=method)) +
+  ggplot(aes(x=ICC.cluster, y=value, color=method)) +
   geom_point() +
   geom_line() +
   facet_grid( ~ estimand, labeller = "label_both")
 ```
 
-No effect below, when only district-level cor varies.
+No effect below, when only block-level cor varies.
 
 ```{r}
 sruns %>% 
   filter(method %in% key_methods) %>%
-  filter(size.impact.cor.school == 0) %>% 
-  group_by(method, ICC.district) %>% 
+  filter(size.impact.cor.cluster == 0) %>% 
+  group_by(method, ICC.block) %>% 
   summarize(across(starts_with("bias"), ~mean(abs(.)))) %>% 
   pivot_longer(starts_with("bias")) %>%
   mutate(finite = str_detect(name, ".f"),
          estimand = as.factor(str_extract(name, "([^.]+$)"))) %>% 
-  mutate(estimand = factor(estimand, levels= c("stu", "dstu", "sch", "dsch"))) %>% 
+  mutate(estimand = factor(estimand, levels= c("stu", "dstu", .clu", ".clu"))) %>% 
   filter(finite) %>% 
-  ggplot(aes(x=ICC.district, y=value, color=method)) +
+  ggplot(aes(x=ICC.block, y=value, color=method)) +
   geom_point() +
   geom_line() +
   facet_grid( ~ estimand, labeller = "label_both")
 
 sruns %>% 
   filter(method %in% key_methods) %>%
-  filter(size.impact.cor.school == 0) %>% 
-  group_by(method, ICC.school) %>% 
+  filter(size.impact.cor.cluster == 0) %>% 
+  group_by(method, ICC.cluster) %>% 
   summarize(across(starts_with("bias"), ~mean(abs(.)))) %>% 
   pivot_longer(starts_with("bias")) %>%
   mutate(finite = str_detect(name, ".f"),
          estimand = as.factor(str_extract(name, "([^.]+$)"))) %>% 
-  mutate(estimand = factor(estimand, levels= c("stu", "dstu", "sch", "dsch"))) %>% 
+  mutate(estimand = factor(estimand, levels= c("stu", "dstu", .clu", ".clu"))) %>% 
   filter(finite) %>% 
-  ggplot(aes(x=ICC.school, y=value, color=method)) +
+  ggplot(aes(x=ICC.cluster, y=value, color=method)) +
   geom_point() +
   geom_line() +
   facet_grid( ~ estimand, labeller = "label_both")
@@ -568,16 +568,16 @@ sruns %>%
 ## Final takeaways
 
 1. We have three methods: LR with CRSE, MLM, LR (agg). 
-The first two target student-weighted estimands, the last targets school-weighted estimands
+The first two target student-weighted estimands, the last targets cluster-weighted estimands
 
-2. Correlating district impacts with district sizes leads to bias for all district-weighted estimands, i.e., none of our methods are good at targeting the district-weighted estimands
+2. Correlating block impacts with block sizes leads to bias for all block-weighted estimands, i.e., none of our methods are good at targeting the block-weighted estimands
 
-3. Correlating school impacts with school sizes leads to bias for non-target estimands (both district-weighted and non-district-weighted)
+3. Correlating cluster impacts with cluster sizes leads to bias for non-target estimands (both block-weighted and non-block-weighted)
 
 4. Sample sizes don't strongly affect results. 
 Often increasing data makes estimators significantly more biased for the estimands they're not trying to target.
 
-5. Not sure how to get MLMs to more closely target a given estimand. MLMs just generally have more school-estimand bias, less student-estimand bias than LR (agg).
+5. Not sure how to get MLMs to more closely target a given estimand. MLMs just generally have more cluster-estimand bias, less student-estimand bias than LR (agg).
 
 6. Changing ICCs doesn't really affect things either?
 

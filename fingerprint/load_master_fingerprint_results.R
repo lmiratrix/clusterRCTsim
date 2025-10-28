@@ -2,7 +2,7 @@
 # First load empirical results
 
 source( here::here( "empirical/load_empirical_results.R" ) )
-
+library( clusterRCT )
 
 
 # Load the fingerprint simulation results (where we generated data
@@ -25,7 +25,7 @@ studies
 
 # Load and examine data ----
 
-cli_h1( "!!! Loading and examining results" )
+cli::cli_h1( "!!! Loading and examining results" )
 
 if ( FALSE ) {
   
@@ -87,6 +87,8 @@ table( drp )
 dat$SE_hat[ drp ] <- NA
 
 rm( drp )
+
+
 
 
 # Calculate ranges, etc. ----

@@ -13,7 +13,9 @@ create_analysis_tree <- function( data,
                                   palette_name = "Greens", 
                                   plot_tree = TRUE, 
                                   initial_cp = 0.001,
-                                  tree_title = NULL ) {
+                                  tree_title = NULL,
+                                  include_counts = FALSE
+                                  ) {
   
   # Create formula with the specified outcome variable and predictors
   predictors <- paste(predictor_vars, collapse = " + ")
@@ -59,10 +61,17 @@ create_analysis_tree <- function( data,
   
   # Leaf function for clean display
   leaf_fun <- function(x, labs, digits, varlen) {
-    ifelse(x$frame$var == "<leaf>",
-           sprintf("%.2f", x$frame$yval),
-           labs)
-  }
+    fr <- x$frame
+    is_leaf <- fr$var == "<leaf>"
+    if ( include_counts ) {
+      labs[is_leaf] <- sprintf("%.2f (%d)", 
+                             fr$yval[is_leaf],
+                             round(fr$n[is_leaf]) )
+    } else {
+      labs[is_leaf] <- sprintf("%.2f", fr$yval[is_leaf])
+    }
+    labs
+  } 
   
   # Plot if requested
   if (plot_tree) {

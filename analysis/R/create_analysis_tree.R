@@ -9,8 +9,8 @@ require(RColorBrewer)
 #' 
 create_analysis_tree <- function(data, outcome_var, 
                                  predictor_vars = c("is_FI", "is_MLM", "is_cw", "is_pw", "blk_type", 
-                                                    "J.bar", "cor_J_tau", "sd.sch", "ICC.sch", 
-                                                    "cv.sch", "num.cov", "p.bar"),
+                                                    "J.bar", "cor_J_tau", "sd.clu", "ICC.clu", 
+                                                    "cv.clu", "num.cov", "p.bar"),
                                  num_leaves = 10, palette_name = "Greens", 
                                  plot_tree = TRUE, initial_cp = 0.001,
                                  tree_title = NULL) {
@@ -30,11 +30,11 @@ create_analysis_tree <- function(data, outcome_var,
   
   name_map <- c(
     block_type = "blk_type",
-    size.impact.cor.school = "cor_J_tau",
-    num.cov.school = "num.cov",
-    cv.school = "cv.sch",
-    sd.school = "sd.sch",
-    ICC.school = "ICC.sch"
+    size.impact.cor.cluster = "cor_J_tau",
+    num.cov.cluster = "num.cov",
+    cv.cluster = "cv.clu",
+    sd.cluster = "sd.clu",
+    ICC.cluster = "ICC.clu"
   )
   predictor_vars <- if_else(predictor_vars %in% names(name_map),
                             name_map[predictor_vars],

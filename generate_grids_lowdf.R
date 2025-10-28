@@ -1,13 +1,13 @@
 ##########################################
 #
-# Author: Sophie Litschwartz
+# Author: Sophie Li.cluwartz
 # Date Created:06/13/2025
 # Project Name: Cluster RCT Estimators
 # File Name: generate_grids_lowdf.R
 # File Description: 
 #
 # generates full set of scenarios, including the statistics on the
-# districts for each scenario, for the main cloud-based simulation.
+# blocks for each scenario, for the main cloud-based simulation.
 #
 ################################
 
@@ -26,23 +26,25 @@ group="lowdf"
 
 #call the source code
 
-source( "R/data_generation_code.R" )
-source( "R/simulation_support_code_fixed_district.R" )
+source( here::here( "R/data_generation_code.R" ) )
+source( here::here( "R/simulation_support_code_fixed_block.R" ) )
+
+
 
 #blocktype=c("messy","same","reasonable")
 
 #Blocks all the same: 
-btype1<-data.frame( sd.ATE=0,
+btype1<-data.frame( sd.block=0,
                     size.impact.cor = 0, 
                     size.intercept.cor = 0)
 
 #Blocks all messy: 
-btype2<-data.frame( sd.ATE=.6, 
+btype2<-data.frame( sd.block=.6, 
                     size.impact.cor = .8, 
                     size.intercept.cor = .8)
 
 #Blocks vaguely reasonable
-btype3<-data.frame( sd.ATE=0.2, 
+btype3<-data.frame( sd.block=0.2, 
                     size.impact.cor = .2, 
                     size.intercept.cor = .3)
 
@@ -52,7 +54,7 @@ blockvars <- bind_rows( same = btype1,
                         messy = btype2, 
                         .id = "blocktype" )
 
-# How do district characteristics vary?
+# How do block characteristics vary?
 blockvars
 
 # Define the four specific scenario sets
@@ -60,8 +62,8 @@ scenario_sets <- data.frame(
   set_id = 1:4,
   K = c(20, 10, 7, 20),
   J.bar = c(2.4, 4, 4, 2),
-  num.cov.school = c(5, 6, 6, 0),
-  cv.district = c(0.33, 0.33, 0, 0),
+  num.cov.cluster = c(5, 6, 6, 0),
+  cv.block = c(0.33, 0.33, 0, 0),
   # For sets 3 and 4, need special handling of size correlations
   special_zero_cors = c(FALSE, FALSE, TRUE, TRUE)
 )
@@ -73,8 +75,8 @@ scenarios = expand.grid(
   # Fixed block-level factors (same for all scenarios)
   n.bar=20, 
   ATE = .2,
-  ICC.district = .2,
-  num.cov.district = 0,
+  ICC.block = .2,
+  num.cov.block = 0,
   nbar.J.cor = 0,   
   proptx.impact.cor = 0,
   variable.p = FALSE,
@@ -83,34 +85,34 @@ scenarios = expand.grid(
   
   blocktype=c("messy","same","reasonable"),
   
-  # school-level params
-  sd.school =  c(0,.3), 
-  ICC.school = c(0,0.20),
-  R2.school = .5,
+  # cluster-level params
+  sd.cluster =  c(0,.3), 
+  ICC.cluster = c(0,0.20),
+  R2.cluster = .5,
   
-  # correlation params at school level
-  cv.school =  c(0,.33,.6),
-  size.impact.cor.school = c(0,.8),
+  # correlation params at cluster level
+  cv.cluster =  c(0,.33,.6),
+  size.impact.cor.cluster = c(0,.8),
   
   # Individual-level params
   num.cov.indiv = 0,
   
-  # Make districts as close as possible to desired specified variation
+  # Make blocks as close as possible to desired specified variation
   empirical = TRUE
 )
 
-# Join with scenario sets to get K, J.bar, num.cov.school
+# Join with scenario sets to get K, J.bar, num.cov.cluster
 scenarios <- scenarios %>%
-  left_join(scenario_sets %>% select(set_id, K, J.bar, num.cov.school, cv.district, special_zero_cors), by = "set_id")
+  left_join(scenario_sets %>% select(set_id, K, J.bar, num.cov.cluster, cv.block, special_zero_cors), by = "set_id")
 
 
-# Filter out invalid combinations where size.impact.cor.school > 0 but sd.school = 0 or cv.school = 0
+# Filter out invalid combinations where size.impact.cor.cluster > 0 but sd.cluster = 0 or cv.cluster = 0
 scenarios <- scenarios %>%
-  filter(!(size.impact.cor.school > 0 & (sd.school == 0 | cv.school == 0)))
+  filter(!(size.impact.cor.cluster > 0 & (sd.cluster == 0 | cv.cluster == 0)))
 
-# Fix the R2.school - set to NULL (0) if num.cov.school == 0
+# Fix the R2.cluster - set to NULL (0) if num.cov.cluster == 0
 scenarios <- scenarios %>% 
-  mutate(R2.school = ifelse(num.cov.school == 0, 0, R2.school))
+  mutate(R2.cluster = ifelse(num.cov.cluster == 0, 0, R2.cluster))
 
 scenarios$ID = 1:nrow(scenarios)
 
@@ -128,7 +130,7 @@ scenarios <- scenarios %>%
 
 #make the grid 
 scenarios$grid <- pmap( dplyr::select( scenarios, -ID, -blocktype ),
-                        build_districts )
+                        build_blocks )
 
 #save the true J.bar
 scenarios$J.bar.true <- map_dbl(scenarios$grid, ~ mean(.x$J))
@@ -138,8 +140,10 @@ scenarios
 scenarios[131,] %>%
   dplyr::select( blocktype, grid ) %>%
   unnest( cols = grid ) %>%
-  dplyr::select( -did, -R2.school )
+  dplyr::select( -did, -R2.cluster )
 
-#scenarios$run = map(scenarios$grid, run.scenario.fixed.district, R=1 , parallel=F)
+#scenarios$run = map(scenarios$grid, run.scenario.fixed.block, R=1 , parallel=F)
 
-saveRDS( scenarios, "scenarios.rds" )
+scenarios$group = group
+saveRDS( scenarios, 
+         here::here( "scenarios_lowdf.rds" ) )

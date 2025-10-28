@@ -6,7 +6,7 @@
 source( here::here( "empirical/load_empirical_results.R" ) )
 
 
-source( here::here( "empirical/final_paper_figures.R" ) )
+source( here::here( "empirical/calculate_all_ranges.R" ) )
 
 setdiff( summary_stats$UniqueID, summary_stats$UniqueID  )
 

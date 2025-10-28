@@ -46,16 +46,16 @@ sruns.sub <- sruns.sub %>%
 # Rename to make variables readable on printed trees
 sruns.sub <- sruns.sub %>%
   rename( blk_type = block_type,
-          cor_J_tau = size.impact.cor.school,
-          num.cov = num.cov.school,
-          cv.sch = cv.school,
-          sd.sch = sd.school,
-          ICC.sch = ICC.school )
+          cor_J_tau = size.impact.cor.cluster,
+          num.cov = num.cov.cluster,
+          cv.clu = cv.cluster,
+          sd.clu = sd.cluster,
+          ICC.clu = ICC.cluster )
 
 
 # QUESTION: Include method or not?
 form = as.formula( "abs(bias.s.estimand) ~ is_FI + is_MLM + is_cw + is_pw + blk_type + J.bar + cor_J_tau + 
-                                                 sd.sch + ICC.sch + cv.sch + num.cov+p.bar" )
+                                                 sd.clu + ICC.clu + cv.clu + num.cov+p.bar" )
 form
 
 

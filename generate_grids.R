@@ -1,14 +1,14 @@
 
 ##########################################
 #
-# Author: Sophie Litschwartz
+# Author: Sophie Li.cluwartz
 # Date Created:11/27/2024
 # Project Name: Cluster RCT Estimators
 # File Name: generate_grids.R
 # File Description: 
 #
 # generates full set of scenarios, including the statistics on the
-# districts for each scenario, for the main cloud-based simulation.
+# blocks for each scenario, for the main cloud-based simulation.
 #
 ################################
 
@@ -27,14 +27,14 @@ group="fullfactor"
 
 #call the source code
 
-source( "R/data_generation_code.R" )
-source( "R/simulation_support_code_fixed_district.R" )
+source( here::here( "R/data_generation_code.R" ) )
+source( here::here( "R/simulation_support_code_fixed_block.R" ) )
 
 #blocktype=c("messy","same","reasonable")
 
 #Blocks all the same: 
-btype1<-data.frame( cv.district=0,
-                    sd.ATE=0,
+btype1<-data.frame( cv.block=0,
+                    sd.block=0,
                     size.impact.cor = 0, 
                     nbar.J.cor = 0,   
                     proptx.impact.cor = 0,
@@ -43,8 +43,8 @@ btype1<-data.frame( cv.district=0,
                     cv.nbar= 0)
 
 #Blocks all messy: 
-btype2<-data.frame( cv.district=.85, 
-                    sd.ATE=.6, 
+btype2<-data.frame( cv.block=.85, 
+                    sd.block=.6, 
                     size.impact.cor = .8, 
                     nbar.J.cor = .8,   
                     proptx.impact.cor = .8, 
@@ -54,8 +54,8 @@ btype2<-data.frame( cv.district=.85,
 
                 
 #Blocks vaguely reasonable
-btype3<-data.frame( cv.district=.33,
-                    sd.ATE=0.2, 
+btype3<-data.frame( cv.block=.33,
+                    sd.block=0.2, 
                     size.impact.cor = .2, 
                     nbar.J.cor = .3,   
                     proptx.impact.cor = 0,
@@ -70,7 +70,7 @@ blockvars <- bind_rows( same = btype1,
                         messy = btype2, 
                         .id = "blocktype" )
 
-# How do district characteristics vary?
+# How do block characteristics vary?
 blockvars
 
 #This the parameters that need to go in it
@@ -80,31 +80,31 @@ scenarios = expand.grid(
   n.bar=20, 
   p.bar=c(0.5,0.7),
   ATE = .2,
-  ICC.district = .2,
-  num.cov.district = 0,
+  ICC.block = .2,
+  num.cov.block = 0,
   blocktype=c("messy","same","reasonable"),
   
-  # school-level params
-  sd.school =  c(0,.3), 
-  ICC.school = c(0,0.20),
-  R2.school = .5,
-  num.cov.school = c(0,1,5),
+  # cluster-level params
+  sd.cluster =  c(0,.3), 
+  ICC.cluster = c(0,0.20),
+  R2.cluster = .5,
+  num.cov.cluster = c(0,1,5),
   
-  # correlation params at school level
-  cv.school =  c(0,.33,.6),
-  size.impact.cor.school = c(0,.8),
+  # correlation params at cluster level
+  cv.cluster =  c(0,.33,.6),
+  size.impact.cor.cluster = c(0,.8),
   
   # Individual-level params
   num.cov.indiv = 0,
   
-  # Make districts as close as possible to desired specified variation
+  # Make blocks as close as possible to desired specified variation
   empirical = TRUE
   )
 
 
 #fix the R2 
 scenarios <- scenarios %>% 
-  mutate(R2.school = ifelse(num.cov.school==0, 0, R2.school) )
+  mutate(R2.cluster = ifelse(num.cov.cluster==0, 0, R2.cluster) )
 
 scenarios$ID = 1:nrow(scenarios)
 
@@ -113,19 +113,35 @@ scenarios <- left_join(scenarios, blockvars, by="blocktype") %>%
   relocate( ID ) %>%
   as_tibble()
 
+if ( FALSE ) {
+  # some testing code
+  key_ID <- 1067
+  set.seed( 44040 )
+  debug( build_blocks )
+  grid <- do.call( build_blocks, 
+           scenarios[ scenarios$ID == key_ID, ] %>%
+             dplyr::select( -ID, -blocktype ) %>% 
+             as.list() )
+  
+  describe_block_grid(grid)
+  
+}
 
 #make the grid 
 scenarios$grid <- pmap( dplyr::select( scenarios, -ID, -blocktype ),
-                        build_districts )
+                        build_blocks )
 
 scenarios
 
+# Check a specific scenario
 scenarios[131,] %>%
   dplyr::select( blocktype, grid ) %>%
   unnest( cols = grid ) %>%
-  dplyr::select( -did, -R2.school )
+  dplyr::select( -did, -R2.cluster )
 
-#scenarios$run = map(scenarios$grid, run.scenario.fixed.district, R=1 , parallel=F)
+#scenarios$run = map(scenarios$grid, run.scenario.fixed.block, R=1 , parallel=F)
 
-saveRDS( scenarios, "scenarios.rds" )
+scenarios$group = group
+saveRDS( scenarios,
+         here::here( "scenarios.rds" ) )
 

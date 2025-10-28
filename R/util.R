@@ -109,7 +109,7 @@ rerandomize.data = function( dat, recalc_outcomes = TRUE ) {
     stopifnot( all( c( "Y1", "Y0" ) %in% colnames(dat) ) )
   }
   
-  grid <- attr( dat, "district_key" )
+  grid <- attr( dat, "block_key" )
   
   if ( "did" %in% names(dat) ) {
     dat$Z = rerandomize( dat$Z, dat$sid, dat$did )
@@ -123,7 +123,7 @@ rerandomize.data = function( dat, recalc_outcomes = TRUE ) {
       mutate( Yobs = ifelse(Z, Y1, Y0) )
   }
   
-  attr( dat, "district_key" ) <- grid
+  attr( dat, "block_key" ) <- grid
   
   return( dat )
 }
@@ -142,11 +142,11 @@ describe.data = function( df,
   
   # we want:
   #  - true ATEs
-  #  - true correlations from district_key
+  #  - true correlations from block_key
   #  - etc...
   
-  # district params
-  d_key = attr(df, "district_key")
+  # block params
+  d_key = attr(df, "block_key")
   
   #if ( !is.null( formula ) ) {
   #  df = clusterRCT:::make_canonical_data(formula, data=df )
@@ -161,9 +161,9 @@ describe.data = function( df,
   
   if ( !is.null( d_key ) ) {
     sstat_distr <- d_key %>% 
-      summarize(cor.J.tau_dist = cor(J, district.tau),
-                cor.p.tau_dist = cor(p, district.tau),
-                sd.tau_dist = sd(district.tau),
+      summarize(cor.J.tau_dist = cor(J, block.tau),
+                cor.p.tau_dist = cor(p, block.tau),
+                sd.tau_dist = sd(block.tau),
                 sd.J_dist = sd(J),
                 sd.p_dist = sd(p))
     
@@ -190,7 +190,7 @@ describe.data = function( df,
   
   
   # compute design-based point ATE estimates
-  #  - district-weighted, cluster-weighted, and individual-weighted
+  #  - block-weighted, cluster-weighted, and individual-weighted
   ATEhats <- df %>% 
     group_by(did, sid) %>% 
     summarize(Njk = n(),
