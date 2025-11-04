@@ -24,6 +24,17 @@ geometry:
 
 #To-Do Notes:
 
+#Section 5
+# Follow up with Luke: I don't want to drop block type same, reas becuase there are issues for those with MLM-RE and MLM-FE
+#Create a table 
+
+#Section 6
+#I had a figure that showed the FI CRVE standard errors are very bad when there are matched blocks, but I think it's confusing and I cut it.
+
+
+
+
+
 #1) Edit the research questions document based on the thing edited with Luke 
 #2) Edit each of the sections based on the research questions
 #3) Edit the data generating processes section 
@@ -427,18 +438,12 @@ If the variance is very close to the mean, we use a poisson distribution.
 We use this approach for the average cluster size across blocks, even though the average cluster sizes could be fractional.
 
 
-
-
-
-
-
-
 # Are any of the estimators ever substantially biased? When? 
 
 In 90% of the scenarios we tested, the magnitude of bias was less than 0.01 for all estimators (Figure 1), and the scenarios with bias require the confluence of multiple bias-causing factors (Figure 2). The estimators that theory predicts are unbiased do indeed have nearly no bias (or very low bias) across the full range of simulations. The person-weighted fully interacted estimator had bias as severe as -0.033 in the worst 5% of scenarios tested, which the regression tree shows requires a correlation between the treatment effect and cluster size combined with a small number of clusters per block (Figure 2). For the remaining estimators, except the multilevel fully interacted model, we observe bias as severe as -0.2 in some simulations, primarily driven by the combination of dissimilar blocks and unbalanced treatment assignment of clusters. The multilevel fully interacted model performed well with dissimilar blocks and unbalanced treatment assignment, and instead was most biased when there was a combination of correlation between the number of clusters and the treatment effect, zero cluster-level ICC, and substantial variation in cluster sizes.
 
 
-```{r bias, include=TRUE, echo=FALSE, fig.width=6, fig.height=4, dpi=150}
+```{r bias, include=TRUE, echo=FALSE, fig.width=6, fig.height=4,dpi=150}
 
 sruns.graph.bias<-sruns.clean  %>% filter(method %in% core.methods) %>% mutate(method = str_remove(method, "-db$"),     method_ordered = str_remove(method_ordered, "-db$"))
 
@@ -473,14 +478,14 @@ ggdraw() +
 
 ```
 
-```{r biastree, include=TRUE, echo=FALSE, fig.width=6, fig.height=6, dpi=150, results='asis'}
+```{r biastree, include=TRUE, echo=FALSE, fig.width=6, fig.height=6,dpi=150, results='asis'}
 # Simple faceted analysis trees
 methods <- unique(sruns.graph.bias$method)[!(unique(sruns.graph.bias$method) %in% c("LRa-FIcw-db","LRapw-FIpw-db"))]
 
-fig2cap <- "Figure 2: Regression tree by method which predicts the magnitude of the mean bias using different data generating parameters" 
+fig2cap <- "Figure 2: Regression tree by method which predicts the magnitude of the mean bias given different data generating parameters" 
 
 # Set up plotting layout
-par(mfrow = c(3, 2), oma = c(4, 0, 0, 0))
+par(mfrow = c(4, 2), oma = c(3, 0, 0, 0))
 
 for (method_name in methods) {
   create_analysis_tree(
@@ -488,20 +493,24 @@ for (method_name in methods) {
     outcome_var = "bias.s.estimand.mag", 
     predictor_vars = c("block_type", "J.bar", "cor_J_tau", "sd.clu", "ICC.clu", 
                        "cv.clu", "num.cov", "p.bar"),
+      num_leaves = 6,
     tree_title = paste(method_name)
   )
 }
 mtext(str_wrap(fig2cap, width = 110), side = 1, line = 1, cex = 0.75, 
       col = "gray40", outer = TRUE, family = "serif", adj = 0)
+
+
 # Reset plotting parameters
 par(mfrow = c(1, 1), oma = c(0, 0, 0, 0))
+
 ```
 
 # Are any of the estimators generally more precise than others? When? 
 
 In general, all the different estimators have comparable precision (Figure 3). Excluding the multilevel estimators, within a given scenario and targeted estimand (person-weighted vs. cluster-weighted), all the estimators have standard errors that are at most 10% larger than the median across methods. The multilevel estimators become more precise than the other estimators when there is a combination of large variation in cluster size and zero cluster ICC; otherwise, their precision is close to that of the other estimators (Figure 4).
 
-```{r standard errors, include=TRUE, echo=FALSE,  fig.width=6, fig.height=4}
+```{r standard errors, include=TRUE, echo=FALSE,  fig.width=6, fig.height=4.5}
 
 sruns.graph.stab<-sruns.clean  %>% filter(method %in% core.methods) %>% 
                                    mutate( SE.s.norm=(SE.s/SE.s.median),
@@ -534,17 +543,18 @@ theme(
 )
 
 ggdraw() +
-  draw_plot(stab_plot, 0, 0.1, 1, 0.9) +  # Plot takes up top 90%
+  draw_plot(stab_plot, 0, 0.22, 1, 0.78) +  # Plot takes up top 78%
   draw_label(
     str_wrap(fig3cap, width = 110),
     x = 0.05, y = 0.05,  # Position at bottom left
-    hjust = 0, vjust = 0.75,
+    hjust = 0, vjust = 0,
     size = 9, color = "gray40", fontfamily = "serif"
   )
 ```
+
 ```{r standard errors tree, include=TRUE, echo=FALSE, fig.width=6, fig.height=4}
 
-fig4cap <- "Figure 4: Regression tree by method which predicts the normalized true estimate standard error using different data generating parameters"
+fig4cap <- "Figure 4: Regression tree predicting the normalized true estimate standard error using different data generating parameters"
 
 tree2 <- create_analysis_tree( 
   sruns.graph.stab %>% filter(group == "full_factor"), 
@@ -560,11 +570,14 @@ mtext(str_wrap(fig4cap, width = 110), side = 1, line = 4, cex = 0.65,
 
 ```
 
-# Which estimators produce the best estimates of the treatment effect standard error?
+# Which estimators have calibrated estimates of the treatment effect standard error?
 
-Overall, across the simulations, the standard error estimates for fully interacted estimators, except the fully interacted MLM, are too small (Figure 5). However, across all simulations, the magnitude of the underestimate for the cluster-weighted estimate is very small. For the person-weighted estimators, the standard errors are only substantially underestimated when there is large variation in cluster size combined with either a small number of clusters or large variation across blocks. The only caveat to these results is that almost all the fully interacted estimators are undefined in cases where there are only two clusters in a block. The fully interacted CRVE estimators do have defined standard error estimates in these cases, but these estimates are extremely poor and these estimators should not be used under these circumstances (Figure 6).
+Overall, across the simulations, the standard error estimates for fully interacted estimators, except the fully interacted MLM, are too small (Figure 5). However, across all simulations, the magnitude of the underestimate for the cluster-weighted estimate is very small. For the person-weighted estimators, the standard errors are only substantially underestimated when there is large variation in cluster size combined with either a small number of clusters or large variation across blocks. The only caveat to these results is that almost all the fully interacted estimators are undefined in cases where there are only two clusters in any block. The fully interacted CRVE estimators do have defined standard error estimates in these cases, but these estimates are extremely poor and these estimators should not be used under these circumstances.
 
-On the other hand, the estimated standard errors for the other estimators are on average systematically too high across the simulations. For the MLM, the amount of overestimation is small except when there is a confluence of an unbalanced sample, zero cluster-level ICC, and cross-cluster treatment effect variance (Figure 7). For the fixed effect estimators, the standard error estimates were overestimated by at least 15% in simulations with very dissimilar blocks and no cluster-level ICC (Figure 8).
+On the other hand, the estimated standard errors for the other estimators are on average systematically too high across the simulations. For the MLM, the amount of overestimation is small except when there is a confluence of an unbalanced sample, zero cluster-level ICC, and cross-cluster treatment effect variance (Figure 6). 
+
+For the fixed effect estimators, the standard error estimates were overestimated by at least 15% in simulations with very dissimilar blocks and no cluster-level ICC (Figure 8). Within these simulations (i.e. dissimilar blocks and no cluster level ICC), the person weighted estimates were even more overestimated, with this overestimation problem mostly getting worse the less variation there was across clusters. The person weighted estimates with either small or medium variation in cluster size were predicted to be at least 30% too big; with the estimates getting worse in cases with no cross-site impact variation, predicted to be approximately 40% to 50% too big. We do however find, within this subset of simulations that the overestimation was worse with medium amounts of cluster size variation compared to small amounts of cluster size variation. 
+
 
 Consistent with the standard errors being generally well estimated across simulation conditions and estimators, the coverage rate is also close to 95% across simulation conditions and estimators (Figure 9). For the MLM models, sometimes a confluence of multiple simulation conditions (i.e., no variation in cluster size, no cluster-level ICC, and at least three other factors) led the coverage to fall below 90% (Figure 10). Otherwise, there were generally no issues with confidence interval coverage.
 
@@ -617,38 +630,8 @@ ggdraw() +
 lowdf<-sruns.clean %>% filter(group=="lowdf")
 crve<-lowdf %>% filter(method %in% c("LRicw-FIcw-crve","LRi-FIpw-crve"))
 
-fig6cap <- "Figure 6: Boxplot of estimated standard error inflation for matched studies for the fully interacted CRVE estimators. Standard error inflation is measured as the ratio of the estimated standard error over the true super population standard error. Values above 1 indicate overestimation, values below 1 indicate underestimation. The faint horizontal lines go out to the full range, the bars are the 1% to 99%, and the boxes are the 10% to 90%."
 
-inf_plot_lowdf_crve <- create_custom_boxplot2(
-  crve %>% filter(J.bar=="S"), 
-  "inflate.s", 
-  "", 
-  "Ratio of Estimated SE over True Super SE",
-  vline_at = 1,
-  log_scale = TRUE
-) + theme_minimal() +
-theme(
-  text = element_text(family = "serif", size = 10),
-  axis.text.x = element_text(size = 8, family = "serif"),
-  axis.text.y = element_text(size = 8, hjust = 0.5, family = "serif"),
-  plot.title = element_text(hjust = 0.5, size = 12, family = "serif"),
-  plot.caption = element_text(hjust = 0, size = 9, family = "serif", color = "gray40"),
-  legend.text = element_text(size = 9, family = "serif"),
-  legend.title = element_text(size = 10, family = "serif"),
-  panel.grid = element_blank()
-)
-
-ggdraw() +
-     draw_plot(inf_plot_lowdf_crve, 0, 0.1, 1, 0.9) +
-     draw_label(
-       str_wrap(fig6cap, width = 120),
-       x = 0.05, y = 0.05,
-       hjust = 0, vjust = 0.5,
-       size = 9, color = "gray40", fontfamily = "serif"
-     )
-
-
-fig7cap <- "Figure 7: Regression tree which predicts the standard error inflation using different data generating parameters for the multi-level model methods"
+fig7cap <- "Figure 6: Regression tree which predicts the standard error inflation using different data generating parameters for the multi-level model methods"
 
 tree7 <- create_analysis_tree( 
   sruns.graph.infl.ff %>% filter(is_cw==1 & is_MLM==1), 
@@ -661,7 +644,7 @@ tree7 <- create_analysis_tree(
 mtext(str_wrap(fig7cap, width = 110), side = 1, line = 4, cex = 0.75, 
       col = "gray40", family = "serif", adj = 0)
 
-fig8cap <- "Figure 8: Regression tree which predicts the standard error inflation using different data generating parameters for the fixed effect methods"
+fig8cap <- "Figure 7: Regression tree which predicts the standard error inflation using different data generating parameters for the fixed effect methods"
 
 tree8 <- create_analysis_tree( 
   sruns.graph.infl.ff %>% filter(is_FI==0 | is_MLM==0), 
@@ -676,7 +659,7 @@ mtext(str_wrap(fig8cap, width = 110), side = 1, line = 4, cex = 0.75,
 
 sruns.cov<-sruns.clean %>% mutate(cover.s.estimand=cover.s.estimand*100,CI.length.norm= (CI.length/CI.length.median))
  
-fig9cap <- "Figure 9: Boxplot of coverage rates across different scenarios by method. The horizontal line indicates the target 95% coverage rate. The faint horizontal lines go out to the full range, the bars are the 1% to 99%, and the boxes are the 10% to 90%."
+fig9cap <- "Figure 8: Boxplot of coverage rates across different scenarios by method. The horizontal line indicates the target 95% coverage rate. The faint horizontal lines go out to the full range, the bars are the 1% to 99%, and the boxes are the 10% to 90%."
 
 cov_plot <- create_custom_boxplot2(
   sruns.cov %>% filter(group=="full_factor"), 
@@ -1099,3 +1082,35 @@ ggdraw() +
      )
 ```
 
+
+```{r cutcode, include=FALSE, echo=FALSE, results='asis'}
+fig6cap <- "Figure 6: Boxplot of estimated standard error inflation for matched studies for the fully interacted CRVE estimators. Standard error inflation is measured as the ratio of the estimated standard error over the true super population standard error. Values above 1 indicate overestimation, values below 1 indicate underestimation. The faint horizontal lines go out to the full range, the bars are the 1% to 99%, and the boxes are the 10% to 90%."
+
+inf_plot_lowdf_crve <- create_custom_boxplot2(
+  crve %>% filter(J.bar=="S"), 
+  "inflate.s", 
+  "", 
+  "Ratio of Estimated SE over True Super SE",
+  vline_at = 1,
+  log_scale = TRUE
+) + theme_minimal() +
+theme(
+  text = element_text(family = "serif", size = 10),
+  axis.text.x = element_text(size = 8, family = "serif"),
+  axis.text.y = element_text(size = 8, hjust = 0.5, family = "serif"),
+  plot.title = element_text(hjust = 0.5, size = 12, family = "serif"),
+  plot.caption = element_text(hjust = 0, size = 9, family = "serif", color = "gray40"),
+  legend.text = element_text(size = 9, family = "serif"),
+  legend.title = element_text(size = 10, family = "serif"),
+  panel.grid = element_blank()
+)
+
+ggdraw() +
+     draw_plot(inf_plot_lowdf_crve, 0, 0.1, 1, 0.9) +
+     draw_label(
+       str_wrap(fig6cap, width = 120),
+       x = 0.05, y = 0.05,
+       hjust = 0, vjust = 0.5,
+       size = 9, color = "gray40", fontfamily = "serif"
+     )
+```

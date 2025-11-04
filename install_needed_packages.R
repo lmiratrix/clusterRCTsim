@@ -9,3 +9,4 @@ install.packages("multiwayvcov")
 
 install.packages("devtools")
 devtools::install_github("lmiratrix/clusterRCT",force = T)
+devtools::install_github("lmiratrix/blkvar",force = T)

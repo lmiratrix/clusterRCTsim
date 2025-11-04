@@ -11,7 +11,7 @@ require(kableExtra)
 require(patchwork)
 require(gridExtra)
 require(pander)
-
+require(blkvar)
 
 
 load( here::here( "results_agg/combined_simulation_results.RData" ) )
@@ -267,7 +267,6 @@ sruns.clean <- sruns %>%
   create_labeled_factor_by_group("sd.ATE", "group") %>%
   create_labeled_factor_by_group("size.impact.cor", "group") %>%
   create_labeled_factor_by_group("J.bar", "group") %>%
-  create_labeled_factor_by_group("p.bar", "group") %>%
   create_labeled_factor_by_group("sd.cluster", "group") %>%
   create_labeled_factor_by_group("ICC.cluster", "group") %>%
   create_labeled_factor_by_group("cv.cluster", "group") %>%
@@ -283,6 +282,9 @@ sruns.clean <- sruns %>%
     block_type_lowdf = factor(block_type_lowdf, 
                               levels = c(1, 2, 3),
                               labels = c("Same", "Reas", "Mess")),
+    p.bar = factor(p.bar,
+                   levels=c(.5,.7),
+                   labels = c("Bal","UnBal")),
     bias.s.estimand.mag = abs(bias.s.estimand),
     method = reorder(method, -biased),
     bias.ratio.clu = round(bias.f.clu/bias.s.clu, 4),
