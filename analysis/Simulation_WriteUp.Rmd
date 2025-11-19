@@ -376,11 +376,12 @@ To illustrate, here is the "grid" of block-level characteristics for the above s
 ```{r}
 gd <- key_scen$grid[[1]]
 
+names(gd) <- str_replace( names(gd), "cluster", "clu" )
 rename( gd,
         tau = block.tau,
         alpha = block.alpha,
-        cor.clu = size.impact.cor.cluster,
-        k.clu = num.cov.cluster,
+        cor.clu = size.impact.cor.clu,
+        k.clu = num.cov.clu,
         k.indiv = num.cov.indiv ) %>%
   knitr::kable( digits=1 )
 
@@ -445,7 +446,10 @@ In 90% of the scenarios we tested, the magnitude of bias was less than 0.01 for 
 
 ```{r bias, include=TRUE, echo=FALSE, fig.width=6, fig.height=4,dpi=150}
 
-sruns.graph.bias<-sruns.clean  %>% filter(method %in% core.methods) %>% mutate(method = str_remove(method, "-db$"),     method_ordered = str_remove(method_ordered, "-db$"))
+sruns.graph.bias<-sruns.clean  %>% 
+  filter(method %in% core.methods) %>% 
+  mutate(method = str_remove(method, "-db$"),    
+         method_ordered = str_remove(method_ordered, "-db$"))
 
 fig1cap<-"Figure 1: Boxplot of superpopulation mean bias against an estimators targeted estimand across the different scenarios by method. The faint horizontal lines go out to the full range, the bars are the 1% to 99%, and the boxes are the 10% to 90%."
 
@@ -455,7 +459,9 @@ bias_plot_full <- create_custom_boxplot2(
   "", 
   "Super Population Mean Bias",
   vline_at = 0
-)+theme_minimal() +
+)+
+  facet_wrap( ~ block_type ) +
+  theme_minimal() +
 theme(
   text = element_text(family = "serif", size = 10),  # Change font family and size
   axis.text.x = element_text(size = 8, family = "serif"),
@@ -464,8 +470,10 @@ theme(
   plot.caption = element_text(hjust = 0, size = 9, , family = "serif", color = "gray40"),
   legend.text = element_text(size = 9, family = "serif"),
   legend.title = element_text(size = 10, family = "serif"),
+  legend.position = "none",
   panel.grid = element_blank()
 )
+
 ggdraw() +
      draw_plot(bias_plot_full, 0, 0.1, 1, 0.9) +  # Plot takes up top 90%
      draw_label(
@@ -506,6 +514,13 @@ par(mfrow = c(1, 1), oma = c(0, 0, 0, 0))
 
 ```
 
+
+
+Why is MLM biased when there is no variation in block?
+LUKE TODO
+
+
+
 # Are any of the estimators generally more precise than others? When? 
 
 In general, all the different estimators have comparable precision (Figure 3). Excluding the multilevel estimators, within a given scenario and targeted estimand (person-weighted vs. cluster-weighted), all the estimators have standard errors that are at most 10% larger than the median across methods. The multilevel estimators become more precise than the other estimators when there is a combination of large variation in cluster size and zero cluster ICC; otherwise, their precision is close to that of the other estimators (Figure 4).
@@ -527,6 +542,7 @@ stab_plot <- create_custom_boxplot(
   vline_at = 1,
   log_scale = TRUE
 ) +
+  facet_wrap( ~ block_type ) +
 scale_y_log10(
   limits = c(0.5, 1.5),  # Sets the min and max values shown on the axis
   breaks = c(0.5, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.5)
@@ -539,6 +555,7 @@ theme(
   plot.title = element_text(hjust = 0.5, size = 12, family = "serif"),
   legend.text = element_text(size = 9, family = "serif"),
   legend.title = element_text(size = 10, family = "serif"),
+  legeng.position = "none",
   panel.grid = element_blank()
 )
 
@@ -581,7 +598,7 @@ For the fixed effect estimators, the standard error estimates were overestimated
 
 Consistent with the standard errors being generally well estimated across simulation conditions and estimators, the coverage rate is also close to 95% across simulation conditions and estimators (Figure 9). For the MLM models, sometimes a confluence of multiple simulation conditions (i.e., no variation in cluster size, no cluster-level ICC, and at least three other factors) led the coverage to fall below 90% (Figure 10). Otherwise, there were generally no issues with confidence interval coverage.
 
-```{r infl, include=TRUE, echo=FALSE, fig.width=6, fig.height=5, results='asis'}
+```{r infl, include=TRUE, echo=FALSE, out.width="100%", fig.width=7, fig.height=5, results='asis'}
 
 #1) Assess, for each estimator, when the standard errors are systematically too high or too low
 #These are all E[SE-hat] / SE, so all comparisons are internal to the estimator.
@@ -590,7 +607,8 @@ Consistent with the standard errors being generally well estimated across simula
 
 #So I want a boxplot of standard error inflation, just for the full factor and not the low df
 
-sruns.graph.infl<-sruns.clean  %>% mutate(perc.off.SE.s=abs((mean.SE.hat-SE.s)/SE.s)*100)
+sruns.graph.infl <- sruns.clean  %>% 
+  mutate(perc.off.SE.s=abs((mean.SE.hat-SE.s)/SE.s)*100)
 
 sruns.graph.infl.ff <- sruns.clean %>% filter( group=="full_factor")
 
@@ -603,10 +621,13 @@ inf_plot <- create_custom_boxplot2(
   "Estimated Standard Error Inflation",
   vline_at = 1,
   log_scale = TRUE
-) + scale_y_log10(
+) + 
+  facet_wrap( ~ block_type ) +
+  scale_y_log10(
   limits = c(0.6, 2.6),
   breaks = c(.4, 0.5, .7, 1.0, 1.3, 1.7, 2.0, 2.5)
-) + theme_minimal() +
+) + 
+  theme_minimal() +
 theme(
   text = element_text(family = "serif", size = 10),
   axis.text.x = element_text(size = 8, family = "serif"),
@@ -661,14 +682,22 @@ sruns.cov<-sruns.clean %>% mutate(cover.s.estimand=cover.s.estimand*100,CI.lengt
  
 fig9cap <- "Figure 8: Boxplot of coverage rates across different scenarios by method. The horizontal line indicates the target 95% coverage rate. The faint horizontal lines go out to the full range, the bars are the 1% to 99%, and the boxes are the 10% to 90%."
 
-cov_plot <- create_custom_boxplot2(
+cov_plot <- 
+  
+create_custom_boxplot2(
   sruns.cov %>% filter(group=="full_factor"), 
   "cover.s.estimand", 
   "", 
   "Coverage",
   vline_at = 95,
   log_scale = FALSE
-) + theme_minimal() +
+) + 
+  facet_wrap( ~ block_type ) +
+  coord_flip(ylim = c(70, 100)) +
+scale_y_continuous(   breaks = seq(60, 100, by = 10)
+  ) +
+  geom_hline( yintercept = 80, col="grey", linetype="dashed") +
+ theme_minimal() +
 theme(
   text = element_text(family = "serif", size = 10),
   axis.text.x = element_text(size = 8, family = "serif"),
