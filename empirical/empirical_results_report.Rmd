@@ -2,7 +2,11 @@
 title: "Empirical Results Report"
 author: "Miratrix"
 date: "2025-02-19"
-output: pdf_document
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
 editor_options: 
   chunk_output_type: console
 ---
@@ -52,7 +56,8 @@ Some statistics about the blocked studies across the `r nrow(filter( studies, bl
 ```{r}
 studies %>%
   filter( blocked == "Blocked" ) %>%
-  pivot_longer( c( n, ncv, nbar, J, Jcv, K, cluster_ICC, block_ICC, R2.1, R2.2, p.tx, R_ate, R_se ),
+  pivot_longer( c( n, ncv, nbar, J, Jcv, K, cluster_ICC, block_ICC,
+                   R2.1, R2.2, p.tx, R_ate, R_se ),
                 names_to="statistic", values_to="value" ) %>%
   group_by( statistic ) %>%
   summarise( mean = mean(value),
@@ -65,6 +70,8 @@ studies %>%
   knitr::kable(digits = 2)
 
 ```
+
+The `R_ate` and `R_se` are the ranges of ATE estimates and the ratios of SE estimates (across estimator); more on those below.
 
 
 **The 10th and 90th percentile number of individuals, clusters and blocks are around: 850 to 17,500 (individuals), 30 to 495 (clusters), and 5 to 85 (blocks).**
@@ -233,9 +240,8 @@ ranges %>%
 
 ## When are SE estimators defined?
 
-In the paper we write: _While this model-free approach is appealing in theory, in practice this means design-based standard errors can only be estimated if every block X experimental arm has at least two or more clusters. Only three studies in our sample meet this condition; consequently, the design-based standard errors do not exist for XX out of 50 outcomes when the fully-interacted model (for individual or aggregate data) is implemented. The same limitation applies to heteroskedastic robust standard errors. For most outcomes, there are only 13 estimated standard errors, rather than 19 (See Supplemental Excel Spreadsheet 1)._
-
-To motivate this, the following table counts the number of undefined estimators within each group given the set of covariates included.
+In the paper we write about how singletons make SEs undefined, and how we can run out of degrees of freedom if we adjust for too many covariates.
+To support this, the following table counts the number of undefined estimates for each estimator, for different sets of baselind covariates included.
 
 ```{r}
 #cc <- combined %>%
@@ -250,17 +256,22 @@ combined %>%
   knitr::kable()
 ```
 
-This table counts the number of estimates for each outcome that are undefined (the different columns correspond to adjusting for all covariates, a single best covariate, or no covariates):
+The next table counts the number of estimates for each **outcome** that are undefined (the different columns correspond to adjusting for all covariates, a single best covariate, or no covariates):
 
 ```{r}
 combined %>%
   group_by( UniqueID, Covariates ) %>%
-  summarise( #n = n(),
+  summarise( n = n(),
              n_ATE = sum( is.na( ATE_hat_std ) ),
              n_SE = sum( is.na( SE_hat_std ) ) ) %>%
   pivot_wider( names_from=Covariates, values_from=c(n_ATE, n_SE) ) %>%
+  dplyr::select( -n_ATE_none ) %>%
   knitr::kable()
 ```
+
+Note for no covariate adjustment, we see that 8 estimators will not give SEs for the studies that have singletons (we have 8 of those estimators).
+
+So these two tables count undefined-ness first by estimator and then by outcome.
 
 
 # ATE Ranges and SE ratios by study
@@ -330,7 +341,7 @@ ranges %>%
 
 ## ATE range and SE ratios vs study characteristics
 
-We can see if  our "conservative df" for each study  predicts the range across estimators and the ratio of SE estimates (all studies with 30 df or more have been topcoded at 30 to make the plots easier to read):
+We can see if  our "conservative df" for each study predicts the range of point estimates or ratio of SE estimates. We top-code all studies with 30 df or more to 30 to make the plots easier to read.
 
 ```{r}
 ranges %>%
@@ -364,6 +375,8 @@ Commentary: I am not sure if these plots are useful or informative.
 I am not sure what they mean, either.
 
 
+
+
 \newpage
 
 # Variation in the ATE Estimates
@@ -382,22 +395,53 @@ ss %>%
 
 ## Range within Estimand
 
-If we go within study, we get the following average reduction across outcomes within estimand:
+If we go within study, we get the following average reduction in the ATE range when we go to within estimand from overall:
+
 ```{r}
-  ssf %>% 
-    mutate( rat = Ratio.x / Ratio.y ) %>%
-    group_by( Estimand ) %>%
-    summarise( mean_rat = mean( rat ),
-               sd_rat = sd( rat ) ) %>%
-    knitr::kable( digits=2 )
+# Looking at how range decreases as we go within estimand
+source( here::here( "empirical/calculate_all_ranges.R" ) )
+ss <- summary_stats_estimand %>%
+  filter(Covariates == "best") %>%
+  dplyr::select( UniqueID, Estimand, Range ) 
+#ss
+ss1 <- summary_stats %>%
+  filter(Covariates == "best") %>%
+  dplyr::select(UniqueID, Range)
+ssf <- left_join(ss, ss1, by = 'UniqueID')
+
+ssf %>% 
+  mutate( reduction = Range.x / Range.y,
+          del = Range.y - Range.x ) %>%
+  group_by( Estimand ) %>%
+  summarise( n = n(),
+             mean_reduction = mean( reduction ),
+             sd_reduction = sd( reduction ),
+             cor = cor( reduction, Range.y ),
+             mean_del = mean(del) ) %>%
+  knitr::kable( digits=2 )
+```
+
+We see a notable drop in the ranges when we go to "within estimand" from "overall."
+
+We can plot the ranges within vs. between:
+
+```{r}
+ggplot( ssf, aes( Range.y, Range.x, color=Estimand ) ) +
+  facet_wrap( ~ Estimand ) +
+  geom_point() +
+  geom_abline( slope=1, intercept=0, lty="dashed" ) +
+  labs( title = "ATE Range within Estimand vs Overall ATE Range",
+        x = "Overall ATE Range",
+        y = "Within Estimand ATE Range" ) +
+  coord_fixed()
 ```
 
 
-Still a threshold of 0.15.
+If we look at all studies with an ATE range above 0.10 for any estimand, we get the following list:
 
 ```{r}
 ss <- studies %>%
-  filter( blocked == "Blocked", R_ate > 0.15 | R_ate_Clu > 0.10 | R_ate_Per > 0.10 ) %>%
+  filter( blocked == "Blocked", R_ate > 0.10 | R_ate_Clu > 0.10 | R_ate_Per > 0.10 ) %>%
   dplyr::select( Project, UniqueID, K, J, n, cons_df, R_ate, R_ate_Clu, R_ate_Per )
 
 ss %>%
@@ -435,6 +479,7 @@ ggplot( cc, aes(Estimator, ATE_hat_std, color = Estimand ) ) +
 
 Note: The MLM estimators are circled to indicate they are not unbiased for either estimand, in principle.
 
+## What predicts range within estimand
 
 Extending the overall plots from above, we can look at what study characteristics drive larger or smaller ranges, within estimand:
 
@@ -462,33 +507,63 @@ ggplot( aes(SE_avg, Range, color=has_single ) ) +
 ```
 
 
+## Does variation in cluster size or number of clusters predict range?
+
 We can see if range depends on variation in block or cluster size:
 ```{r}
 rr2 <- rangesW %>%
   filter( Covariates =="best", group=="all" ) %>%
-  mutate( cons_df_adj = ifelse( cons_df > 30, 30, cons_df ) ) 
+  dplyr::select( UniqueID, cons_df, ncv, Jcv, Range ) %>%
+  pivot_longer( c( ncv, Jcv ), names_to="var_type", values_to="var_value" )
+#rr2
 
-ggplot( rr2, aes(Jcv, Range ) ) +
+ggplot( rr2, aes(var_value, Range ) ) +
+  facet_wrap( ~ var_type ) +
   geom_point() +
-  geom_smooth(method="lm", se=FALSE)
-
-ggplot( rr2, aes(ncv, Range ) ) +
-  geom_point() +
-  geom_smooth(se=FALSE)
+  geom_smooth(method="lm", se=FALSE) +
+  labs( title = "Range of ATE estimates vs variation in cluster size (ncv) or number of clusters (Jcv)" )
 ```
+
+We do see the range go up as cluster size variation goes up, but not so much with number of clusters variation.
+
+Within estimand, we can do the same as above (I dropped the extreme outlier above 1 for better visualization and more robust trend detection):
+
+```{r}
+rr3 <- rangesW %>%
+  filter( Covariates =="best", 
+          group =="estimand" ) %>%
+  dplyr::select( UniqueID, Estimand, cons_df, ncv, Jcv, SE_avg, Range ) %>%
+  pivot_longer( c( ncv, Jcv ), names_to="var_type", values_to="var_value" ) %>%
+  filter( UniqueID != "jg_crt_2" )
+
+ggplot( rr3, aes(var_value, Range ) ) +
+  facet_grid( Estimand ~ var_type ) +
+  geom_point() +
+  geom_smooth(method="lm", se=FALSE) +
+   labs( title = "Range of ATE estimates vs variation in cluster size (ncv) or number of clusters (Jcv)",
+         subtitle = "Within Estimand",
+         caption = "Outlier with high ncv removed" )
+```
+
+Within estimand, we see the same pattern with cluster size variation, but not number of clusters variation.
 
 
 We can use trees to predict what predicts larger range:
 
 ```{r}
-source( here::here( "analysis/Simulation_Write_Up/create_analysis_tree.R" ) )
+rr2 <- rangesW %>%
+  filter( Covariates =="best", group=="all" )
+
+source( here::here( "analysis/R/create_analysis_tree.R" ) )
 tree1<-create_analysis_tree(rr2,
                             "Range",
                             predictor_vars = c( "cons_df", "ncv", "Jcv", "SE_avg", "R2.1", "R2.2", "has_single", "cluster_ICC", "block_ICC" ) )
 ```
 
-If we drop the average SE we get this:
+Big SE means big ranges.
+If we drop the average SE as a predictive feature, we get this:
 ```{r}
+set.seed( 40440 )
 tree1<-create_analysis_tree(rr2,
                             "Range",
                             predictor_vars = c( "cons_df", "ncv", "Jcv", "R2.1", "R2.2",
@@ -527,17 +602,20 @@ ra %>%
 ```
 
 The low df studies tend to have higher ranges than the high df studies.
+Low df studies also are higher uncertainty studies, so this makes sense.
+
+
 
 
 
 \newpage
-# Variation in Estimated Standard Errors
+# Variation in the Estimated Standard Errors
 
 
 ## Studies with a high ratio of SE estimates
 
 
-Here are all the studies with an min-max SE ratio above 1.5.
+Here are all the studies with a min-max SE ratio above 1.5.
 
 ```{r}
 CUT = 1.5
@@ -633,18 +711,32 @@ table( cc$Covariates, cc$per_def )
 In the following we look at how much the SE ratios shrink going within estimand.
 
 ```{r echo=FALSE}
- # Looking at how range decreases as we go within estimand
+# Looking at how range decreases as we go within estimand
 source( here::here( "empirical/calculate_all_ranges.R" ) )
-  ss <- summary_stats_estimand %>%
-    filter(Covariates == "best") %>%
-    dplyr::select( UniqueID, Estimand, Ratio ) 
-  ss
-  ss1 <- summary_stats %>%
-    filter(Covariates == "best") %>%
-    dplyr::select(UniqueID, Range, Ratio)
-  ssf <- left_join(ss, ss1, by = 'UniqueID')
+ss <- summary_stats_estimand %>%
+  filter(Covariates == "best") %>%
+  dplyr::select( UniqueID, Estimand, Ratio ) 
+#ss
+ss1 <- summary_stats %>%
+  filter(Covariates == "best") %>%
+  dplyr::select(UniqueID, Ratio)
+ssf <- left_join(ss, ss1, by = 'UniqueID')
+
+ssf %>% 
+  mutate( rat = Ratio.x / Ratio.y ) %>%
+  group_by( Estimand ) %>%
+  summarise( mean_reduction = mean( rat ),
+             sd_reduction = sd( rat ) ) %>%
+  knitr::kable( digits=2 )
   
-  knitr::kable( ssf, digits = 2 )
+#knitr::kable( ssf, digits = 2 )
+```
+
+Overall, we are not seeing much of a reduction in the max/min SE ratio by going from overall to within.
+
+We can look at the individual reductions:
+
+```{r}
   ggplot( ssf, aes( Ratio.y, Ratio.x ) ) +
     facet_wrap( ~ Estimand ) +
     geom_point() +
@@ -653,22 +745,17 @@ source( here::here( "empirical/calculate_all_ranges.R" ) )
     labs( x = "Overall ratio", y = "Within Estimand Ratio" )
 ```
 
-This is the average reduction across outcomes:
-```{r}
-  ssf %>% 
-    mutate( rat = Ratio.x / Ratio.y ) %>%
-    group_by( Estimand ) %>%
-    summarise( mean_rat = mean( rat ),
-               sd_rat = sd( rat ) ) %>%
-    knitr::kable( digits=2 )
-```
 
 
 # Are SEs for cluster weight smaller than individual?
 
-We fit a multilevel model to our raw estimated standard errors, having a random intercept for the outcome and for the estimator.
+We might think the SEs for cluster-weighted estimands might be systematically larger than those for individual-weighted estimands.
+We check this on the empirical estimates.
+
+To investigate, we fit a multilevel model to our raw estimated standard errors, having a random intercept for the outcome and for the estimator.
 We also allow for a "random slope" for estimand within outcome, as it is possible that some studies are better at targeting person vs cluster average effects.
-We finally allow a random slope for studies with singletons, to see if some estimators have estimated SEs that change more depending on whether there are singletons present:
+We finally allow a random slope by estimator for studies with singletons, to see if some estimators have estimated SEs that change more depending on whether there are singletons present.
+We further adjust for aspects of the study.  Our main coefficient is the coefficient for Estimand:
 
 ```{r}
 library( lme4 )
@@ -682,6 +769,7 @@ arm::display(M)
 
 We see no evidence that targeting person estimands is different from cluster estimands in terms of precision.
 There is some variation in average uncertainty by estimator.
+The random slope standard deviation of 0.02 suggests some studies might have a difference between person and cluster.
 
 We can look at the exponentiated coefficients to see the multiplicative effect on the SE:
 ```{r}
@@ -689,12 +777,29 @@ exp( fixef( M ) ) %>%
   knitr::kable( digits = 2 )
 ```
 
-Relative to 'best', not controlling for anything means estimated SEs are 18% larger.  Controlling for everything makes them 10% smaller.
+This suggests that person-weighted is 3% more precise (but the result is not statistically significant).
+
+We can use a LR test to see if there is evidence of variation by study:
+
+```{r}
+Mnull = lmer( log( SE_hat_std ) ~ Estimand + Covariates + has_single + I(log(1+cons_df)) + I(log(nbar)) + I(log(J)) + (1+has_single|Estimator) + (1|UniqueID),
+          data=combined, REML=FALSE )
+anova( M, Mnull )
+```
+
+No evidence of variation.
+
+
+## Analysis: What drives overall uncertainty?
+
+Our model, above, tells us more about what drives overall uncertainty.
+
+For example, relative to 'best', not controlling for any baseline covariates means estimated SEs are 17% larger.
+Controlling for everything makes the estimated SEs 10% smaller.
 Bigger studies in terms of either n or J have smaller SEs, as expected.
 The estimated SEs for the studies with singletons are generally smaller; it is unclear what that is coming from.
 
-
-We can dig into which estimators are better or worse:
+We can dig into which estimators are better or worse, in terms of their estimated SEs, by looking at the Empirical Bayes estimates of their random intercepts:
 
 ```{r}
 ranef(M)$Estimator %>%
@@ -740,5 +845,131 @@ extreme %>%
 The `n_def` column is the number of outcomes where the estimator was even defined.
 
 I'm not sure this table is particularly informative, but it does show that some estimators are more likely to be extreme than others.  The problem is some estimators aren't even defined, which robs them of the opportunity to be informative.
+
+
+\newpage
+
+# How do covariates move the point estimates?
+
+We next look at how much the point estimates change as we adjust for more covariates (all) or no covariates (none) vs. our baseline of "best".
+For each outcome and estimator we calculated the difference between the ATE estimate when controlling for the single best covariate, and the ATE estimate when controlling for nothing ("none") or all available covariates ("all").
+We subset to the core estimators, removing redundancies and similar estimators
+
+The first plot shows the scatterplot of the "best" ATE estimate vs. the "all" or "none" ATE estimate, faceted by estimator.
+The second plot shows the distribution of the difference between the "best" ATE estimate and the "all" or "none" ATE estimate, again grouped by estimator.
+
+```{r, out.width="100%", warning=FALSE, message=FALSE, fig.width=8}
+cc1 <- combined %>%
+  filter( !is.na( ATE_hat_std ) ) %>%
+  pivot_wider( id_cols = c( UniqueID, Estimator, Estimand ),
+               names_from = Covariates,
+               values_from = ATE_hat_std ) %>%
+  pivot_longer( c( all, none ),
+                names_to = "Covariates",
+                values_to = "ATE_hat" ) %>%
+  rename(ATE_hat_best = best ) %>%
+  mutate( diff = ( ATE_hat - ATE_hat_best ) ) 
+#cc1
+  
+core.methods <- c("LRa-FE-db", "LRa-FIcw-db", 
+                  "LRi-FE-db", "LRi-FIpw-db", 
+                  "MLM-RE", "MLM-FIcw" )
+
+cc1 <- cc1 %>%
+  dplyr::filter( Estimator %in% core.methods )
+
+ggplot( cc1, aes( ATE_hat_best, ATE_hat ) ) +
+  #facet_grid( Estimand ~ Covariates ) +
+  geom_abline( slope=1, intercept=0, col="red", alpha=0.5 ) +
+  facet_grid( Covariates ~ Estimator ) +
+  geom_point( size=0.5 ) +
+  coord_fixed()
+
+
+ggplot( cc1, aes( Estimator, diff ) ) +
+  #facet_grid( Estimand ~ Covariates ) +
+  facet_wrap( ~ Covariates  ) +
+  geom_boxplot() +
+  geom_hline( yintercept = c(-0.10,0.10), lty="dashed", col="red" ) +
+  coord_flip()
+```
+
+The plot above shows that, while generally adjusting for covariates does not change the estimate much, it can move a point estimate a very large amount.  (The red lines are at 0.10 and -0.10.)
+
+We can then look at shifts by study, rather than by estimator:
+
+```{r estplot, fig.height=8, fig.width=6, message=FALSE, warning=FALSE, out.width="100%"}
+
+ggplot( cc1, aes( UniqueID, diff ) ) +
+  #facet_grid( Estimand ~ Covariates ) +
+  facet_wrap( ~ Covariates  ) +
+  geom_boxplot( size=0.5 ) +
+  coord_flip() +
+  geom_hline( yintercept = 0, col="red" ) +
+  labs( title = "Shift in ATE estimate vs. 'best' adjustment" )
+```
+
+We see some studies tend to have large impacts of adjustment across the estimators, and other studies not so much, regardless of estimator.
+
+We can summarize average differences by estimator and adjustment:
+
+```{r}
+cc1 %>%
+  group_by( Estimator, Estimand, Covariates ) %>%
+  summarise( n = n(),
+             avg_diff = mean( abs(diff), na.rm=TRUE ),
+             sd_diff = sd( abs(diff), na.rm=TRUE ),
+             Q10 = quantile( abs(diff), 0.1,  na.rm=TRUE ),
+             Q90 = quantile( abs(diff), 0.9, na.rm=TRUE ) ) %>%
+  arrange( Estimand, Estimator ) %>%
+  knitr::kable( digits = 2 )
+```
+
+
+We can see if the size of the change in point estimate is related to the overall uncertainty in the study:
+
+```{r message=FALSE, warning=FALSE}
+rra <- rangesW %>%
+  dplyr::filter( group == "all", Covariates=="best" ) %>%
+  dplyr::select( -Estimand, -Covariates )
+
+cc2 <- left_join( cc1, 
+                  rra, 
+                  by="UniqueID" )
+#cc2
+#cc2$cons_df = cc2$J - 2*cc2$K - 1
+cc2$cons_df <- ifelse( cc2$cons_df > 30, 30, cc2$cons_df )
+
+ggplot( cc2, aes( cons_df, abs(diff) ) ) +
+  facet_grid( Covariates ~ Estimator  ) +
+  geom_point(size=0.5)+
+  geom_smooth( method="lm", se=FALSE )
+
+ggplot( cc2, aes( SE_avg, abs(diff) ) ) +
+  facet_grid( Covariates ~ Estimator  ) +
+  geom_point(size=0.5)+
+  geom_smooth( method="lm", se=FALSE )
+
+```
+
+These features do not seem to explain when covariate adjustment matters a lot.
+
+Here are the studies where there was massive change (above 0.15) when adjusting for covariates for at least one estimator:
+
+
+```{r}
+cc2 %>%
+  filter( abs(diff) >= 0.15 ) %>%
+  arrange( desc( abs(diff) ) ) %>%
+    group_by( Covariates, UniqueID, cons_df, J, K, nbar, R2.1, R2.2 ) %>%
+  summarise( n_est = n(),
+             avg_diff = mean(abs(diff) ) ) %>%
+  ungroup() %>%
+  arrange( Covariates, -avg_diff ) %>%
+  knitr::kable( digits = 2 )
+```
+
+`n_est` is the number of estimators where the adjustment was bigger than 0.15.
+
 
 

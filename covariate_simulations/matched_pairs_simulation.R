@@ -11,6 +11,12 @@ library( PUMP )
 library( clusterRCT )
 
 
+
+
+#### Making matched pairs data ####
+
+source( "R/data_generation_code.R" )
+
 ATE = 0.125
 tx_het = FALSE
 
@@ -33,43 +39,6 @@ model.params.list <- list(
 )
 
 
-source( "R/data_generation_code.R" )
-tilt_balanced_PUMP_data <- function( data, tilt=0.3, corr=0, byY0=TRUE ) {
-
-  stats <- data %>% 
-    group_by( S.id, D.id ) %>%
-    summarise( Ybar0 = mean( Y0 ),
-               tau = mean(Y1 - Y0 ),
-               n = n(), .groups = "drop" )
-
-  if ( byY0 ) {
-    stats$tau = stats$Ybar0
-  }
-  
-  stats$rem = round( runif( nrow(stats), tilt, 1 ) * stats$n )
-  stats$rem = induce_cor( stats$tau, stats$rem, corr )
-  
-  # Now drop a random subset of 'rem' rows of each cluster in the data
-  data2 <- data %>%
-    left_join( stats %>%
-                 select( S.id, D.id, rem ), 
-               by = c("S.id", "D.id") )
-  #summary( data2$rem )
-  
-  data2 <- data %>%
-    left_join(select(stats, S.id, D.id, rem), by = c("S.id", "D.id")) %>%
-    group_by(S.id, D.id) %>%
-    slice(sample.int(
-      n(),
-      size = pmax( 1, coalesce(first(rem), n()) ),
-      replace = FALSE
-    )) %>%
-    ungroup()
-  
-  
-  data2
-}
-
 
 
 if ( FALSE ) {
@@ -81,27 +50,49 @@ if ( FALSE ) {
   mpl$R2.2 = 0
   sim.data <- PUMP::gen_sim_data( d_m = "d3.2_m3ff2rc", mpl, Tbar = 0.5, include_POs = TRUE )
   
-  
+  # We are explaining variation
   summary( lm( Yobs ~ C.ijk, data=sim.data ) )
+  
+  # We are explaining nothing as we should
   summary( lm( Yobs ~ X.jk, data=sim.data ) )
   
+ 
   
+  # Check that tilting works (making clusters vary in size, correlated
+  # with treatment effect)
+  model.params.list$omega.2 = 1
   sim.data <- PUMP::gen_sim_data( d_m = "d3.2_m3ff2rc", model.params.list, Tbar = 0.5, include_POs = TRUE )
-  sim.data <- tilt_balanced_PUMP_data(sim.data, 0.5, 0.9 )
-  table( sim.data$S.id )
+  sim.data <- tilt_balanced_PUMP_data(sim.data, tilt=0.5, corr=0.90 )
+  
+  sizes = table( sim.data$S.id )
+  qplot( sizes )
+  
   describe_clusterRCT( Yobs ~ T.x | S.id | D.id, data=sim.data,
                        control_formula = ~ C.ijk + X.jk )
-  
+
   class( sim.data )
   sd( sim.data$Yobs )
+  # ATE in effect size units
   mean( sim.data$Y1 - sim.data$Y0 ) / sd( sim.data$Yobs )
+  model.params.list$MDES
   head( sim.data )  
-  describe_clusterRCT( Yobs ~ T.x | S.id | D.id, data=sim.data,
-                       control_formula = ~ C.ijk + X.jk )
   
+  agg <- sim.data %>%
+    group_by( S.id, D.id ) %>%
+    summarise( tau = mean( Y1 - Y0 ),
+               Y0 = mean( Y0 ),
+               n = n(),
+               .groups="drop" ) 
+  sd( agg$tau ) / sd( sim.data$Yobs )
+  cor( agg$n, agg$tau )
+  cor( agg$n, agg$Y0 )
   
-  head( sim.data )
-  
+  ggplot( agg, aes( n, tau ) ) +
+    geom_point() +
+    geom_smooth( method="lm", se=FALSE )
+  ggplot( agg, aes( n, Y0 ) ) +
+    geom_point() +
+    geom_smooth( method="lm", se=FALSE )
   
   compare_methods( Yobs ~ T.x | S.id | D.id, data=sim.data,
                        control_formula = ~ C.ijk + X.jk )
@@ -110,13 +101,22 @@ if ( FALSE ) {
 
 
 
+
+#### Simulation code ####
+
+
+
 one_run <- function( double_cluster = FALSE ) {
   
   sim.data <- PUMP::gen_sim_data( d_m = "d3.2_m3ff2rc", model.params.list, Tbar = 0.5, include_POs = TRUE )
-  sim.data <- tilt_balanced_PUMP_data(sim.data, 0.3, 0.8 )
+  sim.data <- tilt_balanced_PUMP_data(sim.data, 
+                                      tilt = 0.7, 
+                                      corr = 0.8 )
   
   # Make a double cluster
   if ( double_cluster ) {
+    # Reassign clusters in 1st D to 2nd.
+    # (We assume the S.id are all unique)
     sim.data$D.id[ sim.data$D.id == 1 ] <- 2
   }
   
@@ -125,6 +125,7 @@ one_run <- function( double_cluster = FALSE ) {
     mutate( X = C.ijk + X.jk,
             W = mean( X ) ) %>%
     ungroup()
+  
   
   c1 <- clusterRCT::compare_methods( Yobs ~ T.x | S.id | D.id, data=sim.data,
                                      include_MLM = FALSE,

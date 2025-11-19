@@ -63,7 +63,7 @@ table( ranges$UniqueID )
 table( ranges$measure )
 
 
-
+ranges
 
 # Save study descriptions to file ----
 

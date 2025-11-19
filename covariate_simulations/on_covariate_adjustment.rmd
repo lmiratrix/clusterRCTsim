@@ -9,30 +9,89 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+In a blocked, cluster randomized trial if there are few clusters per block, then we can quickly run into various estimation and degrees of freedom issues, especially when using the "fully interacted" estimators.
+
+There are further compliations when we consider covariates.
+Covariates can be predictive of level 1 or level 2 variation, and how we handle them can have impact.
+
+
+## Introduction
+
+First, a thought problem: 
+
+Consider a matched pairs cluster RCT of 30 clusters across 15 pairs. Say we also have an individual level covariate X that predicts outcomes and also a cluster level covariate W that predicts cluster mean outcomes.
+
+We can run a fully interacted regression of Yobs ~ blockID*Z + X, controlling for X.
+We cannot, due to collinearity, do the same with W.
+Now say X is simply W + some amount of random noise.
+What is that regression doing?
+
+
+
+## Types of covariates
+
 We can think of three kinds of covariates:
 
  * Level 2 covariates: these are characteristics of the clusters (e.g., school size, urbanicity, average income in the area)
- * Level 1 covariates: these are characteristics of the individuals (e.g., student pretest). Now a level 1 covariate can be aggregated at the cluster level, making a level 2 covariate.  Due to random variation, even if the true means of the clusters were all the same, we would expect mild differences in our sample.  If we group mean center our level 1 covariate, however, then we have a "pure" level 1 covariate.
- * Dual level covariates: these are level 1 covariates that have real variation in their means when aggregated to level 2.  I.e., if high achieving students tend to cluster together, our level 1 covariate has a "meaningful" amount of level 2 covariate "in it."
+ * Level 1 covariates: these are characteristics of the individuals (e.g., student pretest). Now a level 1 covariate can be aggregated at the cluster level, making a level 2 covariate.  Due to random variation, even if the true means of the clusters were all the same, we would expect mild differences in our sample.  If we group mean center our level 1 covariate, however, then we have a "pure" level 1 covariate.  All of this said, some level 1 covariates have a higher ICC than others (i.e., more of their variation is actually at level 2).
+ * Dual level covariates: these are level 1 covariates that have real variation in their means when aggregated to level 2.  I.e., if high achieving students tend to cluster together, our level 1 covariate has a "meaningful" amount of level 2 covariate "in it."  A "dual level covariate" is a level 1 covariate with a non-trivial ICC.
  
 Now in the case of matched pairs or close to matched pairs experiments, if we include a level 2 covariate we lose a degree of freedom for the fully interacted models.
-Indeed, for a pure matched pairs experiment, our overall estimator is no longer identified due to colinearity of the treatment with the covariate.
+Indeed, for a pure matched pairs experiment, our overall estimator is no longer identified due to colinearity of the treatment with the covariate, if we include a level 2 covariate.
 
-For an individual-level regression we can, however, include a level 1 covariate---this will explain variation within cluster, reducing cluster variation, and thus give us a more precise estimate of the ATE.
+For an individual-level regression we can, however, include a level 1 covariate in these cases---the level 1 covariate will explain variation within cluster, reducing cluster variation, and thus give us a more precise estimate of the ATE.
 
 So what happens when our level 1 covariate is actually a dual level covariate?  That is, it has real variation in its means when aggregated to level 2.
 For example, what if our level 1 covariate is simply a level 2 covariate plus some residual noise?
 
-We have the following notes:
 
-## Fixed effect estimators
+## Adjusting for a dual level covariate
+
+Even if we can include a dual level covariate in our fully interacted regression, there are some further concerns.
+
+Consider a case where our DGP looks like this:
+
+$$ Y_{ij}(0) = \beta_{0j} + \beta_W W_j + \beta_X X_{ij} + e_{ij} $$
+where $W_j \sim N(0,1)$ is a level 2 covariate, and $X_{ij} \sim N(0,1)$ is a level 1 covariate.
+
+Now say we observe a single covariate of $C_{ij} = W_j + X_{ij}$.
+
+Note that if we group mean center $C_{ij}$ we get
+
+$$  \bar{C}_j =   W_j + \frac{1}{n_j} \sum X_{ij}  = W_j + r_j $$
+with $r_j \sim N( 0, 1/n_j )$, a small amount of noise if the cluster is reasonably sized.
+So our $\bar{C}_j$ is reasonably close to the original $W_j$.
+
+Then we have
+$$ C_{ij} - \bar{C}_j =  X_{ij} - r_j $$
+so all the centered $C_{ij}$ in a group will be shifted by $r_j$, but will have the same relative spread as the original $X_{ij}$.
+
+Now consider adjusting for our observed $C_{ij}$.
+
+First take the case where $\beta_W$ is large and $\beta_X$ is 0.
+Then individual-level regression will get a coefficient on $C_{ij}$ that is dragged down by the within-cluster variation.
+Aggregation, on the other hand, will get a slightly noisy, but generally ok, version of $W$, and the coefficient will not be dragged down.
+We would expect aggregation to outperform individual level regression here.
+
+Now take the case where $\beta_X$ is large and $\beta_W$ is 0.
+Aggregation will get a fairly useless covariate that is just noise, but it will still pick up some relationship if a cluster happens to have high $X$ values and high related outcome values---so we may still see benefit.
+
+WHAT WILL HAPPEN????
+
+
+
+## Some further observations on the above
+
+We have the following notes on which estimators could be vulnerable to the issues described above.
+
+### Fixed effect estimators
 
 These are all fine, regardless of level one or level two considerations.
 Our conservative degrees of freedom is $df = J - K - 1 - g$, where $g$ is the number of covariates.
 In a matched pairs experiment, $J = 2K$, and so we have $df = K - 1 - g$ which will be generally fine provided we have a decent number of pairs.
 
 
-## Fully interacted estimators (aggregated data)
+### Fully interacted estimators (aggregated data)
 
 Here we do not have level 1 covariates.
 Any level 1 covariate has been turned into a level 2 covariate by aggregation.
@@ -40,7 +99,7 @@ For matched pairs, then, adjusting for anything will be impossible.
 For close to matched pairs, we can adjust for level 2 covariates, but we lose a degree of freedom for each one, and this can create instability in our ability to estimate standard errors.
 
 
-## Fully interacted estimators (individual data)
+### Fully interacted estimators (individual data)
 
 Here we can include level 1 covariates, and this can help us.
 

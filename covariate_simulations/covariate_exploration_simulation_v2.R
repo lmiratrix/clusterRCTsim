@@ -6,12 +6,10 @@
 
 
 library( tidyverse )
-library( PUMP )
 library( clusterRCT )
 
 
-source( "R/data_generation_code.R" )
-source( "DGP_code.R" )
+source( here::here( "covariate_simulations/DGP_code_varying_cluster_sizes.R" ) )
 
 
 # Simulation functions ----

@@ -3,8 +3,8 @@ title: "Nonblocked Experiment Report"
 author: "Miratrix"
 date: "2025-08-19"
 output:
-  pdf_document: default
   word_document: default
+  pdf_document: default
 editor_options:
   chunk_output_type: console
 ---
@@ -95,8 +95,8 @@ For point estimators, we have individual regression, individual regression with 
 For each of these we have design based or robust standard errors.
 We finally have a multilevel model, with random effects at the cluster level.
 
-In our collection of datasets, we have `r n_outcomes` outcomes across `r n_studies`.
-Most of the experiments had substantial number of clusters (an average of around 95 clusters), but a good quarter of the studies had 25 clusters or fewer, total; for these small studies, we would generally expect high levels of uncertainty and we would also expect cluster robust estimators to be fairly unstable.
+In our collection of datasets, we have `r n_outcomes` outcomes across `r n_studies` studies.
+Most of the experiments had substantial number of clusters (an average of around 95 clusters), but a good quarter of the studies had 25 clusters or fewer; for these small studies, we would generally expect high levels of uncertainty and we would also expect cluster robust estimators to be fairly unstable.
 Across the middle 80% of the studies, the average cluster size ranges 10 to 47 units, with a median of about 20 units per cluster.
 One very small study (with psychological distress as an outcome) had an average of less than 2 units per cluster, and another large study on reading had an average of 71.
 
@@ -124,16 +124,16 @@ As before, if we target a Person vs Cluster average estimand, we find that the r
 Across outcomes, the average reduction is around 46%, but 25% of the outcomes had a reduction of 20% or less.
 
 
-```{r}
+```{r, out.width="100%"}
 ## Figure 2: The Range of Estimates of β for all Estimators Targeting a Given Estimand  ----
 summary_stats_estimand %>%
   filter(Covariates == "best") %>%
   makeDotplot(var      = 'Range',
-              xlab     = 'Range of Point Estimates of β',
+              xlab     = 'Range of Point Estimates of beta',
               ylab     = 'Number of Outcomes',
               filename = 'final paper figures/fig2_ATErange_byestimand',
               title = 'Figure 2',
-              subtitle = glue::glue( 'The Range of Estimates of β for all Estimators\nTargeting a Given Estimand for {n_outcomes} Outcomes' ),
+              subtitle = glue::glue( 'The Range of ATE Estimates for all Estimators\nTargeting a Given Estimand for {n_outcomes} Outcomes' ),
               coordratio = .15,
               binw = 0.01,
               rmlegend = F,
@@ -141,34 +141,8 @@ summary_stats_estimand %>%
               xscale = c(0, 0.3))
 ```
 
-We can look at how the range changes depending on initial range:
-```{r}
-ggplot( ss, aes( Range.y, Range.x ) ) +
-  facet_wrap( ~ Estimand ) +
-  geom_point() +
-  coord_fixed() +
-  scale_x_log10() +
-  scale_y_log10() +
-  geom_abline( slope=1, intercept=0, lty=2, col="red" ) 
-```
 
-Note the log scaling on the plot.  An alternate plot is the following:
-
-```{r}
-ggplot( ss, aes( Range.x, 1-red_range ) ) +
-  facet_wrap( ~ Estimand ) +
-  geom_point()+
-  labs( title = "Reduction of ATE range going to within Estimand",
-        x = "Range of Largest to Smallest ATE across Point Estimates",
-        y = "Percent reduction in range" )
-  #coord_fixed() 
-  #scale_x_log10() +
- # scale_y_log10() +
-#  geom_abline( slope=1, intercept=0, lty=2, col="red" ) 
-```
-
-
-Even without blocking, the standard errors again range substantially across our estimators:
+Just as with the blocked experiments, the standard errors range substantially across our estimators:
 
 ```{r}
 ## Figure 3: The Ratio (across 19 estimators) of the Largest to Smallest Estimates of SE(β) for {n_outcomes} outcomes. ----
@@ -198,7 +172,40 @@ Overall, with small cluster randomized experiments, uncertainty estimation can b
 And as before, the variation in uncertainty estimates does not seem to be driven by the estimand targeted.
 When we look within estimand, the ratio of largest to smallest standard error shrinks only modestly (a median reduction of 2%, with 75% of the ratios shrinking by only 8% or less).
 
-The reduction does appear to be larger for larger initial ratios:
+
+\newpage
+
+# Technical Results: Looking at range reduction
+
+We can look at how the range changes from overall to within-estimand depending on initial range:
+```{r}
+ggplot( ss, aes( Range.y, Range.x ) ) +
+  facet_wrap( ~ Estimand ) +
+  geom_point() +
+  coord_fixed() +
+  scale_x_log10() +
+  scale_y_log10() +
+  geom_abline( slope=1, intercept=0, lty=2, col="red" ) 
+```
+
+Note the log scaling on the plot.  An alternate plot is the following:
+
+```{r}
+ggplot( ss, aes( Range.x, 1-red_range ) ) +
+  facet_wrap( ~ Estimand ) +
+  geom_point()+
+  labs( title = "Reduction of ATE range going to within Estimand",
+        x = "Range of Largest to Smallest ATE across Point Estimates",
+        y = "Percent reduction in range" )
+  #coord_fixed() 
+  #scale_x_log10() +
+ # scale_y_log10() +
+#  geom_abline( slope=1, intercept=0, lty=2, col="red" ) 
+```
+
+
+
+For how the standard error ratios change going to within-estimand, the reduction does appear to be larger for larger initial ratios:
 
 ```{r}
 ## Figure 4: The Ratio (across 19 estimators) of the Largest to Smallest Estimates of SE(β) among all estimators targeting a given estimand for {n_outcomes} outcomes ----
@@ -237,8 +244,6 @@ ggplot( ss, aes( Ratio.y, 1-reduction ) ) +
 
 ```
 
-
-\newpage
 
 
 # Technical Results: Descriptives on non-blocked experiments
