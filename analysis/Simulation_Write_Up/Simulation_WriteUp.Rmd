@@ -146,19 +146,19 @@ Number of Block Level Covariates & 0 \\
 \hline
 \multicolumn{2}{|c|}{\textbf{Block-Level (Varies across scenarios)}} \\
 \hline
-Block Type & Same, Messy, Reasonable \\
+Block Type (blk_type) & Same (Sam), Reasonable (Res), Messy \\
 \hline
-Average Number of Clusters per Block & 5, 10, 20 \\
+Average Number of Clusters per Block (J.bar) & 5 (S), 10 (M), 20 (L) \\
 \hline
-Proportion of Clusters Treated & .5, .7 \\
+Proportion of Clusters Treated (p.bar) & .5 (Bal), .7 (UnB) \\
 \hline
 \multicolumn{2}{|c|}{\textbf{Cluster-Level (Varies across scenarios)}} \\
 \hline
-Correlation of Impact and Size of Cluster & 0, .8 \\
+Correlation of Impact and Size of Cluster (cor_J_tau) & 0 (0), .8 (+) \\
 \hline
-Cluster Level Treatment Effect Standard Deviation & 0, .3 \\
+Cluster Level Treatment Effect Standard Deviation (sd.clu) & 0, .3 \\
 \hline
-Cluster Level ICC & 0, .2 \\
+Cluster Level ICC (ICC.clu) & 0 (0), .2 (+) \\
 \hline
 Variation in cluster size (coefficient of variation) & 0, .33, .6 \\
 \hline
