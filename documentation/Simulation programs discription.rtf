@@ -11,12 +11,16 @@ Cluster RCT Simulation Process:\
 \
 1) use \'93generate_grids.R\'94 to generate all the grids for the simulations\
 	*this produces the scenarios.rds that feeds into the simulations\
+	*generate_grids.R and scenarios.rds are both in the main folder of clusterRCTsims\
 \
 2) pull ClusterRCTsim repository into the Odyssey folder\
 	*this is just typing git pull\
 	*password is just the one I use for the cluster \
 \
 3) On the Odyssey Cluster run the following script execute_runfullsim.sh this will run sbatch_runScript.slurm which in turn runs estimator_performamce_simulation_fixed_district.R\
+	*execute_runfullsim.sh and  sbatch_runScript.slurm are in the cloud folder\
+	*estimator_performance_simulation_fixed_district.R is in the main folder\
+	*	\
 \
 \
 \
