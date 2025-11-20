@@ -142,6 +142,7 @@ scenarios[131,] %>%
 #scenarios$run = map(scenarios$grid, run.scenario.fixed.block, R=1 , parallel=F)
 
 scenarios$group = group
+scenarios$date.created=format(Sys.Date(), "%m/%d/%Y")
 saveRDS( scenarios,
          here::here( "scenarios.rds" ) )
 
