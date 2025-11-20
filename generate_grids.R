@@ -35,33 +35,33 @@ source( here::here( "R/simulation_support_code_fixed_block.R" ) )
 #Blocks all the same: 
 btype1<-data.frame( cv.block=0, #checked
                     sd.block=0, #checked
-                    size.impact.cor = 0, 
-                    nbar.J.cor = 0,   
-                    proptx.impact.cor = 0,
-                    size.intercept.cor = 0, 
-                    variable.p=F, #need to deal with
-                    cv.nbar= 0)
+                    size.impact.cor = 0, #checked 
+                    nbar.J.cor = 0, #checked   
+                    proptx.impact.cor = 0, #checked
+                    size.intercept.cor = 0, #checked
+                    variable.p=F, #checked
+                    cv.nbar= 0 ) #checked
 
 #Blocks all messy: 
-btype2<-data.frame( cv.block=.85, 
-                    sd.block=.6, 
-                    size.impact.cor = .8, 
-                    nbar.J.cor = .8,   
-                    proptx.impact.cor = .8, 
-                    size.intercept.cor = .8, 
-                    variable.p=T, #need to deal with
-                    cv.nbar= .33)
+btype2<-data.frame( cv.block=.85, #checked
+                    sd.block=.6, #checked
+                    size.impact.cor = .8, #checked  
+                    nbar.J.cor = .8,   #checked
+                    proptx.impact.cor = .8, #checked
+                    size.intercept.cor = .8, #checked
+                    variable.p=T, #checked
+                    cv.nbar= .33) #checked
 
                 
 #Blocks vaguely reasonable
-btype3<-data.frame( cv.block=.33,
-                    sd.block=0.2, 
-                    size.impact.cor = .3, 
-                    nbar.J.cor = .3,   
-                    proptx.impact.cor = .3,
-                    size.intercept.cor = .3,
-                    variable.p=F, #need to deal with 
-                    cv.nbar= .33)
+btype3<-data.frame( cv.block=.33,#checked
+                    sd.block=0.2, #checked
+                    size.impact.cor = .3,#checked 
+                    nbar.J.cor = .3,#checked   
+                    proptx.impact.cor = .3,#checked
+                    size.intercept.cor = .3,#checked
+                    variable.p=T,#checked 
+                    cv.nbar= .33) #checked
 
 
 #variables for the block scenarios

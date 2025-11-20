@@ -127,7 +127,7 @@ The main simulation is a fully factored experiment with the following data gener
 \begin{table}[H]
 \centering
 \caption{Simulation Data Generating Parameters}
-\renewcommand{\arraystretch}{2.0}
+\renewcommand{\arraystretch}{1.2}
 \begin{tabular}{|p{8cm}|p{6cm}|}
 \hline
 \rule{0pt}{4ex}\parbox[c]{8cm}{\centering\textbf{Parameter}}\rule[-2ex]{0pt}{0pt} & \parbox[c]{6cm}{\centering\textbf{Value(s)}}\rule[-2ex]{0pt}{0pt} \\
@@ -146,7 +146,7 @@ Number of Block Level Covariates & 0 \\
 \hline
 \multicolumn{2}{|c|}{\textbf{Block-Level (Varies across scenarios)}} \\
 \hline
-Block Type (blk_type) & Same (Sam), Reasonable (Res), Messy \\
+Block Type (blk\_type) & Same (Sam), Reasonable (Res), Messy (Mss) \\
 \hline
 Average Number of Clusters per Block (J.bar) & 5 (S), 10 (M), 20 (L) \\
 \hline
@@ -154,15 +154,15 @@ Proportion of Clusters Treated (p.bar) & .5 (Bal), .7 (UnB) \\
 \hline
 \multicolumn{2}{|c|}{\textbf{Cluster-Level (Varies across scenarios)}} \\
 \hline
-Correlation of Impact and Size of Cluster (cor_J_tau) & 0 (0), .8 (+) \\
+Correlation of Impact and Size of Cluster (cor\_J\_tau) & 0 (0), .8 (+) \\
 \hline
-Cluster Level Treatment Effect Standard Deviation (sd.clu) & 0, .3 \\
+Cluster Level Treatment Effect Standard Deviation (sd.clu) & 0 (0), .3 (+) \\
 \hline
 Cluster Level ICC (ICC.clu) & 0 (0), .2 (+) \\
 \hline
-Variation in cluster size (coefficient of variation) & 0, .33, .6 \\
+Variation in cluster size, coefficient of variation (cv.clu) & 0 (0), .33 (S), .6 (L) \\
 \hline
-Number of Cluster-Level Covariates & 0, 1, 5 [$R^2$ Always .5] \\
+Number of Cluster-Level Covariates (num.cov) & 0 (0), 1 (S), 5 (L) [$R^2$ Always .5] \\
 \hline
 \end{tabular}
 \end{table}
@@ -178,22 +178,26 @@ The "Messy" case pushes our simulation to the limits so we can see how various m
 \begin{table}[H]
 \centering
 \caption{Block-Type Parameters}
-\renewcommand{\arraystretch}{2.0}
+\renewcommand{\arraystretch}{1.2}
 \begin{tabular}{|p{6cm}|p{2.5cm}|p{2.5cm}|p{2.5cm}|}
 \hline
 \rule{0pt}{4ex}\parbox[c]{6cm}{\centering\textbf{Parameter}}\rule[-2ex]{0pt}{0pt} & \parbox[c]{2.5cm}{\centering\textbf{Blocks All The Same}}\rule[-2ex]{0pt}{0pt} & \parbox[c]{2.5cm}{\centering\textbf{Blocks All Reasonable}}\rule[-2ex]{0pt}{0pt} & \parbox[c]{2.5cm}{\centering\textbf{Blocks All Messy}}\rule[-2ex]{0pt}{0pt} \\
 \hline
-Variation of number of clusters in the blocks (coefficient of variation) & 0 (none) & .33 (average) & .85 (big) \\
+Variation of number of clusters in the blocks, coefficient of variation & 0 (none) & .33 (average) & .85 (big) \\
+\hline
+Variation across blocks in the average cluster size, coefficient of variation & 0  & .33  & .33 \\
 \hline
 Block-Level Average Treatment Effect Standard Deviation & 0 & .2 & .6 \\
 \hline
-Correlation Between Block Average Treatment Effect and Block Average Cluster Size & 0 & .2 & .8 \\
+Correlation Between Block Average Treatment Effect and Block Average Cluster Size & 0 & .3 & .8 \\
 \hline
 Correlation Between Block Average Cluster Size and Total Number of Clusters & 0 & .3 & .8 \\
 \hline
-Correlation of Block's Proportion of Clusters Treated and Block Average Impact & 0 & 0 & .8 \\
+Correlation Between Control-Side Cluster Average Outcome and Cluster Size & 0 & .3 & .8 \\
 \hline
-Correlation between control-side cluster average outcome and cluster size & 0 & .3 & .8 \\
+Correlation of Block's Proportion of Clusters Treated and Block Average Impact & 0 & .3 & .8 \\
+\hline
+Does the proportion of clusters treated vary across blocks? & No & Yes & Yes \\
 \hline
 \end{tabular}
 \end{table}
