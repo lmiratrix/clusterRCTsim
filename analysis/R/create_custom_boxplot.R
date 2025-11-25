@@ -144,10 +144,10 @@ create_custom_boxplot2 <- function(data, y_var,
     linewidth = 0.5
   )
   
-  # Add the actual 1% and 99% whiskers
+  # Add the actual 2.5% and 97.5% whiskers
   p <- p + stat_summary(
     fun.data = function(x) {
-      percentiles <- quantile(x, probs = c(0.01, 0.99))
+      percentiles <- quantile(x, probs = c(0.025, 0.975))
       return(data.frame(ymin = percentiles[1], ymax = percentiles[2]))
     },
     geom = "errorbar",
@@ -211,6 +211,85 @@ create_custom_boxplot2 <- function(data, y_var,
   return(p)
 }
 
+
+#this is the custom boxplot but for the data overall and not by metho
+create_custom_boxplot3 <- function(data, y_var, 
+                                   title = NULL, y_label = NULL,
+                                   vline_at = NULL, log_scale = FALSE) {
+  # Default title and y-axis label if not provided
+  if(is.null(title)) {
+    title <- paste("Distribution of", y_var)
+  }
+  
+  if(is.null(y_label)) {
+    y_label <- y_var
+  }
+  
+  # Create the plot - single boxplot with constant x value
+  p <- ggplot(data, aes(x = factor(1), y = .data[[y_var]]))
+  
+  # Add vertical reference line first
+  if(!is.null(vline_at)) {
+    p <- p + geom_hline(yintercept = vline_at, linetype = "dashed", color = "black", alpha = 0.7)
+  }
+  
+  # First, add the faint min/max lines in the background
+  p <- p + geom_linerange(
+    stat = "summary",
+    fun.data = function(x) {
+      data.frame(ymin = min(x), ymax = max(x))
+    },
+    alpha = 0.2,
+    linewidth = 0.5,
+    color = "black"
+  )
+  
+  # Add the actual 2.5% and 97.5% whiskers
+  p <- p + stat_summary(
+    fun.data = function(x) {
+      percentiles <- quantile(x, probs = c(0.025, 0.975))
+      return(data.frame(ymin = percentiles[1], ymax = percentiles[2]))
+    },
+    geom = "errorbar",
+    width = 0.5,
+    color = "black"
+  )
+  
+  # Add the custom boxplot for 10% to 90%
+  p <- p + stat_summary(
+    fun.data = function(x) {
+      r <- quantile(x, probs = c(0.1, 0.25, 0.5, 0.75, 0.9))
+      names(r) <- c("ymin", "lower", "middle", "upper", "ymax")
+      r
+    },
+    geom = "boxplot",
+    alpha = 0.7,
+    width = 0.5,
+    fill = "gray80",
+    color = "black"
+  )
+  
+  # Complete the plot formatting
+  p <- p + labs(
+    title = title,
+    x = "",
+    y = y_label
+  ) +
+    theme_minimal() +
+    theme(
+      axis.text.x = element_blank(),  # Hide x-axis labels since it's just one boxplot
+      plot.title = element_text(hjust = 0.5),
+      panel.grid = element_blank()
+    ) +
+    coord_flip()
+  
+  # Apply log scale if requested
+  if(log_scale) {
+    p <- p + scale_y_log10()
+  }
+  
+  return(p)
+}
 #this is a new function that creates a top n most of something table 
 
 create_top_n_table <- function(data, 

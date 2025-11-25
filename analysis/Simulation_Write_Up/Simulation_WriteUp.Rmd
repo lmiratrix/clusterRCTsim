@@ -24,6 +24,14 @@ geometry:
 
 #To-Do Notes:
 
+#These are going to be the Luke To-Do notes
+#what's the citation for empirical paper
+#I put in your edits in the DGP section, check that everything makes sense 
+
+
+
+
+
 #Section 5
 # Follow up with Luke: I don't want to drop block type same, reas becuase there are issues for those with MLM-RE and MLM-FE
 #Create a table 
@@ -110,8 +118,7 @@ With this in mind, these simulations answer the following research questions:
 2. Are any of the estimators generally more precise than others? When?
 3. Which estimators produce the best estimates of the treatment effect standard error?
 4. Do any of the estimated standard errors target finite versus super-population uncertainty?
-5. Are the estimation problems caused by low degrees of freedom due to estimate instability or bias?
-
+5. Why does the range in the estimates produced by the different estimators gets larger as the degrees of freedom gets smaller? Is the cause estimator bias or estimator instability?
 
 # The Simulation
 
@@ -206,7 +213,7 @@ Does the proportion of clusters treated vary across blocks? & No & Yes & Yes \\
 Each scenario would have a specific combination of these parameters.
 We drop all scenarios with a correlation of a quantity that does not vary (e.g., if there is no treatment effect variation, then we drop scenarios with nonzero correlation between treatment effect and cluster size).
 
-We also ran a separate set of simulations to evaluate how standard errors perform for fully interacted models in matched studies. These simulations were also fully factored and the parameters for those simulations were as follows:  
+We also ran a separate set of simulations to evaluate how standard errors perform for fully interacted models in matched pairs studies. These simulations were also fully factored and the parameters for those simulations were as follows:  
 
 
 \begin{table}[H]
@@ -352,7 +359,7 @@ This mitigates worry that the simulation results might be dependent on _which_ b
 That said, we generate these values to target _block averages_, but if we have variable numbers of clusters per block, the cluster-average effects can deviate from these targets quite substantially, especially if number of clusters and treatment effect are correlated.
 
 Overall, however, the finite nature of the blocks should not be a large concern.
-In particular, because we have a large number of factors in our experiment, when we look at the main effect of a given factors, we will be averaging across many different scenarios with a different specific set of blocks for each scenario, so any dependencies on the specific set of blocks generated would be ameliorated.
+In particular, because we have a large number of factors in our experiment, when we look at the main effect of a given factor, we will be averaging across many different scenarios with a different specific set of blocks for each scenario, so any dependencies on the specific set of blocks generated would be ameliorated.
 
 Once generated, we store the block characteristics as a small dataset, which we call a "grid," with each row being a block, and each column a characteristic we need for generating the within-block data (number of clusters, average cluster size, etc.).
 To illustrate, here is the "grid" of block-level characteristics for the above scenario in our main simulation:
@@ -365,7 +372,7 @@ rename( gd,
         alpha = block.alpha,
         cor.clu = size.impact.cor.cluster,
         k.clu = num.cov.cluster,
-        k.indiv = num.cov.indiv ) %>%
+        k.indiv = num.cov.indiv ) %>% select(-sd.cluster, ICC.cluster, R2.cluster) %>%
   knitr::kable( digits=1 )
 
 ```
@@ -378,16 +385,15 @@ describe_block_grid( gd )
 ```
 
 The block ATE is the simple average of the block-level cluster-average ATEs. It is as we targeted.
-The bottom line are ATEs for a large dataset generated for this set of blocks: these are our target superpopulation parameters for this scenario, so we can estimate the true cluster- and individidual average ATEs.
-In this specific example, these are different from each other and from the block average.
-We also see fairly high correlations of all sorts of features of the data.
-In this given scenario, the number of clusters per block is varying around 5.
-The numbers in parentheses are the standard deviations of a given value.
+The bottom line are ATEs for a large dataset generated for this set of blocks: these are our approximated target superpopulation parameters for this scenario.
 
-Given our grid of block characteristics we then, for each block in turn, use a multilevel model data generating process (as described more fully in <<CITE WEISS MIRATRIX MULTISITE>>) to generate the target number of clusters and individuals.
+In this specific example, these are different from each other and from the block average.
+We also see fairly high correlations of all sorts of features of the data. The numbers in parentheses are the standard deviations of a given value.
+
+Given our grid of block characteristics we then, for each block in turn, use a multilevel model data generating process (as described more fully in Miratrix et al.,2021) to generate the target number of clusters and individuals.
 
 To keep everything in effect size units, we have a target within-block total variation of $1 - ICC_3$, where $ICC_3$ is the target intraclass correlation for the blocks.
-Note that we have $ICC_3 + ICC_2 + \frac{\sigma^2_\epsilon}{R^2_1} = 1$, with $ICC_2$ being the cluster-level ICC and $\sigma^2_\epsilon$ the individual-level residual variance.
+Note that we have $ICC_3 + ICC_2 + \frac{\sigma^2_\epsilon}{(1-R^2_1)} = 1$, with $ICC_2$ being the cluster-level ICC and $\sigma^2_\epsilon$ the individual-level residual variance.
 
 
 ## How we correlate block-level quantities
@@ -403,7 +409,7 @@ We are correlating based on the normal transform of the ranks, so this is somewh
 If we have multiple correlations, then we do these in sequence, holding one of the variables as fixed so we do not undo any of the other correlations.
 For example, say we need to generate a scenario with both a correlation between the number of clusters in a block and average impact in the block, and a correlation of proportion treated in a block and average impact in the block.
 To do this, we first generate the three vectors of number of clusters, average impact, and proportion treated.
-We then rearrange, as described above, the number of clusters so it correlates with average impact, and next rearrange the proportion of clusters treated so it correlates with impact.
+We then rearrange, as described above, the number of clusters so it correlates with average impact, and next rearrange the proportion of clusters treated so it correlates with average impact.
 This will induce a correlation between number of clusters in a block and proportion treated in a block, because they are both correlated with the block-level ATE.
 
 
@@ -416,22 +422,97 @@ We first specify the desired mean and coefficient of variation (cv).
 For example, we might want an average of 8 clusters per block with a cv of 0.75.
 This means the standard deviation of our values would be $sd = cv * mean = 0.75 * 8 = 6$.
 
-We then have three possibilities: either the variance is less than the mean (in which case we can use a binomial distribution), or the variance is larger than the mean (in which case we can use a negative binomial distribution).
+We then have three possibilities: either the variance is less than the mean, in which case we can use a binomial distribution, or the variance is larger than the mean, in which case we can use a negative binomial distribution.
 If the variance is very close to the mean, we use a poisson distribution.
 
 We use this approach for the average cluster size across blocks, even though the average cluster sizes could be fractional.
 
 
+# How to read the box plots in this paper
+In this paper, we use a set of boxplots customized for our particular data. Below is a sample boxplot of the mean bias of an estimator relative to its target estimand across simulation runs for all methods and scenarios. The faint horizontal lines extend to the full range of the data. The bars mark the 2.5th and 97.5th percentiles, capturing 95% of the data. The boxes span the 10th and 90th percentiles, corresponding to the middle 80% of the data. Overall, the estimators exhibited negligible bias across a broad set of simulation conditions.
+
+
+```{r readplot, include=TRUE, echo=FALSE, fig.width=6, fig.height=4,dpi=150}
+
+sruns.graph.bias<-sruns.clean  %>% filter(method %in% core.methods) %>% mutate(method = str_remove(method, "-db$"),     method_ordered = str_remove(method_ordered, "-db$"))
+
+fig1cap<-"Figure 1: Sample boxplot for paper. This boxplot shows the superpopulation mean bias of each estimator relative to its target estimand across scenarios and methods. The faint horizontal lines extend to the full range, the bars span the 2.5th to 97.5th percentiles, and the boxes span the 10th to 90th percentiles."
+
+
+# First create the base plot
+bias_plot_full <- create_custom_boxplot3(
+  sruns.graph.bias %>% filter(group == "full_factor"), 
+  "bias.s.estimand", 
+  "", 
+  "Super Population Mean Bias Against Targeted Estimand",
+  vline_at = 0
+)
+
+
+# Calculate the percentiles from your data to position the labels
+data_for_percentiles <- sruns.graph.bias %>% 
+  filter(group == "full_factor") %>% 
+  pull(bias.s.estimand)
+
+percentile_values <- quantile(data_for_percentiles, 
+                              probs = c(0, 0.025, 0.1, 0.5, 0.9, 0.975, 1))
+
+bias_plot_full <- bias_plot_full +
+  # Add percentile labels
+  annotate("text", x = 1.03, y = percentile_values["0%"] - .005, 
+           label = "Min", size = 2.5, hjust = 0, family = "serif") +
+  annotate("text", x = 1.3, y = percentile_values["2.5%"], 
+           label = "2.5%", size = 2.5, hjust = 0, family = "serif") +
+  annotate("text", x = 1.15, y = percentile_values["10%"], 
+           label = "10%", size = 2.5, hjust = 0, family = "serif") +
+  annotate("text", x = 1.15, y = percentile_values["90%"]-.01, 
+           label = "90%", size = 2.5, hjust = 0, family = "serif") +
+  annotate("text", x = 1.3, y = percentile_values["97.5%"], 
+           label = "97.5%", size = 2.5, hjust = 0, family = "serif") +
+  annotate("text", x = 1.03, y = percentile_values["100%"], 
+           label = "Max", size = 2.5, hjust = 0, family = "serif") +
+  # Add your theme
+theme_minimal() +
+theme(
+  text = element_text(family = "serif", size = 10),
+  axis.text.x = element_text(size = 8, family = "serif"),  # This is the horizontal axis with values
+  axis.text.y = element_blank(),  # This hides the "1" on the vertical axis
+  axis.ticks.y = element_blank(),  # Also hide the tick marks
+  plot.title = element_text(hjust = 0.5, size = 12, family = "serif"),
+  plot.caption = element_text(hjust = 0, size = 9, family = "serif", color = "gray40"),
+  legend.text = element_text(size = 9, family = "serif"),
+  legend.title = element_text(size = 10, family = "serif"),
+  panel.grid = element_blank()
+)
+
+# Then create your final plot with caption
+ggdraw() +
+  draw_plot(bias_plot_full, 0, 0.1, 1, 0.9) +
+  draw_label(
+    str_wrap(fig1cap, width = 110),
+    x = 0.05, y = 0.05,
+    hjust = 0, vjust = .5,
+    size = 9, color = "gray40", fontfamily = "serif"
+  )
+
+
+
+
+```
 # Are any of the estimators ever substantially biased? When? 
 
-In 90% of the scenarios we tested, the magnitude of bias was less than 0.01 for all estimators (Figure 1), and the scenarios with bias require the confluence of multiple bias-causing factors (Figure 2). The estimators that theory predicts are unbiased do indeed have nearly no bias (or very low bias) across the full range of simulations. The person-weighted fully interacted estimator had bias as severe as -0.033 in the worst 5% of scenarios tested, which the regression tree shows requires a correlation between the treatment effect and cluster size combined with a small number of clusters per block (Figure 2). For the remaining estimators, except the multilevel fully interacted model, we observe bias as severe as -0.2 in some simulations, primarily driven by the combination of dissimilar blocks and unbalanced treatment assignment of clusters. The multilevel fully interacted model performed well with dissimilar blocks and unbalanced treatment assignment, and instead was most biased when there was a combination of correlation between the number of clusters and the treatment effect, zero cluster-level ICC, and either zero variation in cluster sizes or a lot of variation in cluster size.
+#to do
+*fix whatever thing we decided with the figures
+*write down the note that Mike had and make sure to incorporate it here 
+
+In 80% of the scenarios tested, the magnitude of bias was less than 0.01 for all estimators (Figure 2), and the scenarios with bias require the confluence of multiple bias-causing factors (Figure 3). The estimators that theory predicts are essentially unbiased do indeed have nearly no bias (or very low bias) across the full range of simulations. The person-weighted fully interacted estimator had bias as severe as -0.033 in the worst 5% of scenarios tested, which the regression tree shows requires a correlation between the treatment effect and cluster size combined with a small number of clusters per block (Figure 3). For the remaining estimators, except the multilevel fully interacted model, we observe bias as severe as -0.2 in some simulations, primarily driven by the combination of messy blocks and unbalanced treatment assignment of clusters. The multilevel fully interacted model performed well with dissimilar blocks and unbalanced treatment assignment, and instead was most biased when there was a combination of correlation between the number of clusters and the treatment effect, zero cluster-level ICC, and a lot of variation in cluster size.
 
 
 ```{r bias, include=TRUE, echo=FALSE, fig.width=6, fig.height=4,dpi=150}
 
 sruns.graph.bias<-sruns.clean  %>% filter(method %in% core.methods) %>% mutate(method = str_remove(method, "-db$"),     method_ordered = str_remove(method_ordered, "-db$"))
 
-fig1cap<-"Figure 1: Boxplot of superpopulation mean bias against an estimators targeted estimand across the different scenarios by method. The faint horizontal lines go out to the full range, the bars are the 1% to 99%, and the boxes are the 10% to 90%."
+fig2cap<-"Figure 2: Boxplot of superpopulation mean bias of each estimator relative to its target estimand across scenarios, separated by method. The faint horizontal lines extend to the full range, the bars span the 2.5th to 97.5th percentiles, and the boxes span the 10th to 90th percentiles."
 
 bias_plot_full <- create_custom_boxplot2(
   sruns.graph.bias %>% filter(group == "full_factor"), 
@@ -453,7 +534,7 @@ theme(
 ggdraw() +
      draw_plot(bias_plot_full, 0, 0.1, 1, 0.9) +  # Plot takes up top 90%
      draw_label(
-       str_wrap(fig1cap, width = 110),
+       str_wrap(fig2cap, width = 110),
        x = 0.05, y = 0.05,  # Position at bottom left
        hjust = 0, vjust = .5,
        size = 9, color = "gray40", fontfamily = "serif"
@@ -466,7 +547,7 @@ ggdraw() +
 # Simple faceted analysis trees
 methods <- unique(sruns.graph.bias$method)[!(unique(sruns.graph.bias$method) %in% c("LRa-FIcw-db","LRapw-FIpw-db"))]
 
-fig2cap <- "Figure 2: Regression tree by method which predicts the magnitude of the mean bias given different data generating parameters" 
+fig3cap <- "Figure 3: Regression tree by method which predicts the magnitude of the mean bias given different data generating parameters" 
 
 # Set up plotting layout
 par(mfrow = c(4, 2), oma = c(3, 0, 0, 0))
@@ -481,7 +562,7 @@ for (method_name in methods) {
     tree_title = paste(method_name)
   )
 }
-mtext(str_wrap(fig2cap, width = 110), side = 1, line = 1, cex = 0.75, 
+mtext(str_wrap(fig3cap, width = 110), side = 1, line = 1, cex = 0.75, 
       col = "gray40", outer = TRUE, family = "serif", adj = 0)
 
 
