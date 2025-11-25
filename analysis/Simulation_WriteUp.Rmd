@@ -376,8 +376,9 @@ To illustrate, here is the "grid" of block-level characteristics for the above s
 ```{r}
 gd <- key_scen$grid[[1]]
 
-names(gd) <- str_replace( names(gd), "cluster", "clu" )
-rename( gd,
+gd2 <- gd
+names(gd2) <- str_replace( names(gd2), "cluster", "clu" )
+rename( gd2,
         tau = block.tau,
         alpha = block.alpha,
         cor.clu = size.impact.cor.clu,
