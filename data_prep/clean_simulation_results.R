@@ -259,10 +259,6 @@ sruns = mutate( sruns,
 
 
 ##### Save #####
-#manually fix group because I didn't in the simulation program, this doesn't effect anything but the label 
-sruns$group<-"lowdf"
-scenarios$group<-"lowdf"
-
 group=unique(sruns$group)
 #group=unique(simdata$group)
 
