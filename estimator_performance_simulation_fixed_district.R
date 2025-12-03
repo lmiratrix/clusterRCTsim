@@ -166,7 +166,7 @@ scenarios = mutate( scenarios,
 
 # Rearrange and foreground relevant columns
 scenarios = dplyr::select( scenarios, 
-                           ID, K, J.bar, p.bar, sd.ATE, ICC.block, 
+                           ID, K, J.bar, p.bar, sd.block, ICC.block, 
                            variable.p, n.bar, sd.cluster, ICC.cluster,
                            size.impact.cor, size.impact.cor.cluster,
                            proptx.impact.cor,

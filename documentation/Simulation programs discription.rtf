@@ -7,46 +7,40 @@
 
 \f0\fs24 \cf0 Cluster RCT Simulation Process:\
 \
-Cluster RCT Simulation Process:\
-\
 1) use \'93generate_grids.R\'94 to generate all the grids for the simulations\
 	*this produces the scenarios.rds that feeds into the simulations\
+	*generate_grids.R and scenarios.rds are both in the main folder of clusterRCTsims\
 \
 2) pull ClusterRCTsim repository into the Odyssey folder\
 	*this is just typing git pull\
 	*password is just the one I use for the cluster \
 \
 3) On the Odyssey Cluster run the following script execute_runfullsim.sh this will run sbatch_runScript.slurm which in turn runs estimator_performamce_simulation_fixed_district.R\
-\
-\
-\
-\
-\
-1) Upload the following programs to the Odyssey Cluster:\
-Programs with Functions:\
-	*data_generation_code.R\
-	*simulation_support_code_crt.R\
-		*This program is where the parameters for the data generating functions get set\
-Main R Program that Runs the Simulations:\
-	*estimator_performance_simulation.R\
-		*the group variable at the top determines which batch of simulations are being run\
-Odyssey File That Calls estimator_performance_simulation.R:\
-	*sbatch_runScript.slurm\
- 2) In folder with all the uploaded files run the code that\'92s in the following file directly on to Odyssey:\
-	* execute_runfullsim.sh\
-\
-3) Currently the code is set up to run each group of data generating processes 1000 parallel times. The results from each repetition of the simulation ends up in the results folder.\
+	*execute_runfullsim.sh and  sbatch_runScript.slurm are in the cloud folder\
+	*estimator_performance_simulation_fixed_district.R is in the main folder\
+	*Currently the code is set up to run each group of data generating processes 1000 parallel times. The results from each repetition of the simulation ends up in the results folder.\
 \
 4)  Within an interactive R session in the main folder run the following two programs in sequence:\
-	*bundle_odyssey_results.R\
-		*This program takes all the results from the individual	replications in the results folder and combines them into one master \'93
+	i) bundle_odyssey_results.R\
+		*his program is in the data_prep folder \
+		*This program takes all the results from the individual replications in the results folder and combines them into one master\
+		\'93
 \f1\fs22 \cf2 \CocoaLigature0 complete_odyssey_results.rds\'94 
 \f0\fs24 \cf0 \CocoaLigature1 file\
-	*clean_simulation_results.R\
+	ii) clean_simulation_results.R\
 		*this file aggregates the results across simulations and then saves everything in a results_sav 		folder
 \f1\fs22 \cf2 \CocoaLigature0  
 \f0\fs24 \cf0 \CocoaLigature1  \
-5)Within an interactive R session in resuls_sav run the following program:\
+\
+\
+5)Within an interactive R session in resuls_agg run the following program:\
 	Combine_Results_Across_Simulations.R:\
 		*This program combines the results across the simulation groups \
+\
+Final Data Lives In: combined_simulation_results.RData\
+*this contains a data set sruns and a data set scenarios\
+*sruns is all the simulation data\
+	*the group variable subsets to the relevant simulation group (either fullfactor or lowdf)\
+*scenarios contains the DGPs used to create the simulations    \
+	*the group variable subsets to the relevant simulation group (either fullfactor or lowdf)\
 	}

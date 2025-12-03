@@ -15,8 +15,11 @@
 ###Combining Results Across Simulations
 rm(list=ls())
 library(tidyverse)
-load("processed_simulation_results_agg_full_factor_2025-05-21.RData")
+load("processed_simulation_results_agg_fullfactor_2025-11-25.RData")
+scenarios.fullfactor<-scenarios
 load("processed_simulation_results_agg_lowdf_2025-07-01.RData")
-sruns<-bind_rows(sruns, sruns.lowdf)
-save(sruns, file= "combined_simulation_results.RData")
+scenarios.lowdf<-scenarios
+sruns<-bind_rows(sruns.fullfactor, sruns.lowdf)
+scenarios<-bind_rows(scenarios.fullfactor, scenarios.lowdf)
+save(scenarios,sruns, file= "combined_simulation_results.RData")
 

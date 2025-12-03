@@ -1,7 +1,7 @@
 
 ##########################################
 #
-# Author: Sophie Li.cluwartz
+# Author: Sophie Litschwartz
 # Date Created:11/27/2024
 # Project Name: Cluster RCT Estimators
 # File Name: generate_grids.R
@@ -33,35 +33,35 @@ source( here::here( "R/simulation_support_code_fixed_block.R" ) )
 #blocktype=c("messy","same","reasonable")
 
 #Blocks all the same: 
-btype1<-data.frame( cv.block=0,
-                    sd.block=0,
-                    size.impact.cor = 0, 
-                    nbar.J.cor = 0,   
-                    proptx.impact.cor = 0,
-                    size.intercept.cor = 0, 
-                    variable.p=F,
-                    cv.nbar= 0)
+btype1<-data.frame( cv.block=0, #checked
+                    sd.block=0, #checked
+                    size.impact.cor = 0, #checked 
+                    nbar.J.cor = 0, #checked   
+                    proptx.impact.cor = 0, #checked
+                    size.intercept.cor = 0, #checked
+                    variable.p=F, #checked
+                    cv.nbar= 0 ) #checked
 
 #Blocks all messy: 
-btype2<-data.frame( cv.block=.85, 
-                    sd.block=.6, 
-                    size.impact.cor = .8, 
-                    nbar.J.cor = .8,   
-                    proptx.impact.cor = .8, 
-                    size.intercept.cor = .8, 
-                    variable.p=T,
-                    cv.nbar= .33)
+btype2<-data.frame( cv.block=.85, #checked
+                    sd.block=.6, #checked
+                    size.impact.cor = .8, #checked  
+                    nbar.J.cor = .8,   #checked
+                    proptx.impact.cor = .8, #checked
+                    size.intercept.cor = .8, #checked
+                    variable.p=T, #checked
+                    cv.nbar= .33) #checked
 
                 
 #Blocks vaguely reasonable
-btype3<-data.frame( cv.block=.33,
-                    sd.block=0.2, 
-                    size.impact.cor = .2, 
-                    nbar.J.cor = .3,   
-                    proptx.impact.cor = 0,
-                    size.intercept.cor = .3,
-                    variable.p=F,
-                    cv.nbar= .33)
+btype3<-data.frame( cv.block=.33,#checked
+                    sd.block=0.2, #checked
+                    size.impact.cor = .3,#checked 
+                    nbar.J.cor = .3,#checked   
+                    proptx.impact.cor = .3,#checked
+                    size.intercept.cor = .3,#checked
+                    variable.p=T,#checked 
+                    cv.nbar= .33) #checked
 
 
 #variables for the block scenarios
@@ -75,24 +75,24 @@ blockvars
 
 #This the parameters that need to go in it
 scenarios = expand.grid( 
-  K=5, 
-  J.bar=c(5,10,20),
-  n.bar=20, 
-  p.bar=c(0.5,0.7),
-  ATE = .2,
-  ICC.block = .2,
-  num.cov.block = 0,
+  K=5, #checked
+  J.bar=c(5,10,20), #checked
+  n.bar=20, #checked
+  p.bar=c(0.5,0.7), #checked
+  ATE = .2, #checked
+  ICC.block = .2, #checked
+  num.cov.block = 0, #checked
   blocktype=c("messy","same","reasonable"),
   
   # cluster-level params
-  sd.cluster =  c(0,.3), 
-  ICC.cluster = c(0,0.20),
-  R2.cluster = .5,
-  num.cov.cluster = c(0,1,5),
+  sd.cluster =  c(0,.3), #checked
+  ICC.cluster = c(0,0.20), #checked
+  R2.cluster = .5, #checked
+  num.cov.cluster = c(0,1,5), #checked
   
   # correlation params at cluster level
-  cv.cluster =  c(0,.33,.6),
-  size.impact.cor.cluster = c(0,.8),
+  cv.cluster =  c(0,.33,.6), #checked
+  size.impact.cor.cluster = c(0,.8), #checked
   
   # Individual-level params
   num.cov.indiv = 0,
@@ -142,6 +142,7 @@ scenarios[131,] %>%
 #scenarios$run = map(scenarios$grid, run.scenario.fixed.block, R=1 , parallel=F)
 
 scenarios$group = group
+scenarios$date.created=format(Sys.Date(), "%m/%d/%Y")
 saveRDS( scenarios,
          here::here( "scenarios.rds" ) )
 

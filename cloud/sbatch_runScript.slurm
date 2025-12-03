@@ -4,7 +4,7 @@
 
 #SBATCH -n 1  #Number of cores
 
-#SBATCH -t 180  #Runtime in minutes
+#SBATCH -t 360  #Runtime in minutes
 
 #SBATCH -p serial_requeue #Partition to submit to
 

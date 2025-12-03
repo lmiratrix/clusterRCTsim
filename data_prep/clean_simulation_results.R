@@ -26,20 +26,17 @@ simdata <- scenarios %>%
 # Drop simulations from the scenarios frame
 scenarios$run = NULL
 
-# # Drop uninteresting estimators
-# simdata = filter( simdata, !( method %in% c( "plug_in_big", "hybrid_p", "hybrid_m", "FE-IPTW(n)" )))
 
+## sometimes there is no SE.hat becuase SE.hat is not defined 
 
-##### drop failed runs due to lmer crashing, etc.  #####
+#failed <- simdata %>% filter(is.na(method))
+failed <- simdata %>% filter (is.na(SE.hat))
+#failed <- simdata %>% filter(is.infinite(SE.hat))
 
-# TODO: Q: how is method ever NA?
-failed <- simdata %>% 
-  filter(is.na(method) | is.na(SE.hat) | is.infinite(SE.hat))
-# table( failed$method, useNA ="always" )
-if ( nrow( failed ) > 0 ) {
-  warning( "Dropping some runs without estimated SEs" )
-  simdata = filter( simdata, !(is.na( SE.hat ) | is.infinite( SE.hat )) )
-}
+#if ( nrow( failed ) > 0 ) {
+ # warning( "Dropping some runs without estimated SEs" )
+  #simdata = filter( simdata, !(is.na( SE.hat ) | is.infinite( SE.hat )) )
+#}
 
 
 ##### Calculate coverage ######
@@ -57,15 +54,15 @@ CI.length = function( ATE.hat, SE.hat, df, estimand ) {
 simdata = mutate(simdata, 
                  # Coverage for finite populations
                  cov.f.stu = cover.vector(ATE.hat, SE.hat, df, ATE.finite.student),
-                 cov.f.sch = cover.vector(ATE.hat, SE.hat, df, ATE.finite.school),
+                 cov.f.clu = cover.vector(ATE.hat, SE.hat, df, ATE.finite.cluster),
                  cov.f.dstu = cover.vector(ATE.hat, SE.hat, df, ATE.finite.dist.student),
-                 cov.f.dsch = cover.vector(ATE.hat, SE.hat, df, ATE.finite.dist.school),
+                 cov.f.dclu = cover.vector(ATE.hat, SE.hat, df, ATE.finite.dist.cluster),
                  
                  # Coverage for super populations
                  cov.s.stu = cover.vector(ATE.hat, SE.hat, df, ATE.super.student),
-                 cov.s.sch = cover.vector(ATE.hat, SE.hat, df, ATE.super.school),
+                 cov.s.clu = cover.vector(ATE.hat, SE.hat, df, ATE.super.cluster),
                  cov.s.dstu = cover.vector(ATE.hat, SE.hat, df, ATE.super.dist.student),
-                 cov.s.dsch = cover.vector(ATE.hat, SE.hat, df, ATE.super.dist.school),
+                 cov.s.dclu = cover.vector(ATE.hat, SE.hat, df, ATE.super.dist.cluster),
                  
                  # CI length
                  CI.length = CI.length(ATE.hat, SE.hat, df))
@@ -116,23 +113,23 @@ sruns = simdata %>%
              mean.df=mean(df),
              # bias of estimators for each estimand
              bias.f.stu = mean( ATE.hat - ATE.finite.student ),
-             bias.f.sch = mean( ATE.hat - ATE.finite.school ),
+             bias.f.clu = mean( ATE.hat - ATE.finite.cluster ),
              bias.f.dstu = mean( ATE.hat - ATE.finite.dist.student ),
-             bias.f.dsch = mean( ATE.hat - ATE.finite.dist.school ),
+             bias.f.dclu = mean( ATE.hat - ATE.finite.dist.cluster ),
              bias.s.stu = mean( ATE.hat - ATE.super.student ),
-             bias.s.sch = mean( ATE.hat - ATE.super.school ),
+             bias.s.clu = mean( ATE.hat - ATE.super.cluster ),
              bias.s.dstu = mean( ATE.hat - ATE.super.dist.student ),
-             bias.s.dsch = mean( ATE.hat - ATE.super.dist.school ),
+             bias.s.dclu = mean( ATE.hat - ATE.super.dist.cluster ),
              
              # RMSE of estimators for each estimand
              RMSE.f.stu = sqrt( mean( ( ATE.hat - ATE.finite.student )^2 ) ),
-             RMSE.f.sch = sqrt( mean( ( ATE.hat - ATE.finite.school   )^2 ) ),
+             RMSE.f.clu = sqrt( mean( ( ATE.hat - ATE.finite.cluster   )^2 ) ),
              RMSE.f.dstu = sqrt( mean( ( ATE.hat - ATE.finite.dist.student )^2 ) ),
-             RMSE.f.dsch = sqrt( mean( ( ATE.hat - ATE.finite.dist.school   )^2 ) ),
+             RMSE.f.dclu = sqrt( mean( ( ATE.hat - ATE.finite.dist.cluster   )^2 ) ),
              RMSE.s.stu = sqrt( mean( ( ATE.hat - ATE.super.student  )^2 ) ),
-             RMSE.s.sch = sqrt( mean( ( ATE.hat - ATE.super.school )^2 ) ),
+             RMSE.s.clu = sqrt( mean( ( ATE.hat - ATE.super.cluster )^2 ) ),
              RMSE.s.dstu = sqrt( mean( ( ATE.hat - ATE.super.dist.student  )^2 ) ),
-             RMSE.s.dsch = sqrt( mean( ( ATE.hat - ATE.super.dist.school )^2 ) ),
+             RMSE.s.dclu = sqrt( mean( ( ATE.hat - ATE.super.dist.cluster )^2 ) ),
              
              # # SD of finite-sample estimands
               #sd.ATE.f.stu = sd( ATE.finite.student ),
@@ -148,13 +145,13 @@ sruns = simdata %>%
              
              # coverage rates
              cover.f.stu = mean( cov.f.stu ),
-             cover.f.sch = mean( cov.f.sch ),
+             cover.f.clu = mean( cov.f.clu ),
              cover.f.dstu = mean( cov.f.dstu ),
-             cover.f.dsch = mean( cov.f.dsch ),
+             cover.f.dclu = mean( cov.f.dclu ),
              cover.s.stu = mean( cov.s.stu ),
-             cover.s.sch = mean( cov.s.sch ),
+             cover.s.clu = mean( cov.s.clu ),
              cover.s.dstu = mean( cov.s.dstu ),
-             cover.s.dsch = mean( cov.s.dsch ),
+             cover.s.dclu = mean( cov.s.dclu ),
              CI.length=mean(CI.length))
              
              
@@ -171,27 +168,32 @@ head( sruns )
 ##### Ensure no bad sim runs #####
 
 # look for missing SE estimates
-badIDs = filter( sruns, is.na( mean.SE.hat ) | is.na( RMSE.f.stu )  )
-if ( nrow( badIDs ) > 0 ) {
-  warning( "Continuing to drop runs with missing estimated SEs or RMSEs" )
-  badIDs = unique( badIDs$ID )
-  cat( "Missing SE estimates:\n" )
-  print( badIDs )
-  sruns = filter( sruns, !is.na( mean.SE.hat ) & !is.na( RMSE.fp ) )  
-  stop()
-}
+badIDs = filter( sruns, is.na( mean.SE.hat )) 
+#badIDs = filter( sruns, is.na( RMSE.f.stu  ))
+
+#we don't want to drop these, because sometimes ATE is defined and SE isn't 
+#if ( nrow( badIDs ) > 0 ) {
+ # warning( "Continuing to drop runs with missing estimated SEs or RMSEs" )
+  #badIDs = unique( badIDs$ID )
+  #cat( "Missing SE estimates:\n" )
+  #print( badIDs )
+  #sruns = filter( sruns, !is.na( mean.SE.hat ) & !is.na( RMSE.fp ) )  
+  #stop()
+#}
 
 
-# missing IDs from prior filtering
-if ( nrow( failed ) > 0 ) {
-  cat( "Failed runs--looking at where they showed up" )
-  badIDs = unique( failed$ID )
-  print( badIDs )
-  filter( scenarios, ID %in% badIDs )
-  stop()
-}
+# missing IDs from prior filtering, but I don't think we actually care about this
+#if ( nrow( failed ) > 0 ) {
+ # cat( "Failed runs--looking at where they showed up" )
+  #badIDs = unique( failed$ID )
+  #print( badIDs )
+  #temp<-filter( scenarios, ID %in% badIDs )
+  #print(temp)
+  #stop()
+#}
 
 # Which IDs are missing stats for some of the methods?
+#again sometimes SE's are missing for the DB methods, which is just a known problem
 ss = sruns %>% ungroup() %>% dplyr::select( ID, method, mean.SE.hat ) %>%
   spread( method, mean.SE.hat )
 head( ss )
@@ -257,10 +259,6 @@ sruns = mutate( sruns,
 
 
 ##### Save #####
-#manually fix group because I didn't in the simulation program, this doesn't effect anything but the label 
-sruns$group<-"lowdf"
-scenarios$group<-"lowdf"
-
 group=unique(sruns$group)
 #group=unique(simdata$group)
 

@@ -15,15 +15,24 @@ require(blkvar)
 
 
 load( here::here( "results_agg/combined_simulation_results.RData" ) )
+#clean up names between low df and not low df
+srunsff <- sruns %>% 
+  filter(group == "fullfactor") %>%
+  select(where(~ !all(is.na(.))))
+
+srunslowdf <- sruns %>% 
+  filter(group == "lowdf") %>%
+  select(where(~ !all(is.na(.))))
 
 # replace 'block' with 'block' for all names in sruns dataframe:
-sruns <- sruns %>%
+srunslowdf <- srunslowdf %>%
   rename_with(~ str_replace_all(., "district", "block")) %>%
   rename_with(~ str_replace_all(., ".dist", ".block")) %>%
   rename_with(~ str_replace_all(., "school", "cluster")) %>%
-  rename_with(~ str_replace_all(., ".sch", ".clu"))
+  rename_with(~ str_replace_all(., ".sch", ".clu")) %>%
+  rename(sd.block=sd.ATE)
   
-  
+sruns<-bind_rows(srunsff, srunslowdf)  
   
 
 
@@ -34,7 +43,7 @@ with(lowdf,table(is.na(mean.ATE.hat),method))
 #there are estimates for all the methods for all the scenarios, but not SEs 
 
      
-DGP_vars <- c("K", "J.bar", "p.bar", "sd.ATE", "ICC.block", "variable.p", 
+DGP_vars <- c("K", "J.bar", "p.bar", "sd.block", "ICC.block", "variable.p", 
               "n.bar", "sd.cluster", "ICC.cluster", "size.impact.cor", "size.impact.cor.cluster", 
               "proptx.impact.cor", "num.cov.block", "num.cov.cluster", "cv.cluster", 
               "num.cov.indiv", "empirical", "cv.block", "nbar.J.cor", 
@@ -200,50 +209,49 @@ sruns.clean <- sruns %>%
   mutate(block_type = case_when(
     # Blocks all the same (btype1)
     cv.block == 0 &
-      sd.ATE == 0 & 
+      sd.block == 0 & 
       size.impact.cor == 0 & 
       nbar.J.cor == 0 &
       proptx.impact.cor == 0 & 
       size.intercept.cor == 0 &
-      !variable.p &
       cv.nbar == 0 &
-      group=="full_factor" ~ 1,
+      group=="fullfactor" ~ 1,
     
     # Blocks all messy (btype2)
     cv.block == 0.85 &
-      sd.ATE == 0.6 & 
+      sd.block == 0.6 & 
       size.impact.cor == 0.8 & 
       nbar.J.cor == 0.8 &
       proptx.impact.cor == 0.8 & 
       size.intercept.cor == 0.8 &
       variable.p &
-      cv.nbar == 0.33 & group=="full_factor" ~ 3,
+      cv.nbar == 0.33 & group=="fullfactor" ~ 3,
     
     # Blocks vaguely reasonable (btype3)
     cv.block == 0.33 &
-      sd.ATE == 0.2 & 
-      size.impact.cor == 0.2 & 
+      sd.block == 0.2 & 
+      size.impact.cor == 0.3 & 
       nbar.J.cor == 0.3 &
-      proptx.impact.cor == 0 & 
+      proptx.impact.cor == 0.3 & 
       size.intercept.cor == 0.3 &
-      !variable.p &
-      cv.nbar == 0.33 & group=="full_factor"~ 2,
+      variable.p &
+      cv.nbar == 0.33 & group=="fullfactor"~ 2,
     
     TRUE ~ NA_real_  # Catch any other combinations
   )) %>% 
   mutate(block_type_lowdf = case_when(
     # Blocks all the same (btype1)
-    sd.ATE == 0 & 
+    sd.block == 0 & 
       size.impact.cor == 0 & 
       size.intercept.cor == 0 & group=="lowdf" ~ 1,
     
     # Blocks all messy (btype2)
-    sd.ATE == 0.6 & 
+    sd.block == 0.6 & 
       size.impact.cor == 0.8 & 
       size.intercept.cor == 0.8 & group=="lowdf"~ 3,
     
     # Blocks vaguely reasonable (btype3)
-    sd.ATE == 0.2 & 
+    sd.block == 0.2 & 
       size.impact.cor == 0.2 & 
       size.intercept.cor == 0.3 & group=="lowdf"~ 2,
     
@@ -264,7 +272,7 @@ sruns.clean <- sruns %>%
     )
   ) %>%
   # Apply group-based labeling to variables that differ by group
-  create_labeled_factor_by_group("sd.ATE", "group") %>%
+  create_labeled_factor_by_group("sd.block", "group") %>%
   create_labeled_factor_by_group("size.impact.cor", "group") %>%
   create_labeled_factor_by_group("J.bar", "group") %>%
   create_labeled_factor_by_group("sd.cluster", "group") %>%
@@ -309,7 +317,7 @@ levels(sruns.clean$block_type_lowdf)
 table(sruns.clean$block_type_lowdf)
 levels(sruns.clean$J.bar)
 levels(sruns.clean$ICC.cluster)
-levels(sruns.clean$sd.ATE)
+levels(sruns.clean$sd.block)
 levels(sruns.clean$sd.cluster)
 table(sruns.clean$ID)
 
@@ -434,7 +442,7 @@ all.methods<-c("LRa-FE-db", "LRa-FE-het", "LRicw-FE-crve", "LRicw-FE-db",
 
 #the missing SE's for some methods in the low df group  is doing weird stuff, so run them separately 
 
-groups.ff <- group_estimators(sruns.clean %>% filter(group=="full_factor"), var = "mean.SE.hat")
+groups.ff <- group_estimators(sruns.clean %>% filter(group=="fullfactor"), var = "mean.SE.hat")
 groups.lowdf <- group_estimators(sruns.clean %>% filter(group=="lowdf"), var = "mean.SE.hat")
 
 
