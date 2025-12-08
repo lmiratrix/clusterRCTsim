@@ -125,7 +125,7 @@ combined = filter( combined, blocked == 1 ) %>%
   dplyr::select( -blocked )
 
 
-# Drop CRVE FI SEs for singleton cases ----
+# Set CRVE FI SEs to NA for singleton cases ----
 
 table( combined$Estimator )
 
@@ -150,7 +150,7 @@ rm( drp )
 
 
 
-# Make table of all the outcomes ----
+# Explore: Make table of all the outcomes ----
 outs <- combined %>% 
   filter( Covariates == "best" ) %>%
   filter( !duplicated( UniqueID ) ) %>%
@@ -162,6 +162,8 @@ outs %>%
   group_by( Collection ) %>%
   summarise( n_study = n_distinct(Project),
              n_outcome = n_distinct(UniqueID) )
+
+
 
 
 # Make studies table ----
@@ -180,6 +182,9 @@ n_defined <- studies %>%
   summarise( n_ATE = sum( !is.na( ATE_hat ) ),
              n_SE = sum( !is.na( SE_hat ) ) )
 
+# Cut down full results to one row per study, and then drop the
+# estimation stuff to get the study table left ('best' covariate stats
+# only)
 studies <- studies %>%
   dplyr::filter( Estimator %in% c( "LRi-crve", "LRi-FE-crve" ) ) %>%
   dplyr::select( -c( Estimator:disfavored ) )
