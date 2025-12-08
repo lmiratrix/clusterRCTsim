@@ -403,12 +403,15 @@ We use this approach for the average cluster size across blocks, even though the
 
 
 # How to read the box plots in this paper
-In this paper, we use a set of boxplots customized for our particular data. Below is a sample boxplot of the mean bias of an estimator relative to its target estimand across simulation runs for all methods and scenarios. The faint horizontal lines extend to the full range of the data. The bars mark the 2.5th and 97.5th percentiles, capturing 95% of the data. The boxes span the 10th and 90th percentiles, corresponding to the middle 80% of the data. Overall, the estimators exhibited negligible bias across a broad set of simulation conditions.
+In this report, we use a set of boxplots customized for our particular data. Below is a sample boxplot of the mean bias of an estimator relative to its target estimand across simulation runs for all methods and scenarios. The faint horizontal lines extend to the full range of the data. The bars mark the 2.5th and 97.5th percentiles, capturing 95% of the data. The boxes span the 10th and 90th percentiles, corresponding to the middle 80% of the data. Overall, the estimators exhibited negligible bias across a broad set of simulation conditions.
 
 
-```{r readplot, include=TRUE, echo=FALSE, fig.width=6, fig.height=4,dpi=150}
+```{r readplot, include=TRUE, echo=FALSE, fig.width=5, fig.height=1.75, dpi=150}
 
-sruns.graph.bias<-sruns.clean  %>% filter(method %in% core.methods) %>% mutate(method = str_remove(method, "-db$"),     method_ordered = str_remove(method_ordered, "-db$"))
+sruns.graph.bias<-sruns.clean  %>% 
+  filter(method %in% core.methods) %>% 
+  mutate(method = str_remove(method, "-db$"),     
+         method_ordered = str_remove(method_ordered, "-db$"))
 
 fig1cap<-"Figure 1: Sample boxplot for paper. This boxplot shows the superpopulation mean bias of each estimator relative to its target estimand across scenarios and methods. The faint horizontal lines extend to the full range, the bars span the 2.5th to 97.5th percentiles, and the boxes span the 10th to 90th percentiles."
 
@@ -431,20 +434,23 @@ data_for_percentiles <- sruns.graph.bias %>%
 percentile_values <- quantile(data_for_percentiles, 
                               probs = c(0, 0.025, 0.1, 0.5, 0.9, 0.975, 1))
 
+an_size = 3.0
+alt_pos = 1.4
+
 bias_plot_full <- bias_plot_full +
   # Add percentile labels
-  annotate("text", x = 1.03, y = percentile_values["0%"] - .005, 
-           label = "Min", size = 2.5, hjust = 0, family = "serif") +
-  annotate("text", x = 1.3, y = percentile_values["2.5%"], 
-           label = "2.5%", size = 2.5, hjust = 0, family = "serif") +
-  annotate("text", x = 1.15, y = percentile_values["10%"]+.012, 
-           label = "10%", size = 2.5, hjust = 0, family = "serif") +
-  annotate("text", x = 1.15, y = percentile_values["90%"]-.015, 
-           label = "90%", size = 2.5, hjust = 0, family = "serif") +
-  annotate("text", x = 1.3, y = percentile_values["97.5%"], 
-           label = "97.5%", size = 2.5, hjust = 0, family = "serif") +
-  annotate("text", x = 1.03, y = percentile_values["100%"], 
-           label = "Max", size = 2.5, hjust = 0, family = "serif") +
+  annotate("text", x = alt_pos, y = percentile_values["0%"] - .005, 
+           label = "Min", size = an_size, hjust = 0.5, family = "serif") +
+  annotate("text", x = alt_pos, y = percentile_values["2.5%"], 
+           label = "2.5%", size = an_size, hjust = 0.5, family = "serif") +
+  annotate("text", x = alt_pos, y = percentile_values["10%"]+.012, 
+           label = "10%", size = an_size, hjust = 0.5, family = "serif") +
+  annotate("text", x = alt_pos, y = percentile_values["90%"] + 0.005, 
+           label = "90%", size = an_size, hjust = 1, family = "serif") +
+  annotate("text", x = alt_pos, y = percentile_values["97.5%"], 
+           label = "97.5%", size = an_size, hjust = 0.5, family = "serif") +
+  annotate("text", x = alt_pos, y = percentile_values["100%"], 
+           label = "Max", size = an_size, hjust = 0.5, family = "serif") +
   # Add your theme
     scale_y_continuous(breaks = seq(-0.25, 0.25, by = 0.03)) +
 theme_minimal() +
