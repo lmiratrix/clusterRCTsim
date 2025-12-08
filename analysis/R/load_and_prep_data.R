@@ -424,7 +424,7 @@ map_chr(groups, paste, collapse = ", ") %>%
   knitr::kable()
 
 #this is the list of methods that don't produce the same ATE estimates
-core.methods <- c("LRa-FE-db", "LRa-FIcw-db", "LRapw-FE-db", "LRapw-FIpw-db", "MLM-FE", "MLM-FIcw", "MLM-RE")
+core.methods <- c("LRa-FE-db", "LRapw-FE-db", "LRi-FIpw-crve",  "LRicw-FIcw-crve", "MLM-FE", "MLM-FIcw", "MLM-RE")
 
 
 #this is the list of MLM methods
@@ -438,7 +438,7 @@ all.methods<-c("LRa-FE-db", "LRa-FE-het", "LRicw-FE-crve", "LRicw-FE-db",
                "LRapw-FIpw-het", "LRi-FIpw-crve", "LRi-FIpw-db", 
                "MLM-FE", "MLM-FIcw","MLM-RE")
 
-####Pick Up Here
+
 
 #the missing SE's for some methods in the low df group  is doing weird stuff, so run them separately 
 
@@ -463,9 +463,8 @@ map_chr(groups.lowdf, paste, collapse = ", ") %>%
   relocate(grp) %>%
   knitr::kable()
 
-core.methods.se <- c("LRa-FE-db", "LRa-FE-het", "LRa-FIcw-db", "LRapw-FE-db", 
-                     "LRapw-FE-het", "LRapw-FIpw-db", "LRapw-FIpw-het", 
-                     "LRicw-FE-crve", "LRicw-FIcw-crve", "MLM-FE", "MLM-FIcw",
+core.methods.se <- c("LRa-FE-db", "LRa-FE-het", "LRapw-FE-db", "LRapw-FE-het",
+                     "LRi-FIpw-crve","LRicw-FE-crve", "MLM-FE", "MLM-FIcw",
                      "MLM-RE")
 
 
