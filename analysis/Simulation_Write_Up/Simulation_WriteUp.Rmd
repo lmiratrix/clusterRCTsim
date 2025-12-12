@@ -1,7 +1,7 @@
 ---
-title: "Simulation Analysis"
-author: "Sophie Litschwartz and Luke Miratrix"
-date: '2025-11-26'
+title: 'Simulation Supplement for
+"An Applied Researchers Guide to Estimating Effects from Multisite Cluster Randomized Trials: Estimands, Estimators, and Estimates"'
+date: '2025-12-10'
 output:
   pdf_document:
     toc: true
@@ -19,6 +19,11 @@ header-includes:
 geometry:
   - margin=1in
 ---
+
+<!--
+author: "Sophie Litschwartz and Luke Miratrix"
+
+-->
 
 ```{r todo, include=FALSE, echo=FALSE}
 
@@ -83,13 +88,14 @@ source( here::here( "analysis/R/create_analysis_tree.R" ) )
 Blocked cluster randomized controlled trials (CRTs) are a widely used experimental evaluation design in which entire groups (clusters) such as schools or classrooms are randomly assigned to treatment or control conditions within defined strata or blocks. The effectiveness of the program or treatment is then typically quantified using the average treatment effect (ATE). However, within this relatively straightforward quantity, researchers must make a variety of choices. Researchers need to decide whether to target a person-weighted average or cluster-weighted average; they need to decide whether they are targeting an estimate just for the clusters in the study (finite sample) or an estimate representative of some broader population (superpopulation); and they need to decide from among different methods or estimators that can be used to estimate the ATE.
 
 This paper contains simulations that complement research examining empirically the implications of different choices researchers make when performing CRTs (Miratrix et al., 2025). Simulations, unlike empirical analyses, allow us to compare estimated quantities to their true values, which we cannot observe in empirical contexts. This in turn allows us to evaluate how well different statistical methods perform. Additionally, we can systematically vary data conditions and identify which factors impact method performance.
+
 # Research Questions
 
 With this in mind, these simulations answer the following research questions:
 
 1. Are any of the estimators ever substantially biased? When?
 2. Are any of the estimators generally more precise than others? When?
-3. Which estimators produce the best estimates of the treatment effect standard error?
+3. Are any of the standard error estimators inaccurately calibrated? When?
 4. Do any of the estimated standard errors target finite versus super-population uncertainty?
 5. Why does the range in the estimates produced by the different estimators get larger as the degrees of freedom get smaller? Is the cause estimator bias or estimator instability?
 
@@ -482,15 +488,38 @@ ggdraw() +
 ```
 # Are any of the estimators ever substantially biased? When? 
 
-In 80% of the scenarios tested, the magnitude of bias was less than 0.01 for all estimators (Figure 2), and the scenarios with bias require the confluence of multiple bias-causing factors (Figure 3). The estimators that theory predicts are essentially unbiased do indeed have nearly no bias (or very low bias) across the full range of simulations. In some of the simulations, the person-weighted fully interacted estimator is predicated to have a bias with a magnitude of as large as .03, which the regression tree shows requires a correlation between the treatment effect and cluster size combined with a small number of clusters per block, large cluster size variation, and unbalanced treatment assingment (Figure 3). For the remaining estimators, except the multilevel fully interacted model, we observe bias as severe as -0.2 in some simulations, primarily driven by the combination of messy blocks and unbalanced treatment assignment of clusters. It's important to note here that the messy block condition was deliberately designed to push parameters to the extreme. Particularly the messy block condition has a .8 correlation between the proportion of each block assigned to treatment and the block-level treatment effect, which is particularly problematic for the multilevel estimators because it shifts the estimator weighting from cluster to person. Our simulations do not show substantial bias under the data generating conditions we expect to see in practice (i.e. the same and reasonable block types). The multilevel fully interacted model performed well with messy blocks and unbalanced treatment assignment, and instead was most biased when there was a combination of correlation between the number of clusters and the treatment effect, zero cluster-level ICC, and substantial variation in cluster size.
+Before diving into the results we note that the aggregation regression estimators are identical (in terms of point estimate) to the individual regression estimators as we did not include level 1 covariates in this simulation, so we present bias results for 7 core estimators that produce different point estimates.
+
+Overall, the magnitude of bias was less than 0.01 for at least 80% of the simulation scenarios tested for all estimators (Figure 2).
+That said, we do see evidence of bias larger than this under some circumstances for several different methods.
+
+
+We only see any degree of bias under a confluence of multiple bias-causing factors (Figure 3).
+
+First, the estimators that theory predicts are essentially unbiased indeed do not appear to have bias (or possible have very low bias) across the full range of simulations.
+
+In some of the simulations, the person-weighted fully interacted estimator (LR-FIpw) is predicated to have a bias with a magnitude of as large as .03, which the regression tree shows requires a correlation between the treatment effect and cluster size combined with a small number of clusters per block, large cluster size variation, and unbalanced treatment assignment (Figure 3).
+Overall it is a stable performer with little potential for bias.
+
+For the remaining estimators, except the multilevel fully interacted model, we observe bias as severe as -0.2 in some simulations, primarily driven by the combination of messy blocks and unbalanced treatment assignment of clusters.
+The magnitude here is large, but it is important to note here that the messy block condition was deliberately designed to push parameters to the extreme.
+In particular, the messy block condition has a 0.8 correlation between the proportion of each block assigned to treatment and the block-level treatment effect, which is particularly problematic for the multilevel estimators because it shifts the estimator weighting from cluster to person.
+Our simulations do not show substantial bias under the data generating conditions we expect to see in practice (i.e. for the same and reasonable block type conditions).
+
+Finally, the multilevel fully interacted model performed well even with messy blocks and unbalanced treatment assignment.
+It's vulnerability is driven by a combination of correlation between the number of clusters and the treatment effect, zero cluster-level ICC, and substantial variation in cluster size.
+This causes the estimator to lean more person-weighted (due to the zero ICC), which is considered bias when the estimator is viewed as targeting the cluster-weighted estimand.
 
 
 
 ```{r bias, include=TRUE, echo=FALSE, fig.width=6, fig.height=4,dpi=150}
 
-sruns.graph.bias<-sruns.clean  %>% filter(method %in% core.methods) %>% mutate(method = str_remove(method, "-db$"),     method_ordered = str_remove(method_ordered, "-db$"))
+sruns.graph.bias<-sruns.clean  %>% 
+  filter(method %in% core.methods) %>%
+  mutate(method = str_remove(method, "-(db|crve)$"), 
+         method_ordered = str_remove(method_ordered, "-(db|crve)$"))
 
-fig2cap<-"Figure 2: Boxplot of superpopulation mean bias of each estimator relative to its target estimand across scenarios, separated by method. The faint horizontal lines extend to the full range, the bars span the 2.5th to 97.5th percentiles, and the boxes span the 10th to 90th percentiles."
+fig2cap<-"Figure 2: Boxplot of superpopulation mean bias of each estimator relative to its target estimand across scenarios, separated by method. The faint horizontal lines extend to the full range, the bars span the 2.5th to 97.5th percentiles, and the boxes span the 10th to 90th percentiles. Aggregated regression methods coincide with their non-aggregated counterparts when there are no level 1 covariates."
 
 bias_plot_full <- create_custom_boxplot2(
   sruns.graph.bias %>% filter(group == "fullfactor"), 
@@ -525,12 +554,13 @@ ggdraw() +
 
 ```{r biastree, include=TRUE, echo=FALSE, fig.width=6, fig.height=6,dpi=150, results='asis'}
 # Simple faceted analysis trees
-methods <- unique(sruns.graph.bias$method)[!(unique(sruns.graph.bias$method) %in% c("LRa-FIcw-db","LRapw-FIpw-db"))]
+methods <- setdiff( sort( unique(sruns.graph.bias$method) ), "LRcw-FIcw" )
+
 
 fig3cap <- "Figure 3: Regression tree by method predicting the magnitude of the mean bias under different data generating parameters" 
 
 # Set up plotting layout
-par(mfrow = c(4, 2), oma = c(3, 0, 0, 0))
+par(mfrow = c(3, 2), oma = c(3, 0, 0, 0))
 
 for (method_name in methods) {
   create_analysis_tree(
@@ -678,7 +708,7 @@ ggdraw() +
 fig7cap <- "Figure 7: Regression tree which predicts the standard error inflation under different data generating parameters for the fully interacted CRVE estimators"
 
 tree7 <- create_analysis_tree( 
-  sruns.graph.infl.ff %>% filter(method %in% c("LRicw-FIcw-crve","LRi-FIpw-crve")), 
+  sruns.graph.infl.ff %>% filter(method %in% c("LRcw-FIcw-crve","LR-FIpw-crve")), 
   outcome_var = "inflate.s", 
   predictor_vars = c("is_cw", "block_type", "J.bar", "cor_J_tau",
                      "sd.clu", "ICC.clu", "cv.clu", "num.cov", "p.bar"),
@@ -691,7 +721,7 @@ mtext(str_wrap(fig7cap, width = 110), side = 1, line = 4, cex = 0.75,
 
 
 lowdf<-sruns.clean %>% filter(group=="lowdf")
-crve<-lowdf %>% filter(method %in% c("LRicw-FIcw-crve","LRi-FIpw-crve"))
+crve<-lowdf %>% filter(method %in% c("LRcw-FIcw-crve","LR-FIpw-crve"))
 
 
 fig8cap <- "Figure 8: Regression tree which predicts the standard error inflation under different data generating parameters for the multi-level model methods"
@@ -779,7 +809,7 @@ mtext(str_wrap(fig10cap, width = 110), side = 1, line = 4, cex = 0.75,
 fig11cap <- "Figure 11: Regression tree which predicts the coverage rates under different data generating parameters for CRVE estimators"
        
 tree11 <- create_analysis_tree( 
-  sruns.cov %>% filter(method %in% c("LRicw-FIcw-crve","LRi-FIpw-crve") & group=="fullfactor"), 
+  sruns.cov %>% filter(method %in% c("LRcw-FIcw-crve","LR-FIpw-crve") & group=="fullfactor"), 
   outcome_var = "cover.s.estimand", 
   predictor_vars = c("block_type", "J.bar", "cor_J_tau",
                      "sd.clu", "ICC.clu", "cv.clu", "num.cov", "p.bar"),
@@ -851,8 +881,8 @@ with(lowdf.ncomplete,table(J.bar,K))
 
 lowdf<-lowdf %>% filter(K==7)
 
-incomplete_methods <- c("LRa-FIcw-db", "LRa-FIcw-het", "LRapw-FIpw-db", 
-                       "LRapw-FIpw-het", "LRi-FIpw-db", "LRicw-FIcw-db")
+incomplete_methods <- c("AR-FIcw-db", "AR-FIcw-het", "ARpw-FIpw-db", 
+                       "ARpw-FIpw-het", "LR-FIpw-db", "LRcw-FIcw-db")
 
 sruns.graph.infl.lowdf<-sruns.graph.infl %>% filter( group=="lowdf" & !(method %in% incomplete_methods))
 

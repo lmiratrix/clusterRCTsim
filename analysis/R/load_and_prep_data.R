@@ -15,6 +15,44 @@ require(blkvar)
 
 
 load( here::here( "results_agg/combined_simulation_results.RData" ) )
+
+
+# Fix the estimator names
+nms = sruns %>%
+  dplyr::select( method ) %>%
+  distinct() 
+nms
+nms = nms %>%
+  mutate( method.new = case_when(
+    method == "LRa-FE-db" ~ "AR-FE-db",
+    method == "LRa-FE-het" ~ "AR-FE-het",
+    method == "LRapw-FE-db" ~ "ARpw-FE-db",
+    method == "LRapw-FE-het" ~ "ARpw-FE-het",
+    method == "LRi-FE-crve" ~ "LR-FE-crve",
+    method == "LRi-FE-db" ~ "LR-FE-db",
+    method == "LRapw-FIpw-db" ~ "ARpw-FIpw-db",
+    method == "LRapw-FIpw-het" ~ "ARpw-FIpw-het",
+    method == "LRi-FIpw-crve" ~ "LR-FIpw-crve",
+    method == "LRi-FIpw-db" ~ "LR-FIpw-db",
+    method == "LRa-FIcw-db" ~ "AR-FIcw-db",
+    method == "LRa-FIcw-het" ~ "AR-FIcw-het",
+    method == "LRicw-FE-crve" ~ "LRcw-FE-crve",
+    method == "LRicw-FE-db" ~ "LRcw-FE-db",
+    method == "LRicw-FIcw-crve" ~ "LRcw-FIcw-crve",
+    method == "LRicw-FIcw-db" ~ "LRcw-FIcw-db",
+    method == "MLM-FE" ~ "MLM-FE",
+    method == "MLM-FIcw" ~ "MLM-FIcw",
+    method == "MLM-RE" ~ "MLM-RE",
+    TRUE ~ method
+  ) )
+sruns = sruns %>%
+  left_join( nms %>% dplyr::select( method, method.new ),
+             by = "method" ) %>%
+  dplyr::select( -method ) %>%
+  rename( method = method.new )
+
+
+
 #clean up names between low df and not low df
 srunsff <- sruns %>% 
   filter(group == "fullfactor") %>%
@@ -423,19 +461,22 @@ map_chr(groups, paste, collapse = ", ") %>%
   relocate(grp) %>%
   knitr::kable()
 
-#this is the list of methods that don't produce the same ATE estimates
-core.methods <- c("LRa-FE-db", "LRapw-FE-db", "LRi-FIpw-crve",  "LRicw-FIcw-crve", "MLM-FE", "MLM-FIcw", "MLM-RE")
+# this is the list of methods that don't produce the same ATE estimates
+# (given no level 1 covariates)
+core.methods <- c("LR-FE-crve", "LRcw-FE-crve", 
+                  "LR-FIpw-crve",  "LRcw-FIcw-crve",
+                  "MLM-FE", "MLM-FIcw", "MLM-RE")
 
 
 #this is the list of MLM methods
 MLM.methods<-c( "MLM-FE", "MLM-FIcw", "MLM-RE" )
 
 #this is the list of methods that don't produce the same se estimates
-all.methods<-c("LRa-FE-db", "LRa-FE-het", "LRicw-FE-crve", "LRicw-FE-db",
-               "LRa-FIcw-db","LRa-FIcw-het", "LRicw-FIcw-crve", 
-               "LRicw-FIcw-db", "LRapw-FE-db", "LRapw-FE-het", 
-               "LRi-FE-crve", "LRi-FE-db","LRapw-FIpw-db", 
-               "LRapw-FIpw-het", "LRi-FIpw-crve", "LRi-FIpw-db", 
+all.methods<-c("AR-FE-db", "AR-FE-het", "LRcw-FE-crve", "LRcw-FE-db",
+               "AR-FIcw-db","AR-FIcw-het", "LRcw-FIcw-crve", 
+               "LRcw-FIcw-db", "ARpw-FE-db", "ARpw-FE-het", 
+               "LR-FE-crve", "LR-FE-db","ARpw-FIpw-db", 
+               "ARpw-FIpw-het", "LR-FIpw-crve", "LR-FIpw-db", 
                "MLM-FE", "MLM-FIcw","MLM-RE")
 
 
@@ -463,8 +504,8 @@ map_chr(groups.lowdf, paste, collapse = ", ") %>%
   relocate(grp) %>%
   knitr::kable()
 
-core.methods.se <- c("LRa-FE-db", "LRa-FE-het", "LRapw-FE-db", "LRapw-FE-het",
-                     "LRi-FIpw-crve","LRicw-FE-crve", "MLM-FE", "MLM-FIcw",
+core.methods.se <- c("AR-FE-db", "AR-FE-het", "ARpw-FE-db", "ARpw-FE-het",
+                     "LR-FIpw-crve","LRcw-FE-crve", "MLM-FE", "MLM-FIcw",
                      "MLM-RE")
 
 
