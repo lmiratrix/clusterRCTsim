@@ -1,7 +1,7 @@
 ---
 title: 'Simulation Supplement for
 "An Applied Researchers Guide to Estimating Effects from Multisite Cluster Randomized Trials: Estimands, Estimators, and Estimates"'
-date: '2025-12-10'
+date: ''
 output:
   pdf_document:
     toc: true
@@ -493,8 +493,7 @@ Before diving into the results we note that the aggregation regression estimator
 Overall, the magnitude of bias was less than 0.01 for at least 80% of the simulation scenarios tested for all estimators (Figure 2).
 That said, we do see evidence of bias larger than this under some circumstances for several different methods.
 
-
-We only see any degree of bias under a confluence of multiple bias-causing factors (Figure 3).
+We only see any degree of bias under a confluence of multiple bias-causing factors (Figure 3). Figure 3 is a regression tree which predicts bias under different data generating processes. Each branch represents a combination of data generating scenarios. Where the branch splits right the condition in the node is present and left is when the condition in the node is absent. The with the terminal node at the end in green is the final predicted bias.
 
 First, the estimators that theory predicts are essentially unbiased indeed do not appear to have bias (or possible have very low bias) across the full range of simulations.
 
@@ -541,13 +540,13 @@ theme(
   panel.grid = element_blank()
 )
 ggdraw() +
-     draw_plot(bias_plot_full, 0, 0.1, 1, 0.9) +  # Plot takes up top 90%
-     draw_label(
-       str_wrap(fig2cap, width = 110),
-       x = 0.05, y = 0.05,  # Position at bottom left
-       hjust = 0, vjust = .5,
-       size = 9, color = "gray40", fontfamily = "serif"
-     )
+  draw_plot(bias_plot_full, 0, 0.12, 1, 0.88) +
+  draw_label(
+    str_wrap(fig2cap, width = 110),
+    x = 0.05,y = 0.01,
+    hjust = 0, vjust = 0,
+    size = 9, color = "gray40", fontfamily = "serif"
+  )
 #print(bias_plot_full)
 
 ```
@@ -583,7 +582,7 @@ par(mfrow = c(1, 1), oma = c(0, 0, 0, 0))
 
 # Are any of the estimators generally more precise than others? When? 
 
-In general, all the different estimators have comparable precision (Figure 4). Excluding the multilevel estimators, within a given scenario, all the estimators have standard errors that are at most 10% larger than the median across methods. The multilevel estimators become more precise than the other estimators when there is a combination of large variation in cluster size and zero cluster ICC; otherwise, their precision is close to that of the other estimators (Figure 5).
+In general, all the different estimators have comparable precision (Figure 4). Excluding the multilevel estimators, within a given data generating process, all the estimators have standard errors that are at most 10% larger than the median across methods. The multilevel estimators become more precise than the other estimators when there is a combination of large variation in cluster size and zero cluster ICC; otherwise, their precision is close to that of the other estimators (Figure 5).
 
 ```{r standard errors, include=TRUE, echo=FALSE,  fig.width=6, fig.height=4.5}
 
@@ -649,7 +648,7 @@ mtext(str_wrap(fig5cap, width = 110), side = 1, line = 4, cex = 0.65,
 
 # Which estimators have calibrated estimates of the treatment effect standard error?
 
-Overall, across scenarios, the standard error estimates for fully interacted estimators, except the fully interacted MLM, are too small relative to the true super population standard errors (Figure 6). However, across almost all simulations, the magnitude of the underestimate estimate is very small. The only exception is the fully interacted CRVE estimators in some simulations produced severely underestimated standard errors. These were all simulation conditions that likely produced blocks without at least one treated and one control cluster, or where either all the treatment or control clusters will be very small (Figure 7). This is part of a broader caveat, which is that almost all the fully interacted estimators are undefined in cases where there are only two clusters in any block. While, the fully interacted CRVE estimators do have defined standard error estimates in these cases, the low degrees of freedom simulations confirmed that these estimates are extremely poor and these estimators should not be used under these circumstances.
+Overall, across scenarios, the standard error estimates for *fully interacted* estimators, except the fully interacted MLM, are too small relative to the true super population standard errors (Figure 6). However, across almost all simulations, the magnitude of the underestimate estimate is very small. The only exception is the fully interacted CRVE estimators in some simulations produced severely underestimated standard errors; which is consistent with prior research which recommends the club sandwich method for estimating standard errors over CRVE. These were all simulation conditions that likely produced blocks without at least one treated and one control cluster, or where either all the treatment or control clusters will be very small (Figure 7). This is part of a broader caveat, which is that almost all the fully interacted estimators are undefined in cases where there is either only one treatment or one control cluster. While, the fully interacted CRVE estimators do have defined standard error estimates in these cases, the low degrees of freedom simulations confirmed that these estimates are extremely poor and these estimators should not be used under these circumstances.
 
 On the other hand, the estimated standard errors for the other estimators are on average systematically too high across the simulations. For the MLM, the amount of overestimation is small except when there is a confluence of an unbalanced sample, zero cluster-level ICC, and cross-cluster treatment effect variance (Figure 8). 
 
@@ -911,7 +910,7 @@ print(cov_plot)
 
 # Do any of the estimated standard errors target finite versus super population uncertainty? 
 
-The simulations demonstrate that the standard errors are targeting the super-population standard errors (with blocks being fixed, clusters being sampled for block specific superpop). The true super-population standard errors are only noticeably different from the true finite population standard errors when the cluster-level ICC is zero and there is cross-cluster treatment effect variance (Figure 11). Looking at the subset of simulations where that is true shows that the standard error inflation is consistently closer to one for the true super-population standard errors than for the true finite population standard errors (Figure 12).
+The simulations demonstrate that the standard errors are targeting the super-population standard errors (with blocks being fixed, clusters being sampled for block specific superpop). The true super-population standard errors are only noticeably different from the true finite population standard errors when the cluster-level ICC is zero and there is cross-cluster treatment effect variance (Figure 12). Looking at the subset of simulations where that is true shows that the standard error inflation is consistently closer to one for the true super-population standard errors than for the true finite population standard errors (Figure 13).
 
 ```{r finite, include=TRUE, echo=FALSE}
 fig12cap <- "Figure 12: Regression tree which predicts the ratio of true finite population standard error over true super population standard error under different data generating parameters. These two quantities are the same when this ratio is one."
@@ -1131,7 +1130,7 @@ fin_plot6 + fin_plot7 + plot_layout(widths = c(2, 3))
 
 # Why does the range in the estimates produced by the different estimators get larger as the degrees of freedom get smaller? Is the cause estimator bias or estimator instability?
 
-In the empirical studies the range of estimates produced by different estimators was larger for the low degrees of freedoms studies. Simulations show that this is because the estimates get are more unstable when the degrees of freedom is smaller and not because of anything to do with estimate bias. In the simulations as the degrees of freedom get smaller, the estimate instability gets larger (Figure 13). On the other hand, we see no relationship between mean bias and degrees of freedom in a given scenario (Figure 14).
+In the empirical studies the range of estimates produced by different estimators was larger for the low degrees of freedoms studies. Simulations show that this is because the estimates get are more unstable when the degrees of freedom is smaller and not because of anything to do with estimator bias. In the simulations as the degrees of freedom get smaller, the estimate instability gets larger (Figure 14). On the other hand, we see no relationship between mean bias and degrees of freedom in a given scenario (Figure 15).
 
 ```{r degfree, include=TRUE, echo=FALSE, results='asis'}
 
