@@ -13,7 +13,9 @@ create_analysis_tree <- function(data, outcome_var,
                                                     "cv.clu", "num.cov", "p.bar"),
                                  num_leaves = 10, palette_name = "Greens", 
                                  plot_tree = TRUE, initial_cp = 0.001,
-                                 tree_title = NULL) {
+                                 tree_title = NULL,
+                                 force_scale = NULL,
+                                 signed = FALSE ) {
   
   # Check if Times New Roman is available, fallback to serif
   available_fonts <- names(pdfFonts())
@@ -72,14 +74,35 @@ create_analysis_tree <- function(data, outcome_var,
   tree_p <- prune(tree, cp = final_cp)
   
   # Color mapping for nodes
-  node_means <- tree_p$frame$yval
-  norm_means <- (node_means - min(node_means)) / 
-    (max(node_means) - min(node_means)) * 100
-  norm_means <- round(norm_means) + 1
+  
   
   # Create colors
-  cols <- colorRampPalette(brewer.pal(9, palette_name))(131)
-  node_colors <- cols[round(norm_means) + 1]
+  if ( signed ) {
+    node_means <- tree_p$frame$yval
+    if ( !is.null( force_scale ) ) {
+      rng = force_scale
+    } else {
+    rng = max( abs( node_means ) )
+    }
+    norm_means <- (node_means / rng ) * 50
+    cols <- colorRampPalette(c("green", "white", "red"))(131)
+    node_colors <- cols[round(norm_means) + 66]
+  } else {
+    node_means <- tree_p$frame$yval
+    if ( sign( min(node_means) ) != sign( max(node_means) ) ) {
+      warning( "All node means have the same sign; consider using signed=TRUE for better color mapping." )
+    }
+    
+    rng = (max(node_means) - min(node_means))
+    if ( !is.null( force_scale ) ) {
+      rng = force_scale
+    }
+    norm_means <- ((node_means - min(node_means)) / rng) * 100
+    norm_means <- round(norm_means) + 1
+    
+    cols <- colorRampPalette(brewer.pal(9, palette_name))(131)
+    node_colors <- cols[round(norm_means) + 1]
+  }
   
   # Leaf function for clean display
   leaf_fun <- function(x, labs, digits, varlen) {
@@ -98,10 +121,15 @@ create_analysis_tree <- function(data, outcome_var,
     on.exit(par(old_par))
     
     prp(tree_p,
+        type = 5,
         box.col = node_colors,
         border.col = "black",
         node.fun = leaf_fun,
+        uniform = TRUE,
+        yspace = 0.2,
         varlen = -10,
+        under = TRUE,
+        faclen = 0,
         main = plot_title)
   }
   

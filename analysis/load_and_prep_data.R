@@ -1,6 +1,6 @@
 # Load and prep simulation results
 
- 
+
 require(tidyverse)
 require(rlang)
 require(stargazer)
@@ -17,7 +17,7 @@ require(blkvar)
 load( here::here( "results_agg/combined_simulation_results.RData" ) )
 
 
-# Fix the estimator names
+# Fix the estimator names ----
 nms = sruns %>%
   dplyr::select( method ) %>%
   distinct() 
@@ -45,6 +45,7 @@ nms = nms %>%
     method == "MLM-RE" ~ "MLM-RE",
     TRUE ~ method
   ) )
+
 sruns = sruns %>%
   left_join( nms %>% dplyr::select( method, method.new ),
              by = "method" ) %>%
@@ -52,6 +53,34 @@ sruns = sruns %>%
   rename( method = method.new )
 
 
+
+# Drop CRVE estimators when DB is NA ----
+
+sruns <- sruns %>%
+  group_by(group, ID) %>%
+  mutate( small_prob = !( "LRcw-FIcw-db" %in% method ) || is.na(mean.SE.hat[method == "LRcw-FIcw-db"]),
+          mean.SE.hat = if_else(
+            method %in% c( "LRcw-FIcw-crve", "LR-FIpw-crve" ) & small_prob,
+            NA_real_,
+            mean.SE.hat
+          )
+  ) %>%
+  ungroup()
+
+
+sruns <- sruns %>%
+  mutate(
+    across(
+      matches("^(cover|inflate)"),
+      ~ if_else(is.na(mean.SE.hat), NA_real_, .)
+    )
+  )
+
+
+table( SE_hat = is.na( sruns$mean.SE.hat ), is.na( sruns$inflate.s ) )
+
+
+# Further cleaning ----
 
 #clean up names between low df and not low df
 srunsff <- sruns %>% 
@@ -69,9 +98,9 @@ srunslowdf <- srunslowdf %>%
   rename_with(~ str_replace_all(., "school", "cluster")) %>%
   rename_with(~ str_replace_all(., ".sch", ".clu")) %>%
   rename(sd.block=sd.ATE)
-  
+
 sruns<-bind_rows(srunsff, srunslowdf)  
-  
+
 
 
 #figure out what didn't run in the low df 
@@ -80,7 +109,7 @@ with(lowdf,table(is.na(mean.SE.hat),method))
 with(lowdf,table(is.na(mean.ATE.hat),method))
 #there are estimates for all the methods for all the scenarios, but not SEs 
 
-     
+
 DGP_vars <- c("K", "J.bar", "p.bar", "sd.block", "ICC.block", "variable.p", 
               "n.bar", "sd.cluster", "ICC.cluster", "size.impact.cor", "size.impact.cor.cluster", 
               "proptx.impact.cor", "num.cov.block", "num.cov.cluster", "cv.cluster", 

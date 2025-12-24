@@ -57,3 +57,7 @@ fingerprint/*.pdf
 fingerprint/results_fingerprint_old/
 covariate_exploration_simulation.R
 analysis/Simulation_Writeup_files/
+*files/
+*.pdf
+*.html
+*.log

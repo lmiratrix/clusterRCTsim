@@ -525,8 +525,13 @@ if ( FALSE ) {
 
 #### Code to build data given a description of the blocks ####
 
+#' Generate individual-level and cluster-level data for all blocks given
+#' block-level characteristics.
+#' 
+#' @param grid dataframe of block-level characteristics
+#' @param ICC.block Intraclass correlation at block level.  If NULL,
+#'   will be computed as the variance of the block alphas.
 generate_data_for_blocks <- function(
-    # datafrane if block-level characteristics
   grid,
   ICC.block = var( grid$block.alpha ) ) {
   

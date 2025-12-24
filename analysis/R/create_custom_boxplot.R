@@ -38,7 +38,7 @@ create_custom_boxplot <- function(data, y_var,
       return(data.frame(ymin = percentiles[1], ymax = percentiles[2]))
     },
     geom = "errorbar",
-    width = 0.5,
+    width = 0.25,
     position = position_dodge(width = 0.75)
   )
   
@@ -151,7 +151,7 @@ create_custom_boxplot2 <- function(data, y_var,
       return(data.frame(ymin = percentiles[1], ymax = percentiles[2]))
     },
     geom = "errorbar",
-    width = 0.5,
+    width = 0.25,
     position = position_dodge(width = 0.75)
   )
   
@@ -212,7 +212,7 @@ create_custom_boxplot2 <- function(data, y_var,
 }
 
 
-#this is the custom boxplot but for the data overall and not by metho
+#this is the custom boxplot but for the data overall and not by method
 create_custom_boxplot3 <- function(data, y_var, 
                                    title = NULL, y_label = NULL,
                                    vline_at = NULL, log_scale = FALSE) {
@@ -251,7 +251,7 @@ create_custom_boxplot3 <- function(data, y_var,
       return(data.frame(ymin = percentiles[1], ymax = percentiles[2]))
     },
     geom = "errorbar",
-    width = 0.5,
+    width = 0.25,
     color = "black"
   )
   
@@ -291,6 +291,9 @@ create_custom_boxplot3 <- function(data, y_var,
   return(p)
 }
 #this is a new function that creates a top n most of something table 
+
+
+
 
 create_top_n_table <- function(data, 
                                column_to_rank_by, 
