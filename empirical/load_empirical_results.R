@@ -35,16 +35,16 @@ combined <-  read_rds( here::here( "empirical/results/master241204_combined.RDS"
   as_tibble()
 
 # add in literature info for curated studies 
-if ( FALSE ) {
-  warning( "This needs to be restored" )
+# if ( FALSE ) {
+#   warning( "This needs to be restored" )
   curated_litinfo <- read_excel(here::here("empirical/results/study_research_info.xlsx")) %>%
     filter(Collection == 'Curated')
   
   combined <- left_join(combined, curated_litinfo %>%
                           select(Project, Outcome, Trt_arm, lead_author:article_url))
   
-  combined
-}
+  # combined
+# }
 
 
 
