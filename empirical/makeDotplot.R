@@ -36,7 +36,7 @@ makeDotplot <- function(df, var,
          y        = ylab,
          title    = title,
          subtitle = subtitle,
-   #      color = "Structure",
+         #      color = "Structure",
          fill = "DF" ) +
     theme(axis.text.y        = element_blank(),
           panel.grid.major.y = element_blank(),
@@ -102,14 +102,27 @@ makeDotplot <- function(df, var,
   }
   
   if (!is.null(filename)) {
-    if (!is.null(dim)) {
-      ggsave( paste0(PLOT_PATH, filename, '.png'), plot = p,
-              width = dim[1],
-              height = dim[2])
-    } else {
-      ggsave( paste0(PLOT_PATH, filename, '.png'), plot = p)
-    }
+    my_ggsave( p, filename, dim )
   }
   
   return(p)
 }
+
+
+
+my_ggsave <- function( p, filename, dim ) {
+  if (!is.null(dim)) {
+    ggsave( paste0(PLOT_PATH, filename, '.pdf'), 
+            plot = p,
+            device = cairo_pdf,
+            width = dim[1],
+            height = dim[2])
+  } else {
+    ggsave( paste0(PLOT_PATH, filename, '.pdf'), 
+            device = cairo_pdf,
+            plot = p)
+  }
+}
+
+
+

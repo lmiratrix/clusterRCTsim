@@ -64,28 +64,32 @@ table( table( summary_stats$UniqueID ) )
 
 range_x_range <- 0.30
 
-summary_stats %>%
+plt <- summary_stats %>%
   filter(Covariates == "best") %>%
   makeDotplot(var      = 'Range',
               xlab     = 'Range of Point Estimates of β', 
               ylab     = 'Number of Outcomes', 
               title    = 'Figure 1', 
-              filename   = 'final paper figures/fig1_ATErange',
               subtitle = glue::glue( 'The Range (across {n_estimators} Estimators) of Estimates of β for {n_outcomes} Outcomes' ),
               binw = 0.01,
               coordratio = 0.1,
               rmlegend = FALSE) +
-  scale_x_continuous( limits=c(0, range_x_range ) )
+  scale_x_continuous( limits=c(0, range_x_range ), breaks = seq( 0, range_x_range, 0.05 ) )
+plt
+
+my_ggsave( plt,               
+           filename   = 'final paper figures/fig1_ATErange',
+           dim = c( 7, 3 ) )
+
 
 
 
 ## Figure 2: The Range of Estimates of β for all Estimators Targeting a Given Estimand  ----
-summary_stats_estimand %>%
+plt <- summary_stats_estimand %>%
   filter(Covariates == "best") %>%
   makeDotplot(var      = 'Range',
               xlab     = 'Range of Point Estimates of β',
               ylab     = 'Number of Outcomes',
-              filename = 'final paper figures/fig2_ATErange_byestimand',
               title = 'Figure 2',
               subtitle = glue::glue( 'The Range of Estimates of β for all Estimators\nTargeting a Given Estimand for {n_outcomes} Outcomes' ),
               coordratio = .15,
@@ -93,8 +97,13 @@ summary_stats_estimand %>%
               binw = 0.01,
               rmlegend = F,
               byest    = TRUE,
-              xscale = c(0, 0.3)) 
-# scale_x_continuous( limits=c(0, range_x_range ) )
+              xscale = c(0, 0.3))  +
+  scale_x_continuous( limits=c(0, range_x_range ), breaks = seq( 0, range_x_range, 0.1 ) )
+plt
+
+my_ggsave( plt,               
+           filename = 'final paper figures/fig2_ATErange_byestimand',
+           dim = c( 7, 3 ) )
 
 
 
@@ -113,6 +122,7 @@ summary_stats %>%
               coordratio = 1.25,
               axisfs = 14,
               tcratio  = T,
+              dim = c( 6, 3 ),
               tcbreaks = c(1:4))
 
 
