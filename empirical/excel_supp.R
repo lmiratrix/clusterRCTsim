@@ -16,7 +16,13 @@ source( here::here( "empirical/load_empirical_results.R" ) )
 # FORMAT FILES ----
 
 study_char <- combined %>% 
-  select(Collection:Pretest, lead_author, year, journal, article_url) %>%
+        select(Collection,	UniqueID,	Project,	Outcome,	Outcome_desc,
+               Trt_arm,	Covariates,	n,	J,	nbar,	ncv,	n.25,	n.75,	n.IQR,
+               p.tx,	K,	Jbar,	Jcv,	J.25,	J.75,	J.IQR,	n_block,	n_block_cv,
+               tx.avg,	tx.cv,	tx.25,	tx.75,	tx.IQR,	cluster_ICC,	block_ICC,
+               sdY0,	matched_pairs,	num_singletons,	num_doubletons,	R2.1,	SER2.1,
+               ncov.1,	R2.2,	SER2.2,	ncov.2, cov.1,	cov.2,	Pretest,
+               lead_author,	year,	journal,	article_url) %>%
   distinct()
 
 estimates <- combined %>%
