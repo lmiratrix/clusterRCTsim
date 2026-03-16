@@ -171,10 +171,10 @@ data_processor <- function(proj, outcome, covars, covars_list, data, trt,
 #' @param ptest Existence of pretest (0/1).  Note, this is just passed
 #'   to the final result.  We select the highest correlated covariate,
 #'   and do not record whether it was the pretest or not.
-cm <- function(proj, outcome, covars, covars_list, data, trt, clust, blk, ptest) {
+cm <- function(proj, outcome, covars, covars_list, data, trt, clust, blk, ptest, include_gee) {
   
   data_processor(proj=proj, outcome=outcome, covars=covars, covars_list=covars_list, 
-                 data=data, trt=trt, clust=clust, blk=blk, ptest=ptest, 
+                 data=data, trt=trt, clust=clust, blk=blk, ptest=ptest, include_gee=FALSE,
                  processor = compare_methods, 
                  include_method_characteristics = TRUE,
                  warn_missing = FALSE )
