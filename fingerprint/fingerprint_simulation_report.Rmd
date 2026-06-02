@@ -442,7 +442,7 @@ ggplot( sb,
 
 
 Some details of two interesting studies:
-```{r}
+```{r eval=FALSE}
 uid = "jg_crt_17"
 clusterRCT:::print.clusterRCTstats( filter( studies, UniqueID == uid ) )
 
@@ -1127,12 +1127,12 @@ triad <- triad %>%
 
 tt <- triad %>%
   dplyr::filter( method %in% core.methods, !is.na( ATE_hat ) ) %>%
-  dplyr::select( runID, method, ATE_hat ) %>%
+  dplyr::select( runID, control, method, ATE_hat ) %>%
   pivot_wider( names_from = method, values_from = ATE_hat )
 
 
 
-plot( tt[,-1] )
+plot( tt[,-c(1:2)] )
 
 ```
 
@@ -1213,12 +1213,12 @@ triad <- triad %>%
 
 tt <- triad %>%
   dplyr::filter( method %in% core.methods, !is.na( ATE_hat ) ) %>%
-  dplyr::select( runID, method, ATE_hat ) %>%
+  dplyr::select( runID, control, method, ATE_hat ) %>%
   pivot_wider( names_from = method, values_from = ATE_hat )
 
 
 
-plot( tt[,-1] )
+plot( tt[,-c(1:2)] )
 
 ```
 
@@ -1298,10 +1298,10 @@ triad <- triad %>%
 
 tt <- triad %>%
   dplyr::filter( method %in% core.methods, !is.na( ATE_hat ) ) %>%
-  dplyr::select( runID, method, ATE_hat ) %>%
+  dplyr::select( runID, control, method, ATE_hat ) %>%
   pivot_wider( names_from = method, values_from = ATE_hat )
 
-plot( tt[,-1] )
+plot( tt[,-c(1:2)] )
 
 ```
 
@@ -1315,9 +1315,9 @@ trueSE <- triad %>%
   summarise( trueSE = sd( ATE_hat, na.rm=TRUE ) ) %>%
   filter( method %in% ttt$method )
 
-ggplot( ttt, aes( SE_hat ) ) +
+ggplot( ttt, aes( SE_hat, fill=control) ) +
   facet_wrap( ~method ) +
-  geom_histogram() +
+  geom_histogram( alpha=0.5 ) +
   geom_vline( data=trueSE, aes( xintercept = trueSE ), col="red" ) +
   theme(panel.border = element_rect(color = "black", fill = NA))
 

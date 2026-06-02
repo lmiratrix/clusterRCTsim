@@ -138,6 +138,11 @@ if ( FALSE ) {
 table( dat$method, useNA="always" )
 head( dat )
 
+dat <- left_join( dat, 
+                  method_characteristics() %>%
+                    dplyr::select( method, biased ),
+                  by="method" )
+
 meth_dat <- dat %>%
   group_by( Collection, Covariates, UniqueID ) %>%
   nest() %>%

@@ -9,6 +9,12 @@ editor_options:
 
 ```{r setup, include=FALSE}
 
+knitr::opts_chunk$set(
+  fig.path = "figs/",
+  dev = "pdf",
+  fig.ext = "pdf"
+)
+
 library( tidyverse )
 
 knitr::opts_chunk$set(echo = FALSE)
@@ -26,7 +32,8 @@ rm( my_t )
 
 source( here::here( "fingerprint/load_master_fingerprint_results.R" ) )
 
-simdat = dat
+simdat = dat %>%
+  dplyr::filter( control =="none" )
 
 simdat$Covariates = "best"
 
@@ -137,7 +144,7 @@ Below, we compare the estimates we got on the original empirical data to these p
 ```{r, warning=FALSE, message=FALSE}
 
 mm <- meth_dat  %>%
-  dplyr::select( -weight, -biased ) %>%
+  dplyr::select( -weight ) %>%
   left_join( empirical_estimates, 
              by=c( "Collection", "UniqueID", "Covariates", "method" ) )
 
@@ -610,7 +617,8 @@ triad <- triad %>%
 
 
 tt <- triad %>%
-  dplyr::filter( method %in% core.methods, !is.na( ATE_hat ) ) %>%
+  dplyr::filter( method %in% core.methods, 
+                 !is.na( ATE_hat ) ) %>%
   dplyr::select( runID, method, ATE_hat ) %>%
   pivot_wider( names_from = method, values_from = ATE_hat )
 
