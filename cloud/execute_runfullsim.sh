@@ -10,7 +10,7 @@ module load R/4.2.2-fasrc01
 unset R_LIBS_SITE
 export R_LIBS_USER=$HOME/apps/R-4.2.2:$R_LIBS_USER
 
-for INDEX_VAR in $(seq 2 1000); do
+for INDEX_VAR in 1; do
 
   #print out indexes
   echo "${INDEX_VAR}"
