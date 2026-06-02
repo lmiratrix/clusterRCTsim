@@ -1,11 +1,24 @@
 # Blocked Cluster RCT Simulation Study to Assess ATE Estimators
 
+_Last updated: 2026-06-02_
+
 This repo contains the simulation study code for comparing different estimators for the ATE in blocked, cluster-randomized experiments.
 The estimators themselves are implemented in the clusterRCT package.
 The clusterRCT package also (EVENTUALLY) will contain code for generating fake data for this simulation study.
 
 ## Acknowledgements
 The current data generating code is adapted from two sources: the PUMP package simulation code and the data generation code found in the Miratrix, Weiss & Henderson multisite estimands, estimators and estimates paper.
+
+## Archive
+
+The `archive/` folder holds dated snapshots of the grid-generation program and its output, saved before we change them so earlier versions are never lost.
+
+The 2025-11-20 snapshot is the version used in the initial journal submission:
+
+- `archive/generate_grids_2025-11-20.R`: the `generate_grids.R` that produced the 11/20/2025 grid (three block types: same, reasonable, messy; 1,296 scenarios).
+- `archive/scenarios_2025-11-20.rds`: the grid that program generated, and the one the submitted results were run on.
+
+When `generate_grids.R` is rerun it overwrites `scenarios.rds` in place, so we copy the current pair into `archive/` with the grid's creation date before regenerating.
 
 
 

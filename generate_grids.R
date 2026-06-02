@@ -64,10 +64,22 @@ btype3<-data.frame( cv.block=.33,#checked
                     cv.nbar= .33) #checked
 
 
+#Blocks messy but with no treatment effect variation (novar)
+btype4<-data.frame( cv.block=.85, #matches messy
+                    sd.block=0, #no treatment effect variation (constant block ATEs)
+                    size.impact.cor = 0, #N/A with no impact variation; kept 0 so generator runs, show as N/A in write-up
+                    nbar.J.cor = .8, #matches messy
+                    proptx.impact.cor = 0, #N/A with no impact variation; kept 0 so generator runs, show as N/A in write-up
+                    size.intercept.cor = .8, #matches messy
+                    variable.p=T, #matches messy
+                    cv.nbar= .33) #matches messy
+
+
 #variables for the block scenarios
 blockvars <- bind_rows( same = btype1, 
                         reasonable = btype3,
                         messy = btype2, 
+                        novar = btype4,
                         .id = "blocktype" )
 
 # How do block characteristics vary?
@@ -82,7 +94,7 @@ scenarios = expand.grid(
   ATE = .2, #checked
   ICC.block = .2, #checked
   num.cov.block = 0, #checked
-  blocktype=c("messy","same","reasonable"),
+  blocktype=c("messy","same","reasonable","novar"),
   
   # cluster-level params
   sd.cluster =  c(0,.3), #checked
