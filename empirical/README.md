@@ -4,6 +4,8 @@ This folder contains all code for applying the clusterRCT estimators to a collec
 
 The underlying data lives on a secure server (`/data/share/pse/IES CRT/`) and is not stored in this repository. Clean-room datasets are processed there; results are exported to `empirical/results/`.
 
+> **Note:** Scripts that run fingerprint simulations on these datasets (`master_run_fingerprints.R`, `master_run_fingerprints_testing.R`, `testing_fingerprint_simR.R`) live in [`fingerprint/`](../fingerprint/README.md), since they are part of the fingerprint simulation workflow.
+
 ## Reports
 
 | File | Output | Description |
@@ -18,8 +20,6 @@ The underlying data lives on a secure server (`/data/share/pse/IES CRT/`) and is
 | File | Purpose |
 |-----------------------------|-------------------------------------------|
 | `master_analyze_all_data.R` | **Master script.** Applies `compare_methods()` and `describe_clusterRCT()` to all non-clean-room datasets, combines with clean-room output, and saves `results/master241204_combined.RDS`. |
-| `master_run_fingerprints.R` | Runs fingerprint simulations calibrated to each real dataset; produces per-study `.rds` files in `fingerprint/results_fingerprint/`. |
-| `master_run_fingerprints_testing.R` | Test/development version of `master_run_fingerprints.R`. |
 | `load_empirical_results.R` | Loads raw empirical results from the `results/` subdirectory. |
 | `load_and_prep_empirical_results.R` | Loads and pre-processes results, calculates range statistics and flags. Sourced by the report Rmds. |
 | `calculate_all_ranges.R` | Calculates the range of estimates (spread across methods) for each study outcome. |
@@ -39,7 +39,6 @@ The underlying data lives on a secure server (`/data/share/pse/IES CRT/`) and is
 | `check_quality_control.R` | Quality control checks on the empirical data and results. |
 | `random_result_exploration.R` | Ad hoc exploration of selected results. |
 | `beaconmentor_test.R` | Test script for the Beacon Mentor study. |
-| `testing_fingerprint_simR.R` | Tests the fingerprint simulation code on empirical data. |
 
 ## Results Subdirectory (`results/`)
 

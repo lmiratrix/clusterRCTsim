@@ -1,5 +1,7 @@
 
-# Load and prep empirical results and calculate various summary measures and flags
+# Load and prep empirical results and calculate various summary measures and flags.
+# This sources the load script and then does extra massaging of the data.
+
 
 
 #j_studies = read_csv( here::here( "empirical/results/jg_describe.csv" ) )
