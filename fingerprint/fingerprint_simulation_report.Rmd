@@ -752,7 +752,8 @@ mm %>%
 
 
 
-Discussion: All the methods have a SE ratio that is, at the median across studies, about the same as the other methods.  This suggests that the methods all have the same overall performance across datasets, on average.
+Discussion: All the methods have a SE ratio that is, at the median across studies, about the same as the other methods.
+This suggests that the methods all have the same overall performance across datasets, on average.
 This is because for many studies, all the SEs are about the same (see the range by study plot above).
 That said, some methods have long right tails, meaning there are some studies where their true SEs are more than 50% larger than the median performing method.
 Other methods have studies where they are notably more stable than other methods, by even 50% or more.

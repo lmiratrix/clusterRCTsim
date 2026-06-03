@@ -1,5 +1,5 @@
 
-# Core Analysis Script
+# Core Analysis Script for the MDRC Data
 # 
 # This script performs the main empirical analysis by running 
 # `compare_methods()` and `describe_clusterRCT()` on all non-clean 
