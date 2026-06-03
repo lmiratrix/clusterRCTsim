@@ -1,11 +1,16 @@
 
 
-# This file looks at the simulation scenarios and evaluates how much
-# the generated grids correspond to the target parameters.
+# This file looks at the simulation scenarios and evaluates how
+# closely the generated grids correspond to the target parameters.
 
 library( tidyverse )
 
-scenarios = read_rds("scenarios.rds")
+scenarios = read_rds( here::here( "results/scenarios.rds") )
+scenarios
+
+# Each scenario has a stored grid of blocks
+knitr::kable( scenarios[3,] %>% dplyr::select(-grid) %>% pivot_longer( cols=everything() ) )
+scenarios$grid[[3]]
 
 # Comparing the actual number of clusters to the target number of clusters
 

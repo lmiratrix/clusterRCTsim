@@ -42,7 +42,7 @@ DGP_vars <- c("K", "J.bar", "p.bar", "sd.ATE", "ICC", "variable.p", "n.bar", "sd
               "num.cov.cluster", "cv.cluster", "num.cov.indiv", 
               "empirical", "cv.block", "nbar.J.cor", "size.intercept.cor")
 
-source( here::here( "analysis/R/load_and_prep_data.R" ) )
+source( here::here( "analysis/load_and_prep_data.R" ) )
 
 source( here::here( "analysis/R/create_custom_boxplot.R" ) )
 
@@ -52,7 +52,8 @@ source( here::here( "analysis/R/create_analysis_tree.R" ) )
 names( sruns.clean )
 table( sruns.clean$group )
 
-sruns = filter( sruns.clean, group=="full_factor")
+table( sruns.clean$group)
+sruns = filter( sruns.clean, group=="fullfactor")
 nrow( sruns ) / n_distinct(sruns$ID) 
 table( sruns$method )
 
@@ -120,7 +121,13 @@ eta <- etaSquared(anova_table, anova=TRUE) %>%
 sum( eta$eta.sq.part, na.rm=TRUE )
 sum( eta$eta.sq )
 
+eta <- eta %>%
+  mutate( source = str_replace_all( source, ":", " x " ) )
+table( eta$ints )
+
 eta %>%
+  filter( order < 4 ) %>%
+  dplyr::select( -SS, -eta.sq.part, -F ) %>%
   knitr::kable( digits = 3 )
 
 # NOTE: Unbalanced design causing this to not work?

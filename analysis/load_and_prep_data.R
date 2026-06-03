@@ -101,7 +101,8 @@ srunslowdf <- srunslowdf %>%
 
 sruns<-bind_rows(srunsff, srunslowdf)  
 
-
+rm(srunsff)
+rm(srunslowdf)
 
 #figure out what didn't run in the low df 
 lowdf<-sruns %>% filter(group=="lowdf")
