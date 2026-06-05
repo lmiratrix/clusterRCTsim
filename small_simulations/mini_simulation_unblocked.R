@@ -1,25 +1,23 @@
 
 
 
-# Simple simulation as sanity check of SEs etc. This simulation
-# generates code for a single district CRT (i.e., we just have
-# clusters).
+# mini_simulation_unblocked.R
 #
-# We can thus use the blkvar package and then re-assign tx with
-# randomizr, so we can have clusters of unequal size, etc.
-
+# Sanity-check simulation for a single-block (unblocked) CRT with
+# unequal cluster sizes and size-correlated treatment effects.
+# Validates that estimators correctly target person vs. cluster ATEs.
 #
-# NOTE: No districts means FEWER ESTIMATORS in the list from
-# compare_methods
-
-
-
+# NOTE: No blocks means FEWER ESTIMATORS in the list from compare_methods.
+# Output: summary table of bias and SE calibration by method.
+# Status: Runs with N_REPS = 5 as of 2026-06-04
 
 set.seed( 1039 )
 
 library( tidyverse )
 library( PUMP )
 # devtools::install_github( "https://github.com/lmiratrix/blkvar" )
+
+N_REPS <- 5  # Set low for testing; increase for a full run
 
 library( clusterRCT )
 
@@ -51,7 +49,7 @@ one_run <- function() {
 one_run()
 
 
-rps = map_df( 1:100, ~ one_run(), .id = "runID", .progress=TRUE )
+rps = map_df( 1:N_REPS, ~ one_run(), .id = "runID", .progress=TRUE )
 
 head( rps )
 

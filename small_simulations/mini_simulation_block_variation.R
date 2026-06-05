@@ -1,21 +1,23 @@
 
 
-
-# Simple simulation as sanity check of SEs etc.
+# mini_simulation_block_variation.R
 #
-# These simulations generally have two sizes of clusters, with big
-# clusters having larger treatment impacts.
+# Explores how estimators behave when blocks differ in size and when
+# large blocks have larger treatment impacts (two-tier cluster structure).
+# Uses simulation_DGP.R helper functions.
 #
-#
-# This is a "superpopulation" simulation--each iteration is a new
-# dataset.
-
+# NOTE: All simulation runs are disabled (inside if(FALSE) blocks).
+#   Set the desired if(FALSE) to if(TRUE) to activate a run.
+# Output: kable tables of estimand proximity and estimator groupings.
+# Status: Loads cleanly; no active simulation code as of 2026-06-04
 
 set.seed( 1039 )
 library( tidyverse )
 library( clusterRCT )
 
 source( here::here( "small_simulations/simulation_DGP.R" ) )
+
+N_REPS <- 5  # Set low for testing; increase for a full run
 
 
 
@@ -100,10 +102,13 @@ if ( FALSE ) {
     rps$runID = paste0( rps$batch, rps$runID )
     head( rps )
 
+    # Possible junk code according to Claude's audit — path no longer exists
     saveRDS( rps, here::here( "simulations/pointwise_similarity_results.rds" ) )
 
+    # Possible junk code according to Claude's audit — path no longer exists
     rps = readRDS( here::here( "simulations/pointwise_similarity_results.rds" ) )
 
+    # Possible junk code according to Claude's audit — path no longer exists
     source( here::here( "simulations/simulation_helper_functions.R" ) )
     groups = group_estimators( rps, tolerance = 0.0001 )
     groups

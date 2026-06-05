@@ -1,22 +1,20 @@
 
 
-# Proof-of-concept simulation:
-#  1. Generate district params
-#  2. For each district:
-#      - blkvar -> reassign tx with randomizr
-
-# district params
-#  - number of clusters
-#  - proportion of clusters treated
-#  - district-level average intercept
-#  - district-level average treatment effect
-#  - (and correlations of the above)
-
+# simulation_testing.R
+#
+# Proof-of-concept: generates a multi-district CRT with correlated
+# district-level ATEs and cluster sizes, then compares all estimators.
+# Validates that estimators correctly target person vs. cluster ATEs.
+#
+# Output: kable table of estimator performance statistics.
+# Status: Runs with N_REPS = 5 as of 2026-06-04
 
 set.seed( 1039 )
 library( tidyverse )
 library( blkvar )
 library( clusterRCT )
+
+N_REPS <- 5  # Set low for testing; increase for a full run
 
 
 # generate correlated district-level ATEs & num. clusters / prop. tx clusters
@@ -162,7 +160,7 @@ if ( FALSE ) {
 
 
 
-rps = map_df( 1:100, ~ one_run(), .id = "runID", .progress=TRUE )
+rps = map_df( 1:N_REPS, ~ one_run(), .id = "runID", .progress=TRUE )
 head( rps )
 
 

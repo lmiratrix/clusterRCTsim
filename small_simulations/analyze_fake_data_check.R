@@ -1,5 +1,15 @@
 
 
+# analyze_fake_data_check.R
+#
+# Applies compare_methods() to the built-in fakeCRT dataset and groups
+# estimators that produce identical point estimates.
+#
+# Output: printed tables of estimates and estimator groups.
+# Status: Runs with N_REPS = 5 as of 2026-06-04
+
+N_REPS <- 5  # Set low for testing; increase for a full run
+
 # Quick script to just compare all methods on a single dataset and
 # group the ones with the same point estimates.
 
@@ -24,7 +34,7 @@ cc %>%
 
 # See if some of the estimators are giving the same point estimate for
 # this dataset
-source( here::here( "simulations/simulation_helper_functions.R" ) )
+source( here::here( "R/group_estimators.R" ) )
 cc$runID = 1
 group_estimators( cc )
 
@@ -40,7 +50,7 @@ cc
 
 # See if some of the estimators are giving the same point estimate for
 # this dataset
-source( here::here( "simulations/simulation_helper_functions.R" ) )
+source( here::here( "R/group_estimators.R" ) )
 cc$runID = 1
 group_estimators( cc )
 

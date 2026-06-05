@@ -1,4 +1,14 @@
 
+# person_v_cluster_weighting_demo.R
+#
+# Demonstrates a thought experiment: in a study with mixed large/small
+# clusters, targeting the person-weighted ATE effectively halves the
+# number of informative clusters vs. the cluster-weighted ATE.
+# Examines how SE scales with ICC across estimators.
+#
+# Output: line plot of SE vs. ICC by method.
+# Status: Runs with N_REPS = 5 as of 2026-06-04
+
 # Simulation to implement following thought experiment
 
 
@@ -28,6 +38,8 @@
 library( simhelpers )
 
 source( here::here( "small_simulations/simulation_DGP.R" ) )
+
+N_REPS <- 5  # Set low for testing; increase for a full run
 
 
 
@@ -136,7 +148,7 @@ setup_parallel_if_needed()
 
 res <- ICCs %>%
   set_names() %>%
-  future_map_dfr( sim_func, reps = 100,
+  future_map_dfr( sim_func, reps = N_REPS,
                   .id = "ICC", .progress=TRUE,
                   .options = furrr_options( seed=TRUE ) )
 

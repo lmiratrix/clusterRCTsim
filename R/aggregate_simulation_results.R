@@ -216,6 +216,23 @@ align_performance_stats <- function( stats ) {
 
 
 
+# calc_performance: lightweight summary for small-simulation scripts ----
+# (Moved here from small_simulations/simulation_DGP.R)
+
+calc_performance <- function( rps ) {
+    res <- rps %>%
+        group_by( method ) %>%
+        summarise( EATE    = mean( ATE_hat ),
+                   tau_p   = mean( tau_p ),
+                   tau_c   = mean( tau_c ),
+                   SE      = sd( ATE_hat ),
+                   SE_E    = sd( ATE_hat ) / sqrt(n()),
+                   ESE_hat = sqrt( mean( SE_hat^2 ) ) ) %>%
+        mutate( calib = sqrt( ESE_hat^2 / SE^2 ) )
+    res
+}
+
+
 # Test code ----
 
 if ( FALSE ) {

@@ -10,8 +10,12 @@
 
 
 
+library( here )
 library( tidyverse )
 library( furrr )
+
+# calc_performance lives in R/aggregate_simulation_results.R
+source( here::here( "R/aggregate_simulation_results.R" ) )
 
 
 # PUMP based DGP code ----
@@ -694,20 +698,7 @@ setup_parallel_if_needed <- function() {
 }
 
 
-calc_performance <- function( rps ) {
-    res <- rps %>%
-        group_by( method ) %>%
-        summarise( EATE = mean( ATE_hat ),
-                   tau_p = mean( tau_p ),
-                   tau_c = mean( tau_c ),
-                   #tau_cb = mean( tau_cb ),
-                   #tau_pb = mean( tau_pb ),
-                   SE = sd( ATE_hat ),
-                   SE_E = sd( ATE_hat ) / sqrt(n()),
-                   ESE_hat = sqrt( mean( SE_hat^2 ) ) ) %>%
-        mutate( calib = sqrt( ESE_hat^2 / SE^2 ) )
-    res
-}
+# calc_performance moved to R/aggregate_simulation_results.R (sourced above)
 
 
      

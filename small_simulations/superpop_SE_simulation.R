@@ -1,45 +1,45 @@
 
 
-# Superpopulation vs. finite population simulation
+# superpop_SE_simulation.R
+#
+# Compares superpopulation vs. finite-population true standard errors
+# across scenarios, holding blocks fixed and varying cluster-level
+# sampling. Companion to reports/clusterRCT_SEs.Rmd.
+#
+# Active simulations: controlled by WHICH_SIMS (currently 3 and 8).
+# Output: saved .rds files in results/ + kable performance tables.
+# Status: Runs with N_REPS = 5 as of 2026-06-04
 
-# This script runs through several scenarios to target how
-# superpopulation vs. finite population TRUE standard errors can be
-# different (holding districts as fixed and looking at super vs.
-# finite for the clusters themselves)
-
-# The report on this simulation set is in reports/clusterRCT_SEs.Rmd
-
-source( "R/data_generation_code.R" )
-source( "R/simulation_support_code_fixed_district.R" )
+source( here::here( "R/data_generation_code.R" ) )
+source( here::here( "R/simulation_support_code_fixed_block.R" ) )
 
 library( lme4 )
 library( lmerTest )
 library( future )
+library( here )
 
 WHICH_SIMS <- c() # Run none of the simulations
 WHICH_SIMS <- c( 3, 8 )
-R = 500
+N_REPS <- 5  # Set low for testing; increase for a full run
 
 set.seed( 404404 )
-grid <- build_districts( K = 20, J.bar = 10, n.bar = 30, 
-                         p.bar = 0.5,
-                         ATE = 0.2, sd.ATE = 0.1,
-                         ICC = 0.2,
-                         variable.J = TRUE, 
-                         variable.p = TRUE, 
-                         variable.nbar = TRUE,
-                         num.cov.district = 3, 
-                         size.intercept.cor = -0.8,
-                         size.impact.cor = -0.75, 
-                         proptx.impact.cor = 1, 
-                         nbar.J.cor = -0.9, 
-                         
-                         # school-level params
-                         variable.n = TRUE,
-                         sd.school = 0.5, ICC.school = 0.2,
-                         size.ratio.school = 0.6,
-                         size.impact.cor.school = 0.75,
-                         empirical = TRUE )
+grid <- build_blocks( K = 20, J.bar = 10, n.bar = 30,   # build_districts -> build_blocks
+                      p.bar = 0.5,
+                      ATE = 0.2, sd.block = 0.1,          # sd.ATE -> sd.block
+                      ICC.block = 0.2,                     # ICC -> ICC.block
+                      cv.block = 0.6,                      # variable.J=TRUE -> cv.block
+                      variable.p = TRUE,
+                      cv.nbar = 0.33,                      # variable.nbar=TRUE -> cv.nbar
+                      num.cov.block = 3,                   # num.cov.district -> num.cov.block
+                      size.intercept.cor = -0.8,
+                      size.impact.cor = -0.75,
+                      proptx.impact.cor = 1,
+                      nbar.J.cor = -0.9,
+                      sd.cluster = 0.5,                    # sd.school -> sd.cluster
+                      ICC.cluster = 0.2,                   # ICC.school -> ICC.cluster
+                      cv.cluster = 0.6,                    # size.ratio.school=0.6 -> cv.cluster
+                      size.impact.cor.cluster = 0.75,      # size.impact.cor.school
+                      empirical = TRUE )
 
 
 # Explore our grid and initial DGP ----
@@ -150,8 +150,8 @@ if ( FALSE ) {
     labs( x = "", title = "Distribution of point estimates" )
   
   
-  source( "aggregate_simulation_results.R" )
-  
+  source( "aggregate_simulation_results.R" )  # Possible junk code according to Claude's audit
+
   rs <- calculate_performance_statistics( sim, align = TRUE ) %>%
     arrange( weight )
   rs
@@ -186,20 +186,21 @@ if ( FALSE ) {
 # Simulation 2 (No correlation between district-level intercepts and sizes) ----
 
 if ( 2 %in% WHICH_SIMS ) {
+  # Possible junk code according to Claude's audit (old build_districts API, sim not in WHICH_SIMS)
   set.seed( 4434343 )
-  grid2 = build_districts(  K = 20, J.bar = 10, n.bar = 30, 
+  grid2 = build_districts(  K = 20, J.bar = 10, n.bar = 30,
                             p.bar = 0.5,
                             ATE = 0.2, sd.ATE = 0.1,
                             ICC = 0.2,
-                            variable.J = TRUE, 
-                            variable.p = TRUE, 
+                            variable.J = TRUE,
+                            variable.p = TRUE,
                             variable.nbar = TRUE,
-                            num.cov.district = 3, 
+                            num.cov.district = 3,
                             size.intercept.cor = 0,
                             size.impact.cor = 0,
-                            proptx.impact.cor = 0, 
-                            nbar.J.cor = 0, 
-                            
+                            proptx.impact.cor = 0,
+                            nbar.J.cor = 0,
+
                             # school-level params
                             variable.n = TRUE,
                             sd.school = 0.5, ICC.school = 0.2,
@@ -214,38 +215,31 @@ if ( 2 %in% WHICH_SIMS ) {
 
 if ( 3 %in% WHICH_SIMS ) {
   set.seed( 434343 )
-  grid3 = build_districts(  K = 4, J.bar = 7, n.bar = 50, 
-                            p.bar = 0.7,
-                            ATE = 0.2, sd.ATE = 0.2,
-                            sd.school = 0.5, 
-                            
-                            ICC = 0.2,
-                            ICC.school = 0.2,
-                            
-                            variable.J = TRUE, 
-                            variable.p = TRUE, 
-                            variable.nbar = TRUE,
-                            variable.n = TRUE,
-                            
-                            size.ratio = 1,
-                            min.size = 4,
-                            
-                            size.ratio.school = 0.6,
-                            
-                            size.intercept.cor = -0.7,
-                            size.impact.cor = 1,
-                            proptx.impact.cor = 1, 
-                            nbar.J.cor = 1, 
-                            size.impact.cor.school = -0.8,
-                            empirical = TRUE )
+  grid3 = build_blocks( K = 4, J.bar = 7, n.bar = 50,   # build_districts -> build_blocks
+                        p.bar = 0.7,
+                        ATE = 0.2, sd.block = 0.2,        # sd.ATE -> sd.block
+                        sd.cluster = 0.5,                  # sd.school -> sd.cluster
+                        ICC.block = 0.2,                   # ICC -> ICC.block
+                        ICC.cluster = 0.2,                 # ICC.school -> ICC.cluster
+                        cv.block = 0.6,                    # variable.J=TRUE -> cv.block
+                        variable.p = TRUE,
+                        cv.nbar = 0.33,                    # variable.nbar=TRUE -> cv.nbar
+                        cv.cluster = 1.0,                  # size.ratio.school=0.6 -> cv.cluster
+                        min.size = 4,
+                        size.intercept.cor = -0.7,
+                        size.impact.cor = 1,
+                        proptx.impact.cor = 1,
+                        nbar.J.cor = 1,
+                        size.impact.cor.cluster = -0.8,    # size.impact.cor.school
+                        empirical = TRUE )
   grid3 <- arrange( grid3, J )
   grid3$J
   grid3$p <- c( 3, 3, 3, 3 ) / grid3$J
-  grid3$district.tau
-  
-  describe_district_grid( grid3 )
-  
-  sim3 <- run_sim( 3, grid = grid3, R = 500, n.runs = 3, parallel=TRUE )
+  grid3$block.tau                                          # district.tau -> block.tau
+
+  describe_block_grid( grid3 )                             # describe_district_grid -> describe_block_grid
+
+  sim3 <- run_sim( 3, grid = grid3, R = N_REPS, n.runs = 3, parallel = FALSE )
 }
 
 
@@ -294,11 +288,12 @@ if ( FALSE ) {
 # are basically the same
 
 if ( 4 %in% WHICH_SIMS ) {
+  # Possible junk code according to Claude's audit (old sd.school API, sim not in WHICH_SIMS)
   set.seed( 34364343 )
-  
+
   grid4 = readRDS( "results/superpop_SE_simulation_grid3.rds")
   grid4$sd.school = 0
-  
+
   #options( warn = 2 )
   run_sim( 4, grid = grid4, R = 500, n.runs = 3, parallel=TRUE )
 }
@@ -311,10 +306,11 @@ if ( 4 %in% WHICH_SIMS ) {
 # are basically the same
 
 if ( 5 %in% WHICH_SIMS ) {
+  # Possible junk code according to Claude's audit (old sd.school API, sim not in WHICH_SIMS)
   set.seed( 34343143 )
   grid5 = readRDS( "results/superpop_SE_simulation_grid3.rds")
   grid5$sd.school = 1
-  
+
   run_sim( "5", grid = grid5, 500, 3, parallel=TRUE )
 }
 
@@ -323,35 +319,36 @@ if ( 5 %in% WHICH_SIMS ) {
 # Simulation 6 (nothing unusual at all) ----
 
 if ( 6 %in% WHICH_SIMS ) {
+  # Possible junk code according to Claude's audit (old build_districts API, sim not in WHICH_SIMS)
   set.seed( 343431433 )
-  
-  grid6 = build_districts(  K = 5, J.bar = 6, n.bar = 40, 
+
+  grid6 = build_districts(  K = 5, J.bar = 6, n.bar = 40,
                             p.bar = 0.5,
                             ATE = 0.2, sd.ATE = 0.1,
-                            sd.school = 0.2, 
-                            
+                            sd.school = 0.2,
+
                             ICC = 0.2,
                             ICC.school = 0.2,
-                            
-                            variable.J = TRUE, 
-                            variable.p = FALSE, 
+
+                            variable.J = TRUE,
+                            variable.p = FALSE,
                             variable.nbar = TRUE,
                             variable.n = TRUE,
-                            
+
                             size.ratio = 0.4,
                             min.size = 4,
-                            
+
                             size.ratio.school = 0.1,
-                            
+
                             #size.intercept.cor = -0.7,
                             #size.impact.cor = 1,
-                            #proptx.impact.cor = 0, 
-                            #nbar.J.cor = 0, 
+                            #proptx.impact.cor = 0,
+                            #nbar.J.cor = 0,
                             #size.impact.cor.school = -0.8,
                             empirical = TRUE )
-  
+
   describe_district_grid( grid6 )
-  
+
   run_sim( "6", grid6, 500, 3, parallel=TRUE )
 }
 
@@ -359,15 +356,16 @@ if ( 6 %in% WHICH_SIMS ) {
 # Simulation 7 (making big superpop SEs vs finite) ----
 
 if ( 7 %in% WHICH_SIMS ) {
+  # Possible junk code according to Claude's audit (old build_districts API, sim not in WHICH_SIMS)
   set.seed( 344314333 )
-  
-  grid7 = build_districts(  K = 1, J.bar = 9, n.bar = 500, 
+
+  grid7 = build_districts(  K = 1, J.bar = 9, n.bar = 500,
                             p.bar = 7/9,
                             ATE = 0.2, sd.ATE = 0,
                             sd.school = 0.3,  # tau
-                            
+
                             ICC.school = 0 )
-  
+
   describe_district_grid( grid7 )
   
   
@@ -483,34 +481,20 @@ if ( FALSE ) {
 
 if ( 8 %in% WHICH_SIMS ) {
   set.seed( 434343 )
-  grid3 = build_districts(  K = 4, J.bar = 7, n.bar = 50, 
-                            p.bar = 0.5,
-                            ATE = 0.2, sd.ATE = 0.2,
-                            sd.school = 0.5, 
-                            
-                            ICC = 0.2,
-                            ICC.school = 0.2,
-                            
-                            variable.J = TRUE, 
-                            variable.p = TRUE, 
-                            variable.nbar = TRUE,
-                            variable.n = TRUE,
-                            
-                            size.ratio = 0.2,
-                            min.size = 4,
-                            
-                            size.ratio.school = 0.1,
-                            
-                            #size.intercept.cor = -0.7,
-                            #size.impact.cor = 1,
-                            #proptx.impact.cor = 0, 
-                            #nbar.J.cor = 0, 
-                            #size.impact.cor.school = -0.8,
-                            empirical = TRUE )
-  
-  describe_district_grid( grid3 )
-  sim8 <- run_sim( 8, grid = grid3, R = 500, n.runs = 3,
-                   parallel=TRUE )
+  grid3 = build_blocks( K = 4, J.bar = 7, n.bar = 50,   # build_districts -> build_blocks
+                        p.bar = 0.5,
+                        ATE = 0.2, sd.block = 0.2,        # sd.ATE -> sd.block
+                        sd.cluster = 0.5,                  # sd.school -> sd.cluster
+                        ICC.block = 0.2,                   # ICC -> ICC.block
+                        ICC.cluster = 0.2,                 # ICC.school -> ICC.cluster
+                        cv.block = 0.6,                    # variable.J=TRUE -> cv.block
+                        variable.p = TRUE,
+                        cv.nbar = 0.33,                    # variable.nbar=TRUE -> cv.nbar
+                        cv.cluster = 0.167,                # size.ratio.school=0.1 -> 0.1/0.6
+                        min.size = 4,
+                        empirical = TRUE )
+  describe_block_grid( grid3 )                             # describe_district_grid -> describe_block_grid
+  sim8 <- run_sim( 8, grid = grid3, R = N_REPS, n.runs = 3, parallel = FALSE )
 }
 
 

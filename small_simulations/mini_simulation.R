@@ -1,16 +1,21 @@
 
-
-# Simple simulation as sanity check of SEs etc.
+# mini_simulation.R
 #
-# This sim has equal sized blocks and clusters and all that.
+# Sanity-check simulation using PUMP-generated data in a blocked CRT.
+# Tests whether estimated SEs are calibrated when there is block-level
+# treatment effect variation.
 #
-# Results: Treatment variation at the block level means the SEs are all too small!  
+# Result: Block-level ATE variation causes all SEs to be too small.
+# Output: kable table of calibration statistics.
+# Status: Runs with N_REPS = 5 as of 2026-06-04
 
 
 set.seed( 1039 )
 library( tidyverse )
 # library( PUMP )
 library( clusterRCT )
+
+N_REPS <- 5  # Set low for testing; increase for a full run
 
 
 ATE = 0.125
@@ -66,8 +71,7 @@ if ( FALSE ) {
     one_run()
 }
 
-R = 100
-rps = map_df( 1:R, ~ one_run(), .id = "runID", .progress=TRUE )
+rps = map_df( 1:N_REPS, ~ one_run(), .id = "runID", .progress=TRUE )
 
 head( rps )
 

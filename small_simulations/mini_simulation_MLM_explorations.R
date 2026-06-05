@@ -1,8 +1,18 @@
 
-# Simulation to investigate the weighting properties of the MLM
-# approaches
+# mini_simulation_MLM_explorations.R
+#
+# Investigates how MLM estimators shift between person-weighted and
+# cluster-weighted estimands as the within-cluster ICC increases.
+# Inspired by Mike Weiss questions on MLM estimand targeting.
+#
+# NOTE: All simulation runs disabled (inside if(FALSE) blocks).
+#   Set the desired block to if(TRUE) to run.
+# Output: line plots of EATE vs. ICC by method.
+# Status: Loads cleanly; no active simulation code as of 2026-06-04
 
 source( here::here( "small_simulations/simulation_DGP.R" ) )
+
+N_REPS <- 5  # Set low for testing; increase for a full run
 
 
 #### Mike's ICC Simulation ####
@@ -13,7 +23,7 @@ source( here::here( "small_simulations/simulation_DGP.R" ) )
 # estimands based on the ICC
 
 
-run_sim_MLM <- function( ICC, blocks = FALSE, ..., R = 100 ) {
+run_sim_MLM <- function( ICC, blocks = FALSE, ..., R = N_REPS ) {
   cat( "ICC ", ICC, "\n" )
   
   rps = map_df( 1:R, \(r) one_run( ICC.2 = ICC, blocks = blocks, ...,
