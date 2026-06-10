@@ -1,4 +1,11 @@
+
 # Load and prep simulation results
+
+# Most performance measures already in the loaded combined and
+# aggregated data (data at the scenario level, one row per estimator).
+# This script adds a few and also gets a lot of factors, etc. sorted
+# for nice plots and so forth.
+
 
 
 require(tidyverse)
@@ -390,6 +397,8 @@ levels(sruns.clean$sd.cluster)
 table(sruns.clean$ID)
 
 
+# Create new performance measures for scenario ----
+
 # Create the new variable with median RMSE.s.estimand for each ID
 sruns.clean <- sruns.clean %>%
   group_by(ID) %>%
@@ -403,7 +412,7 @@ sruns.clean <- sruns.clean %>%
   ungroup()
 
 
-# Create ordered factor levels
+# Create ordered factor levels ----
 ordered_methods <- sruns.clean %>%
   # First get Cluster unbiased methods
   filter(weight == "Cluster" & biased == 0) %>% pull(method) %>% unique() %>%
@@ -427,6 +436,10 @@ sruns.clean <- sruns.clean %>%
 
 #figure out which estimators produce the same ATE results 
 
+# source( here::here( "R/group_estimators.R" ) )
+
+# This is a different version?  Should delete and combine with script
+# eventually.
 group_estimators <- function( rps, var ) {
   
   wid <- rps %>% 
@@ -511,7 +524,7 @@ all.methods<-c("AR-FE-db", "AR-FE-het", "LRcw-FE-crve", "LRcw-FE-db",
 
 
 
-#the missing SE's for some methods in the low df group  is doing weird stuff, so run them separately 
+# the missing SE's for some methods in the low df group  is doing weird stuff, so run them separately 
 
 groups.ff <- group_estimators(sruns.clean %>% filter(group=="fullfactor"), var = "mean.SE.hat")
 groups.lowdf <- group_estimators(sruns.clean %>% filter(group=="lowdf"), var = "mean.SE.hat")

@@ -24,7 +24,7 @@ source(here::here("R/simulation_support_code_fixed_block.R"))
 # ---- Configuration ----
 
 SCENARIO_ID <- 439       # raw ID in scenarios_fullfactor.rds (= "439_fullfactor" in sruns.clean)
-NUM_REPS    <- 20        # number of synthetic datasets to generate
+NUM_REPS    <- 100        # number of synthetic datasets to generate
 OUTPUT_FILE <- here::here( glue::glue( "results/single_{SCENARIO_ID}.rds") )
 
 
@@ -67,14 +67,30 @@ results <- run.scenario.fixed.block(
 cat(sprintf("\nResults: %d rows x %d columns\n", nrow(results), ncol(results)))
 cat("Methods present:", paste(sort(unique(results$method)), collapse = ", "), "\n")
 
-cat("\nSE.hat by method (across replicates):\n")
-results %>%
+
+source( here::here( "R/group_estimators.R" ) )
+results <- results %>%
+  mutate( runID = paste0( run, subrun ) )
+g <- group_estimators( results, var = "ATE.hat" )
+g
+core = sapply( g, function(x) sort(x)[[1]] )
+core
+
+cat("\nSE and SE.hat by method (across replicates):\n")
+sts <- results %>%
+  dplyr::filter( method %in% core ) %>%
   group_by(method) %>%
-  summarise(mean_SE = mean(SE.hat, na.rm = TRUE),
+  summarise(trueSE = sd( ATE.hat ),
+            mean_SE = mean(SE.hat, na.rm = TRUE),
             sd_SE   = sd(SE.hat, na.rm = TRUE),
             .groups = "drop") %>%
-  arrange(mean_SE)
+  mutate( relSE = trueSE / median(trueSE ) ) 
 
+sts %>%
+  arrange(mean_SE) %>%
+  knitr::kable( digits=2 )
+
+max( sts$trueSE ) / min( sts$trueSE )
 
 
 # ---- Save ----

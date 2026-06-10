@@ -1,11 +1,9 @@
 # ---
 # title: "Explore a single simulation scenario"
-# author: "Miratrix, Weiss, Henderson"
 # date: "`r Sys.Date()`"
 # ---
 
-# Exploration script to evaluate results from a single scenario of the SE
-# assessment simulation.
+# Exploration script to evaluate results from a single scenario 
 #
 # In particular we can see how estimates of standard errors are correlated
 # across datasets.
