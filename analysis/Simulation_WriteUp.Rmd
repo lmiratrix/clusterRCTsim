@@ -101,13 +101,13 @@ The effectiveness of the program or treatment is then typically quantified using
 However, within this relatively straightforward quantity, researchers must make a variety of choices.
 Researchers need to decide whether to target a person-weighted average or cluster-weighted average; they need to decide whether they are targeting an estimate just for the clusters in the study (finite sample) or an estimate representative of some broader population (superpopulation); and they need to decide from among different methods or estimators that can be used to estimate the ATE.
 
-This manuscript contains simulations that complement research examining empirically the implications of different choices researchers make when performing CRTs (Miratrix et al., 2026).
+This manuscript contains simulations that complement research empirically examining the implications of different choices researchers make when performing CRTs (Miratrix et al., 2026).
 Simulations, unlike empirical analyses, allow us to compare estimated quantities to their true values, which we cannot observe in empirical contexts.
 This in turn allows us to evaluate how well different statistical methods perform.
 Additionally, we can systematically vary data conditions and identify which factors impact method performance.
 
 We present two collections of simulations.
-The first, Simulation I, is a traditional multifactor simulation where we explore how a set of different estimators react to different data, generating conditions, such as variation in the size of clusters or systematic differences between the blocks.
+The first, Simulation I, is a multifactor simulation where we explore how a set of different estimators react to different data generating conditions, such as variation in the size of clusters or systematic differences between the blocks.
 Simulation I is designed to answer the following research questions:
 
 1.  Are any of the estimators ever substantially biased? When?
@@ -117,38 +117,34 @@ Simulation I is designed to answer the following research questions:
 5.  Why does the range in the estimates produced by the different estimators get larger as the degrees of freedom get smaller? Is the cause estimator bias or estimator instability?
 
 
-Simulation II, by contrast, is a set of calibrated simulations where, for most of our  empirical examples, we ascertained the properties of all estimators in the very narrow context represented by those data.
+Simulation II, by contrast, is a set of calibrated simulations where, for each of our empirical examples (excepting a few due to logistical considerations), we ascertained the properties of all estimators in the very narrow context represented by those data.
 These simulations were in reaction to the surprising range in both point estimates and standard errors we found in the empirical data.
 
 In Simulation II, we, for each outcome, permute treatment assignment and examine how the various treatment effect estimators react to different treatments.
-Because permutation ensures are not any actual treatment effects, we can explore how the different estimators are similar or different in the context of no actual treatment.
-This gives insight into whether the results of the empirical study are driven by systematic variation in treatment impact or just idiosyncratic aspects of the context explored.
-These simulations are precisely calibrated to the structure of the data we were analyzing.
+Because permutation ensures these are not any actual treatment effects, we can explore how the different estimators are similar or different in the context of no actual treatment.
+This gives insight into whether the results of the empirical study are driven by systematic variation in treatment impact or just idiosyncratic aspects of the contexts explored.
+These simulations are precisely calibrated to the structure of the data.
 In particular, by simply permuting treatment, we preserve all features such as covariate relationships and cluster sizes.
 
+Our core question for Simulation II is then:
 
-Simulation II allows us to assess whether ranges in ATE estimate or SE estimate might arise naturally, even in the absence of treatment effects.
-They also gave us a way to evaluate the calibration of standard errors---specifically, whether the estimated standard errors correspond to the actual variation in point estimates across permutations.
-This is a distinct evaluation of whether the estimated standard errors are targeting a _finite sample_ uncertainty, i.e., the uncertainty in the case of a fully fixed set of data and potential outcomes where the only randomness is the treatment assignment itself.
-
-We codified these general questions into the following set of research questions:
-
-1. Are the estimated standard errors well calibrated?  That is, do they reflect the true finite sample variability in estimates?
-2. Are the ranges of point estimates and standard errors across methods in the empirical data consistent with what we would expect under no treatment effect?
+1. Are the ranges of point estimates in the empirical data consistent with what we would expect under no treatment effect?
+2. What about the range of estimated standard errors?
+3. Are some of the estimators more precise across permutations than other estimators?
 
 Importantly, Simulation II covers a range of contexts both more broad than Simulation I and also less comprehensive.
-We simulation over the very heterogeneous set of empirical datasets we have, but we do not systematically vary data generating parameters as in Simulation I.
-Simulation II has some contexts with many numbers of very small blocks (including blocks of size 2, i.e. matched pairs experiments).
+We simulate over the very heterogeneous set of empirical datasets we have, but we do not systematically vary data generating parameters as in Simulation I.
+Simulation II has some contexts with many numbers of very small blocks (including blocks of size 2, i.e. matched pairs experiments, which Simulation I does not cover).
 
 # Overview of Findings
 
 Before diving into the details, at a high level the answers to our core research questions from Simulation I are as follows:
 
-1.  Only under extreme conditions do we see notable bias. Fully interacted estimators have virtually no bias. Fixed effect estimators can show large bias (even up to −0.2), but only under the most extreme messy-block conditions with strong correlation between block average effects and proportion treated (this is the precision-weighting bias). Some MLM estimators can exceed 0.04 bias when cluster-level ICC is zero and cluster size correlates with treatment effect, because the estimator shifts toward person-weighting.
+1.  Only under extreme conditions do we see notable bias. Fully interacted estimators have virtually no bias. Fixed effect estimators can show large bias (even up to 0.2 in size), but only under the most extreme messy-block conditions with strong correlation between block average effects and proportion treated (this is the precision-weighting bias). Some MLM estimators can exceed 0.04 bias when cluster-level ICC is zero and cluster size correlates with treatment effect, because the estimator shifts toward person-weighting.
 
-2.  Most estimators have comparable relative precision. MLMs can be substantially more precise than other estimators when cluster-size variation is large and cluster-level ICC is zero; in those cases the MLM largely ignores the clustering, which stabilizes estimates considerably. That said, even in this case, the MLM estimators had standard errors only 30% smaller at most.
+2.  Most estimators have comparable relative precision in most contexts. MLMs can be more precise than other cluster-average targeting estimators when cluster-size variation is large and cluster-level ICC is zero; in those cases the MLM largely ignores the clustering, which stabilizes estimates considerably. That said, even in this case, the MLM estimators had standard errors only 30% smaller at most.
 
-3.  Overall, all the methods give standard errors that reasonably capture the uncertainty of a superpopulation framework with fixed blocks. In particular, fully interacted estimators (except MLM-FI) produce SEs that are slightly too small relative to the true superpopulation SE; the magnitude is generally negligible. Fixed effect estimators are well calibrated under typical conditions but can substantially overestimate when there is substantial variation in treatment effects across blocks. MLM estimators are generally well calibrated, with exceptions tied to unbalanced treatment and zero cluster ICC.
+3.  Overall, all the methods give standard errors that reasonably capture the uncertainty of a superpopulation framework with fixed blocks. In particular, fully interacted estimators (except MLM-FI) produce SEs that are slightly too small relative to the true superpopulation SE; the magnitude, however, is generally negligible. Fixed effect estimators are well calibrated under typical conditions but can substantially overestimate when there is substantial variation in treatment effects across blocks. MLM estimators are generally well calibrated, with exceptions tied to unbalanced treatment and zero cluster ICC.
 
 4.  All estimated SEs are better characterized as targeting superpopulation rather than finite-population uncertainty. The two quantities diverge meaningfully only when cluster-level ICC is zero and there is substantial cross-cluster treatment effect variation.
 
@@ -156,15 +152,9 @@ Before diving into the details, at a high level the answers to our core research
 
 We also, on Table \ref{tab:sim_result_summary}, show general findings on each estimator's performance across the simulations, identifying under what conditions they fail.
 
-For the calibrated simulation (Simulation II), we found general alignment between the ranges of estimates across estimator that we saw in the simulation and what we saw in the empirical data.
-Furthermore, with the exception of one estimator (using cluster robust standard errors in matched pairs experiments) having very incorrect estimated standard errors, the estimated standard errors we saw in practice generally aligned with the uncertainty we saw from the simulation.
-
-Echoing Simulation I, we also found some evidence that, for some datasets, some estimators are up to 30% more variable than other estimators.
-For other datasets, the estimators seem to be about the same.
+For the calibrated simulation (Simulation II), we found general alignment between the ranges of estimates and ranges in standard errors across estimator that we saw in the simulation and what we saw in the empirical data.
+Echoing Simulation I, we also found that the true uncertainty (under permutation) of most estimators were about the same across most datasets, but that for some datasets, some estimators were up to 30% more variable than others.
 These differences are much more modest than the apparent differences when we compare the _estimated_ Standard Errors.
-
-Interestingly, we found methods have estimated standard errors that are very unstable, giving extreme values or incorrect values much of the time.  This is especially true for the matched-pairs experiment, where some methods have estimated SEs that are very much too low.
-This edge case was not captured in Simulation I.
 
 
 
@@ -236,16 +226,17 @@ Well estimated under same-block conditions; person-weighted variants can run sli
 
 # The Design of Simulation I
 
-To answer our research questions, we ran a series of multifactor simulations, which are simulations where we systematically vary a set of factors to understand how these factors influence the performance of the various estimators.
+A multifactor simulation is a simulation where we systematically vary a set of factors to understand how these factors influence the performance of the various estimators.
 In general we are close to full multi-factorial designs, where we vary all factors independently, but we do drop combinations that do not make sense (in particular, we drop scenarios that call for correlations between quantities that do not vary).
 
 ## The data generation parameters
 
-The main simulation is a nearly fully factored experiment with the data generating parameters given on Table 3.
+The main simulation is a nearly fully factored experiment with the data generating parameters given on Table~\ref{tab:sim_dgp_params}.
 
 \begin{table}[H]
 \centering
 \caption{Simulation Data Generating Parameters}
+\label{tab:sim_dgp_params}
 \renewcommand{\arraystretch}{1.2}
 \begin{tabular}{|p{8cm}|p{6cm}|}
 \hline
@@ -286,7 +277,7 @@ Number of Cluster-Level Covariates (num.cov) & 0 (0), 1 (S), 5 (L) [$R^2$ Always
 \end{tabular}
 \end{table}
 
-One of our factors is "block type," which is a set of seven parameters that define how similar or different the blocks are from each other.
+One of our factors is "block type," which is a set of seven parameters that define how similar or different the blocks are from each other (see Table~\ref{tab:block_dgp_params}).
 We did not independently vary these factors so we could control the total number of simulation scenarios.
 We have three levels of block type, which we call "Blocks All The Same," "Blocks All Reasonable," and "Blocks All Messy." The "Same" case is where all blocks are identical in their characteristics.
 The "Reasonable" case is what we might imagine we would see in actual practice.
@@ -297,6 +288,7 @@ All code is public; others can easily adapt the code to run additional scenarios
 \begin{table}[H]
 \centering
 \caption{Block-Type Parameters}
+\label{tab:block_dgp_params}
 \renewcommand{\arraystretch}{1.2}
 \begin{tabular}{|p{6cm}|p{2.5cm}|p{2.5cm}|p{2.5cm}|}
 \hline
@@ -321,8 +313,6 @@ Does the proportion of clusters treated vary across blocks? & No & Yes & Yes \\
 \end{tabular}
 \end{table}
 
-Each scenario would have a specific combination of these parameters.
-We drop all scenarios with a correlation of a quantity that does not vary (e.g., if there is no treatment effect variation, then we drop scenarios with nonzero correlation between treatment effect and cluster size).
 
 ## The data generating process
 
@@ -340,10 +330,10 @@ For each scenario defined by sample size, target correlation, predictiveness of 
 
 At this point we have a complete set of generated data.
 Next, for each simulation iteration we actually conduct a small number of iterations.
-For each iteration we:
+For each internal iteration we:
 
-a.  Permute treatment across clusters within block to generate a new random assignment.
-b.  Calculate observed outcomes based on the generated data and the new treatment assignment.
+a.  Assign treatment to the clusters within blocks.
+b.  Calculate observed outcomes based on the generated data and the treatment assignment.
 c.  Estimate the ATE and SE using all our methods.
 
 The nested permutation approach means that for each fixed set of clusters and blocks, we can calculate finite sample performance.
@@ -360,7 +350,7 @@ We provide more technical details of how we implement the components of the data
 
 # Simulation I Results
 
-In this section we walk through the five research questions, providing plots showing estimator performance with respect to each question.
+We walk through the five research questions, providing plots showing estimator performance with respect to each question.
 
 In this report, we use a set of boxplots customized for our particular data so we can see central spread more clearly.
 Below is a sample boxplot of the mean bias of an estimator relative to its target estimand across simulation runs for all methods and scenarios.
@@ -368,8 +358,8 @@ The faint horizontal lines extend to the full range of the data.
 The bars mark the 2.5th and 97.5th percentiles, capturing 95% of the data.
 The boxes span the 10th and 90th percentiles, corresponding to the middle 80% of the data.
 
-Not only does this plot show our modification of the box plot, but it provides a n important high-level finding: across all the estimators there was negligible bias across the vast majority of simulation conditions considered.
-A classic 50% boxplot would have no visible "box" here--the 80% box makes variation more clearly visible.
+Not only does this plot show our modification of the box plot, but it provides an important high-level finding: across all the estimators there was negligible bias across the vast majority of simulation conditions considered.
+A classic 50% boxplot would have no visible "box" here---the 80% box makes variation  visible at all.
 
 ```{r}
 fig1cap<-"Sample boxplot for paper. This boxplot shows the superpopulation mean bias of each estimator relative to its target estimand across scenarios and methods. The faint horizontal lines extend to the full range, the bars span the 2.5th to 97.5th percentiles, and the box spans the 10th to 90th percentiles."
@@ -459,7 +449,7 @@ Each branch divides all the scenarios into two groups, and each leaf represents 
 So, for our LR-FE example, if blk_type is *not* Same or Reasonable (i.e., it is Messy) AND p.bar is not balanced AND cv.clu is 0 (i.e., there is no variation in cluster sizes) then we have an average bias of 0.08.
 In this case, the unequal proportion of clusters treated across blocks combined with the messy blocks (which induces correlation between block-level average treatment effect and proportion treated) causes bias because of the fixed-effect "precision-weighting" aspect of LR-FE (see the technical supplement for further discussion of this).
 
-Across Figures \ref{fig:bias} and \ref{fig:biastree} we have several findings: First, the estimators that theory predicts are essentially unbiased indeed do not appear to have bias (or possible have very low bias) across the full range of simulations.
+Across Figures \ref{fig:bias} and \ref{fig:biastree} we have several findings: First, the estimators that theory predicts are essentially unbiased indeed appears to have no bias (or possibly very low bias) across the full range of simulations.
 Second, other than the MLM estimators, our simulations almost never show substantial bias under the data generating conditions we expect to see in practice (i.e. for the same and reasonable block type conditions).
 
 In some of the simulations, the person-weighted fully interacted estimator (LR-FIpw) can have bias as large as .03.
@@ -566,7 +556,7 @@ Results on Figure \ref{fig:relative-estimand-SE}.
 We see that when there is substantial cluster size variation, then if there is zero cluster-level ICC, the person-weighted estimator can be substantially more precise than the cluster-weighted estimator.
 By contrast, when there is positive cluster-level ICC, the person-weighted becomes more variable than cluster-weighted.
 
-```{r relative-estimand-SE, fig.cap="Ratio of the true SE of LR-FIpw to the true SE of AR-FIcw by cluster size variation, cluster-level ICC, and block type. These are normal boxplots.", include=TRUE, echo=FALSE, fig.width=6, fig.height=4}
+```{r relative-estimand-SE, fig.cap="Ratio of the true SE of LR-FIpw to the true SE of AR-FIcw by cluster size variation, cluster-level ICC, and block type. These are normal boxplots, not 80% boxplots.", include=TRUE, echo=FALSE, fig.width=6, fig.height=4}
 rels <- sruns.clean %>%                                                               
     filter(method %in% c("LR-FIpw-db", "AR-FIcw-db")) %>%
     dplyr::select( all_of( DGP_vars ), ID, method, SE.s, cv.cluster, block_type ) %>%
@@ -607,7 +597,7 @@ We plot these within-estimand relative SEs for all scenarios on Figure \ref{fig:
 In general, the different estimators have comparable precision, with the boxes all hovering around 1.
 In some cases, some estimators can have standard errors that are 10% larger than the median.
 
-The multilevel estimators can have a true SE substantially smaller than median.
+The multilevel estimators can have a true SE substantially smaller than median the other cluster-average targeting estimators.
 The multilevel estimators become more precise than the other cluster-weighted estimators when there is a combination of large variation in cluster size and zero cluster ICC; otherwise, their precision is close to that of the other estimators (see the regression tree on Figure \ref{fig:standard-errors-tree}).
 When ICC is low, MLMs essentially ignore the clustering, which stabalizes the estimator considerably (but also makes it target the person-weighting estimand, which can create bias if the cluster size is correlated with impact as described earlier).
 
@@ -672,7 +662,7 @@ tree2 <- create_analysis_tree(
 ```
 
 
-### Min/Max SE exploration
+### Range of Min SE to Max SE across scenarios
 
 We can further explore precision differences among estimators by, for each scenario, calculating the ratio of the maximum to minimum true standard error across all methods for scenarios with no treatment variation.
 When this ratio is close to 1, all estimators have similar precision; when it is substantially above 1, some estimators are considerably more efficient than others.
@@ -1439,11 +1429,11 @@ range_dat_noFI <- filter( range_dat_noFI,
 ```
 
 
-We do not generate data for Simulation II, but instead used the following process for each outcome $j$ in our set of outcomes across our empirical dataset (excepting a few studies that were inaccessible):
+We do not generate data for Simulation II, but instead used the following process for each outcome $j$ in our set of outcomes across each of our empirical datasets (excepting a few studies that were inaccessible):
 
 1) Load the empirical data for outcome $j$, patch missing data, etc.
-2) Calculate the empirical estimates of the treatment effects for outcome $j$, and the associated empirical standard errors.
-3) Repeatedly, for simulation runs $r = 1, \ldots, R$ (with $R=20$), permute the treatment assignment across clusters and within blocks. For each permutation,  re-estimate the impacts given the permuted assignment.
+2) Repeatedly, for simulation runs $r = 1, \ldots, R$ (with $R=20$), permute the treatment assignment across clusters and within blocks. 
+3) For each permutation, estimate the treatment effect and associated empirical standard error using each method of estimation.
 4) For each run and outcome, calculate the range of impact estimates and the ratio of the largest to smallest standard error, across all the estimators that were defined for that run. We do this both overall, and for the group of estimators within each estimand (Person or Cluster).
 
 Due to the permutation, there is no actual average treatment effect or cross-block treatment effect variation.  All individuals have the same outcome whether assigned to treatment or control.
@@ -1456,117 +1446,13 @@ The structure of the data, the relationship of covariates to outcome, etc., is a
 
 We next systematically go through our Simulation II results, following our research questions.
 
-## How do the simulation estimated SEs compare to the actual simulation SE?
 
-For each scenario, we can calculate true standard errors (SEs) for each method by taking the standard deviation of the point estimates across all permutations.
-Each simulation iteration also gives an estimated standard error along with point estimate for each method.
-We can then check to see if the average of the estimated standard errors (across iterations) correspond to the true standard error.
-This tells us whether our estimated standard errors are accurately capturing uncertainty--in this case capturing finite sample uncertainty given the fixed data and only letting the treatment assignment vary.
-
-In short, within simulation scenario and for each method, we can compare the average estimated SE to the standard deviation of point estimates across all permutations.
-In the plot below we show the distribution of ratios of $E[\widehat{SE}] / SE$ across the studies, for each method.
-<!--In the figure below, each dot represents the outcome for a single study.-->
-
-```{r, warning=FALSE, message=FALSE}
-meth_dat <- meth_dat %>%
-  mutate( SE_ratio = ESEhat / SE,
-          SE_ratio = pmax( SE_ratio, 0.5 ) )
-
-ggplot( meth_dat, aes( method, SE_ratio ) ) +
-  geom_boxplot( outliers=FALSE, col="darkgrey", fill = "grey" ) +
-  geom_jitter( width=0.1, height=0, size=0.3 ) +
-  coord_flip() +
-  geom_hline( yintercept = 1, col="red" ) +
-  scale_y_log10( labels = scales::percent_format(scale = 100),
-                 breaks = c( 0.02, 0.05, 0.1, 0.2, 0.5, 0.7, 1, 1.5 ) ) +
-  labs( title = "Ratio of estimated SE to true SE by method",
-        x = "", y = "Estimated SE / True SE" )
-
-if ( FALSE ) {
- # Alternative plot
-  ggplot( meth_dat, aes( SE, ESEhat ) ) +
-  facet_wrap( ~ method ) +
-  geom_point( alpha=0.5, size=0.5) +
-  coord_fixed() +
-  geom_abline( slope=1, intercept=0, lty=2 )
-}
-```
-
-Some methods do not have standard errors for some scenarios (if there are too few degrees of freedom or there are too few clusters in some blocks), so they are not in the above plot--note how some boxes have fewer points.
-For many methods, the average estimated SEs are generally close (well within 50%) of the true SEs.
-
-Four points were truncated at 50%; these were from the FI CRVE estimator: cluster robust standard errors can give extremely low values in some contexts.
-
-
-## How do the estimated SEs for the real data compare to the true simulation SEs?
-
-For the most part, the average estimated SEs tend to be fairly close to the estimated _true_ SEs we obtained via our permutation simulation.
-Below, we compare the estimates we got on the original empirical data to these permutation-based true SEs.
-
-```{r, warning=FALSE, message=FALSE}
-empirical_estimates <- simdat %>%
-  filter( runID == "empirical" ) %>%
-  dplyr::select( -runID )
-
-mm <- meth_dat  %>%
-  dplyr::select( -weight, -biased ) %>%
-  left_join( empirical_estimates, 
-             by=c( "Collection", "UniqueID", "Covariates", "method" ) )
-
-mm <- mm %>%
-  filter( Covariates == "best" )
-
-ggplot( mm, aes( SE_hat, SE ) ) +
-  facet_wrap( ~ method, nrow=3 ) +
-  geom_point( alpha=0.5, size=0.5 ) +
-  coord_fixed() +
-  scale_x_log10() +
-  scale_y_log10() +
-  geom_abline( slope=1, intercept=0, lty=2 ) +
-  labs( x = "Estimated SE from empirical data",
-        y = "True SE from simulation" ) +
-  expand_limits(x = 0, y = 0)
-```
-
-We do see some outliers, where the true SE is way higher or way lower than what we estimated.
-We filter to those studies where this occurred, and count the number of times there was such a large discrepancy.
-
-```{r, include=FALSE}
-m2 <- mm %>%
-  ungroup() %>%
-  filter( SE > 1.5 * SE_hat | SE < 0.7*SE_hat ) %>%
-  arrange( desc( SE_hat ) ) %>%
-  dplyr::select( Collection, UniqueID, method, SE_hat, SE ) %>%
-  mutate( off_by = SE / SE_hat ) %>%
-  arrange( -off_by )
-
-m2 %>%
-  knitr::kable( digits = 2 )
-```
-
-```{r}
-m2 %>%
-  group_by( UniqueID ) %>%
-  summarise( num_show = n(),
-             per_small = 100* mean( SE_hat < SE ) ) %>%
-  left_join( studies, by="UniqueID" ) %>%
-  dplyr::select( UniqueID, num_show, per_small, n, J, Jcv, Jbar, cons_df ) %>%
-  rename( `num estimators` = num_show,
-          `perc too small` = per_small ) %>%
-  knitr::kable( digits = 2 )
-```
-
-Two studies are responsible for most of the major discrepancies.
-For the matched pairs design (TRIAD Scale Up), we often got an estimated SE that was way too small.
-Beacon_S8TGPA has a large amount of cluster variation, and also generally small clusters---this means there were many small clusters here as well.
-
-
-## How do the actual ranges we saw compare to the ranges we get from the simulation?
+## How do the ranges of ATE estimates we saw empirically compare to the ranges we get from the simulation?
 
 For each study, we can look at the actual range of ATEs across estimators from the empirical data (red dot) vs. the ranges we get from the permutations (the boxplot).
 The boxplot shows what kinds of ranges we would "naturally" see when there is no treatment effect or treatment variation.
 
-```{r}
+```{r, fig.cap="Boxplot of the range of ATE estimates across estimators for each study, with the red dot indicating the empirical range of ATE estimates across estimators for that study. The boxplots show the distribution of ranges we would see if there were no treatment effect variation whatsoever.", include=TRUE, echo=FALSE, out.width="100%", fig.height=5}
 if ( FALSE ) {
   range_dat %>%
     filter( Estimand == "Overall" ) %>%
@@ -1651,7 +1537,7 @@ For each simulation iteration we do the following:
 1) calculate the max/min ratio of estimated standard errors across all the estimators for that trial.
 2) Calculate the inner-quartile range of these ratios.
 
-We then compare the distribution of these ranges to the empirical range we got from the original data.
+We then compare the distribution of these IQRs of ratios to the empirical IRQ of the empirical ratios we got from the original data.
 For the empirical data (for the 35 outcomes used in this simulation), the IQR was 0.25.
 The average across our simulations was 0.27 with a standard deviation of 0.05.
 The empirical range was well within the distribution of synthetic ranges, suggesting again that the variation we saw in the empirical data is consistent with what we would see if there were no treatment effect variation whatsoever.
@@ -1727,13 +1613,68 @@ tmp %>%
 Overall, we are seeing more empirical values in the tails of the ranges--overall 23% of the studies have ratios in the 5% tails (10% total) of the simulated ranges.
 -->
 
-We note that we intentionally keep the exploration of estimated SEs fairly minimal.
-Unfortunately, the permutation approach does not change the within cluster variation, or block variation, meaning that the estimated standard errors for many of the estimators are remarkably stable across permutations.
+We note that we are intentionally keeping the exploration of estimated SEs fairly minimal.
+The permutation approach does not change within cluster variation, or block variation, meaning that the estimated standard errors for many of the estimators are remarkably stable across permutations.
 This means idiosyncrasies of the initial data set cause the estimated standard errors to be systematically, larger or smaller than the true standard error as found with the permutation approach.
 This has interesting implications regarding understanding fully finite sample uncertainty in the context of a fixed data set with cluster variation.
 
 To attempt to address the stability of the SE estimators, we could extend the idea of calibrated simulation to generate new clusters and blocks with features similar to the estimated features of the empirical data.
 We leave this for a future work.
+
+
+## Are some of the estimators more precise across permutations than other estimators?
+
+We compare standard errors of methods by looking at the ratio of the true SE vs. median true SE within study, and then making a boxplot.
+We look across all estimators as there are no treatment impacts, so all the estimators are estimating the same estimand (an ATE, regardless of weighting, of 0).
+
+```{r, warning=FALSE, message=FALSE, fig.cap="Ratio of true SE to median true SE by method across all studies", include=TRUE, echo=FALSE, fig.height=4 }
+meth_dat <- meth_dat %>%
+  group_by( UniqueID ) %>%
+  mutate( SE_ratio = SE / median( SE, na.rm=TRUE ) ) %>%
+  ungroup()
+
+ggplot( meth_dat, aes( method, SE_ratio ) ) +
+  geom_boxplot( outliers=FALSE, fill="grey", col="darkgrey") + 
+  geom_jitter( width = 0.2, height=0, size=0.5 ) + 
+  coord_flip() +
+  geom_hline( yintercept = 1, col="red" ) +
+  labs( title = "relative SE to methods in study" )
+```
+
+All the methods have a SE ratio that is, at the median, the same as the other methods.  This suggests that the methods all have the same average overall performance across datasets.
+That said, some methods have long right tails, meaning there are some studies where their true SEs are up to 30% larger than the median performing method.
+
+We can organize these same values by study to see if some studies naturally lead to bigger ranges of true SE:
+
+```{r, fig.cap="Ratio of true SE to median SE across all estimators grouped by study"}
+ggplot( meth_dat, aes( UniqueID, SE_ratio ) ) +
+  facet_wrap( ~ Collection, scales="free_y" ) +
+  geom_boxplot( outliers=FALSE, fill="grey", col="darkgrey" ) +
+geom_jitter( width = 0.2, height=0, size=0.5 ) + 
+  geom_hline( yintercept = 1, col="red" ) +
+  coord_flip() +
+  labs( title = "relative SE to methods in study", x="" )
+```
+
+
+The second plot shows that some studies indeed have a wider range of true SEs than other studies.  For example, some estimators in `jg_crt_2` have larger SEs and some have smaller SEs.  By contrast, almost all estimators in `Beacon_S8TGPA` have the same true SE (note the very narrow boxplot).
+
+Using the true standard errors, we can recreate the dot plot where each dot is the max/min SE ratio for a specific outcome.
+We can compare the max/min ratio for the true SE and the estimated SE.
+
+```{r, warning=FALSE, message=FALSE, fig.height=3, fig.cap="Ratio of max to min true SE by study", include=TRUE, echo=FALSE }
+true_se <- meth_dat %>% 
+  group_by( UniqueID ) %>%
+  summarise( true_rat = max( SE ) / min( SE ) )
+
+ggplot( true_se, aes( true_rat ) ) +
+  geom_dotplot( method = "histodot", binwidth = 0.01 ) +
+  labs( title = "Ratio of highest to lowest true SE by study" )
+```
+
+These ratios are all inflated by simulation error (we do not fully know the true SEs), but even so, we are not seeing major ratios in the _true_ SE, even though we do see them in the _estimated_ SE; recall for the estimated SEs we had ratios well above 2.
+This suggests the large range we see in the empirical data is because the _estimated_ SEs vary a lot, not because the estimators are necessarily very different in terms of their precision.
+In particular, if some estimators have very poorly estimated SEs, the ratios can be driven quite high.
 
 
 
@@ -1744,18 +1685,23 @@ We leave this for a future work.
 Overall, across the two simulations, we find remarkable similarity between estimator performance across a wide range of estimators and approaches.
 That said, in some circumstances, there are notable differences, but those differences tend to arise in rather extreme scenarios.
 
+\clearpage
+\newpage
 
-# Appendix: Additional details of Simulation I DGP
+# Appendix: Additional details of Simulation I's DGP
 
 
-We next give some further technical detail of how we implemented the above steps.
+We next give some further technical detail of how we implemented Simulation I.
 
 ### How the data are generated
 
 For a given scenario, we start with a set of data generating parameters as described above.
 For example, Table 4 shows one of the more extreme scenarios.
+Using these parameters, we first generate the "grid" of individual blocks.
+The individual blocks describe different superpopulations of clusters, one for each block.
+Once the blocks are created, we then generate the clusters within each block.
 
-```{r}
+```{r tab_scenarios}
 scenarios = readRDS( here::here( "scenarios.rds" ) )
 
 strp <- scenarios %>%
@@ -1794,14 +1740,11 @@ key_scen %>%
   knitr::kable( caption = "Simulation Scenario Parameters" )
 ```
 
-We then generate the "grid" of individual blocks.
-These individual blocks describe different superpopulations of clusters.
-Once our blocks are created, we then generate the clusters within each block.
 
 **Generating the individual blocks.**
 To generate the individual blocks, we generate the block-level pairs of average control-side outcome and average treatment effect (in the case of treatment variation) with a multivariate normal distributions.
 We then generate the other block characteristics (e.g., proportion of clusters treated) according to various specified distributions described below.
-Finally, for any features of blocks that are to have non-zero correlations, we we induce a desired level of correlation by permuting one of the two features across blocks (see below for how we do this).
+Finally, for any features of blocks that are to have non-zero correlations, we induce a desired level of correlation by permuting one of the two features across blocks (see below for how we do this).
 
 When generating block mean outcomes and mean effects, we generate our values in a way^[Technically, we use the "empirical" setting of the multivariate normal generator to do this.] to exactly match the desired overall average and standard deviation.
 Doing so mitigates worry that the simulation results might be dependent on *which* blocks we have generated; otherwise we would have to worry that a particular set of blocks had randomly more, or less, variation than desired.
@@ -1850,11 +1793,12 @@ The block ATE is the simple average of the block-level cluster-average ATEs.
 It is as we targeted.
 The bottom lines of the display show the ATEs for a large dataset generated for this set of blocks: these are our approximated target superpopulation parameters for this scenario.
 
-In this specific example, these are different from each other and from the block average.
+In this specific example, these are different from each other and from the block average because of the variation in block sizes and other aspects of the DGP.
 We also see fairly high correlations of all sorts of features of the data.
 The numbers in parentheses are the standard deviations of a given value.
 
-Given our grid of block characteristics we then, for each block in turn, use a multilevel model data generating process (as described more fully in Miratrix et al., 2021) to generate the target number of clusters and individuals.
+**Generating clusters and individuals within blocks.**
+Given our grid of block characteristics we, for each block in turn, use a multilevel model data generating process (as described more fully in Miratrix et al., 2021) to generate the target number of clusters and individuals.
 
 To keep everything in effect size units, we have a target within-block total variation of $1 - ICC_3$, where $ICC_3$ is the target intraclass correlation for the blocks.
 Note that we have $ICC_3 + ICC_2 + \sigma^2_\epsilon = 1$, with $ICC_2$ being the cluster-level ICC and $\sigma^2_\epsilon$ the individual-level residual variance.

@@ -341,8 +341,8 @@ describe_powerteaching <- pmap(grid_powerteaching, dc,
 ## Read in output from clean room datasets ----
 # the same helper functions were run on the three clean room studies, and the results were compiled
 
-compare_ies <- readRDS("/data/share/pse/IES CRT/sd7/iesdata_comparemethods_v2.RDS")
-describe_ies <- readRDS("/data/share/pse/IES CRT/sd7/iesdata_describeclusterrct_v2.RDS")
+compare_ies <- readRDS("/data/share/pse/IES CRT/sd7/iesdata_comparemethods_v3.RDS")
+describe_ies <- readRDS("/data/share/pse/IES CRT/sd7/iesdata_describeclusterrct_v3.RDS")
 
 ## Combine and save compare_methods() results ----
 
@@ -360,14 +360,14 @@ compare <- grep('compare_', ls(), value = T) %>%
   select(-cares_keep) %>%
   rename(Estimator = method) %>%
   # map estimators to estimands
-  mutate(Estimand = case_when(Estimator %in% c('LRi-FE-crve',    'LRi-FE-db',
-                                               'LRi-FIpw-crve',  'LRi-FIpw-db',
-                                               'LRapw-FE-het',   'LRapw-FE-db',
-                                               'LRapw-FIpw-het', 'LRapw-FIpw-db')    ~ 'Person',
-                              Estimator %in% c('LRicw-FE-crve',   'LRicw-FE-db',
-                                               'LRicw-FIcw-crve', 'LRicw-FIcw-db',
-                                               'LRa-FE-het',      'LRa-FE-db',
-                                               'LRa-FIcw-het',    'LRa-FIcw-db',
+  mutate(Estimand = case_when(Estimator %in% c('LR-FE-crve',    'LR-FE-db',
+                                               'LR-FIpw-crve',  'LR-FIpw-db',
+                                               'ARpw-FE-het',   'ARpw-FE-db',
+                                               'ARpw-FIpw-het', 'ARpw-FIpw-db')    ~ 'Person',
+                              Estimator %in% c('LRcw-FE-crve',   'LRcw-FE-db',
+                                               'LRcw-FIcw-crve', 'LRcw-FIcw-db',
+                                               'AR-FE-het',      'AR-FE-db',
+                                               'AR-FIcw-het',    'AR-FIcw-db',
                                                'MLM-FE', 'MLM-RE', 'MLM-FIcw')       ~ 'Cluster'),
          
          Outcome_desc = str_trim(Outcome_desc))
