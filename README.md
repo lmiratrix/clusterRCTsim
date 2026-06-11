@@ -24,12 +24,9 @@ This repository contains the simulation study and empirical analysis code for co
 
 | Folder/File | Description |
 |------------------------------------|------------------------------------|
+| [`simulation/`](simulation/) | Main simulation entry-point scripts: `generate_grids.R`, `generate_grids_lowdf.R`, `estimator_performance_simulation.R`, `estimator_performance_simulation_fixed_district.R`, and `run_single_simulation.R`. |
 | [`cloud/`](cloud/README.md) | SLURM batch scripts for running the large-scale simulation on the Harvard FASRC (Cannon) cluster under the `miratrix_lab` account. |
 | [`data_prep/`](data_prep/README.md) | Pipeline (3 scripts) that bundles raw cluster job outputs into cleaned, aggregated `.RData` files ready for analysis. |
-| `generate_grids.R` | Generates the full-factorial simulation scenario grid (`scenarios.rds`) used by the cloud run. |
-| `generate_grids_lowdf.R` | Generates the low-df scenario grid variant. |
-| `estimator_performance_simulation.R` | Script for running a simulation on a given scenario grid (super-population version). |
-| `estimator_performance_simulation_fixed_district.R` | Fixed-district version of the performance simulation. |
 | `scenarios.rds` | Current scenario grid file (also mirrored in `results/`). |
 
 ### Results
@@ -48,6 +45,7 @@ This repository contains the simulation study and empirical analysis code for co
 | [`explorations/`](explorations/README.md) | Ad hoc scripts for targeted theoretical/methodological questions. |
 | [`documentation/`](documentation/README.md) | Early project documentation. |
 | [`figures/`](figures/README.md) | Generated PDF figures for the paper. |
+| [`attic/`](attic/README.md) | Old scripts retired from active use but kept for reference. |
 | `install_needed_packages.R` | Installs all R packages required to run the simulations. |
 
 ------------------------------------------------------------------------
@@ -57,10 +55,10 @@ This repository contains the simulation study and empirical analysis code for co
 ### Running a small simulation locally
 
 ``` r
-source("install_needed_packages.R")      # install dependencies
-source("generate_grids.R")               # create scenarios.rds
-source("estimator_performance_simulation_fixed_district.R")  # run sim
-source("data_prep/clean_simulation_results.R")               # clean output
+source("install_needed_packages.R")                                      # install dependencies
+source("simulation/generate_grids.R")                                    # create scenarios.rds
+source("simulation/estimator_performance_simulation_fixed_district.R")  # run sim
+source("data_prep/clean_simulation_results.R")                           # clean output
 ```
 
 ### Running the full simulation on the cluster
@@ -92,53 +90,3 @@ The 2025-11-20 snapshot is the version used in the initial journal submission:
 - `archive/scenarios_2025-11-20.rds`: the grid that program generated, and the one the submitted results were run on.
 
 When `generate_grids.R` is rerun it overwrites `scenarios.rds` in place, so we copy the current pair into `archive/` with the grid's creation date before regenerating.
-
-# WARNING: Readme from this point on needs to be updated
-
-## Running the simulation
-
-We ran the simulation on the Odessey cluster at Harvard. The simulation takes several computers awhile to run, but it is easy to run smaller simulations targeting specific scenarios.
-
-The Odyssey scripts will generate a large number of rds files, each file being the result of a fraction of the simulation runs. We then bundle these results into a single file, and then analyze that file.
-
-## Overview of file structure
-
-We have the following
-
-- `simulation_support_code` - Code for generating data and running the simulation. Uses the blkvar package, which implements the various methods we explored.
-- `data_prep` folder - Three files that form a pipeline that takes the raw output from the Odyssey cluster and makes some aggregate datafiles. These scripts are described below. There is also a bundling file (`fully_prepare_simulation_results.R`) that just sources these files in order.
-- `analysis` folder - Collection of scripts that do the analysis of the simulation results presented in the paper.
-
-## Instructions to get simulation results data ready
-
-The steps are as follows:
-
-1)  Gather results from the cluster into a single file.
-
-```         
-source( "prepare simulation results/bundle_odyssey_results.R" )
-```
-
-2)  Clean up single file, remove bad sim runs, add in metadata and summary data.
-
-```         
-source( "prepare simulation results/clean_simulation_results.R" )
-```
-
-3)  Calculate the performance metrics used for the report.
-
-```         
-source( "prepare simulation results/prepare_aggregate_results.R" )
-```
-
-This final file works with the following data frames:
-
-- scenarios (list of scenario characteristics)
-- simdata (the raw data; this can be a very big file)
-- sruns (aggregated data by method and simulation run)
-
-## Instructions to get simulation results
-
-Source the `calculate_paper_results.R` file. This is the R code from an old R markdown script that was then converted to the simulation writeup tex document.
-
-Data-generating code is adapted from the [PUMP](https://github.com/MDRCNY/PUMP) package simulation code and from the Miratrix, Weiss & Henderson (2021) multisite estimands paper. The original simulation infrastructure was built by Jonathan Che; the current multi-factor design was developed by Sophie Litschwartz and Luke Miratrix.
