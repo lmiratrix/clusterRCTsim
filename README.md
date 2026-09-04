@@ -2,6 +2,8 @@
 
 This repository contains the simulation study and empirical analysis code for comparing ATE estimators in blocked, cluster-randomized trials (CRTs). The estimators themselves are implemented in the companion [`clusterRCT`](https://github.com/lmiratrix/clusterRCT) R package.
 
+**Branch structure:** `main` is a trimmed replication package covering the code behind the paper's figures/tables (see `REPLICATION.md`). The `dev` branch additionally has the exploratory/historical material that didn't make the cut for `main`: `reports/`, `covariate_simulations/`, `small_simulations/`, `documentation/`, `attic/`, and `explorations/`.
+
 ## Repository Structure
 
 ### Core Functions
@@ -17,8 +19,6 @@ This repository contains the simulation study and empirical analysis code for co
 | [`analysis/`](analysis/README.md) | Reports and scripts for the large multi-factor simulation study. Primary output: `Simulation_WriteUp.pdf` (the paper's simulation supplement). Also contains scripts for targeted analyses (coverage, factor importance, estimator comparisons). |
 | [`empirical/`](empirical/README.md) | Applies all estimators to a collection of real CRT datasets. Produces the empirical results reported in the paper and generates figures. The underlying individual-level data lives on a secure server; this folder stores processing scripts and exported results. |
 | [`fingerprint/`](fingerprint/README.md) | Supplementary simulations, in particular the "Fingerprint simulations" that use DGPs calibrated to the real datasets and "rerandomization simulations" that use the real datasets but permute treatment assignment to assess estimator stability. |
-| [`reports/`](reports/README.md) | Standalone technical reports: superpopulation vs. finite-population SE comparisons, and a getting-started tutorial for new contributors. |
-| [`covariate_simulations/`](covariate_simulations/README.md) | Simulations exploring covariate adjustment in blocked CRTs, including L1 vs. L2 covariates and the low-df regime. |
 
 ### Simulation Infrastructure
 
@@ -40,13 +40,11 @@ This repository contains the simulation study and empirical analysis code for co
 
 | Folder/File | Description |
 |------------------------------------|------------------------------------|
-| [`small_simulations/`](small_simulations/README.md) | Small, self-contained simulations exploring specific questions locally. Many predate the current infrastructure. |
 | [`demo_scripts/`](demo_scripts/README.md) | Short demonstration scripts for key workflows (fingerprint sims, grid DGP, single-scenario runs). |
-| [`explorations/`](explorations/README.md) | Ad hoc scripts for targeted theoretical/methodological questions. |
-| [`documentation/`](documentation/README.md) | Early project documentation. |
 | [`figures/`](figures/README.md) | Generated PDF figures for the paper. |
-| [`attic/`](attic/README.md) | Old scripts retired from active use but kept for reference. |
 | `install_needed_packages.R` | Installs all R packages required to run the simulations. |
+
+Exploratory/historical material not part of the replication package (`reports/`, `covariate_simulations/`, `small_simulations/`, `documentation/`, `attic/`, `explorations/`) lives on the `dev` branch — see the branch-structure note above.
 
 ------------------------------------------------------------------------
 

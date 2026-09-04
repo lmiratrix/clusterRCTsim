@@ -4,7 +4,7 @@ This folder contains a three-step pipeline that takes raw output files from the 
 
 ## Pipeline Steps
 
-Run these scripts in order (or source `attic/fully_prepare_simulation_results.R` to run all three):
+Run these scripts in order:
 
 ### Step 1: `bundle_odyssey_results.R`
 Reads all individual `simulation_results_*.rds` files from the `results/` folder (one per cluster job) and combines them into a single `complete_odyssey_results.rds` file. Also reports run-time diagnostics.
