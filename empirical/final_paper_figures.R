@@ -25,17 +25,6 @@ source( here::here( "empirical/calculate_all_ranges.R" ) )
 
 
 
-# Which studies are troublemakers? ----
-
-summary_stats
-
-summary_stats %>% 
-  ungroup() %>%
-  filter( Ratio > 2 ) %>%
-  dplyr::select( UniqueID, Covariates, Collection, low_df, has_single, Ratio ) %>%
-  arrange( Covariates, Ratio ) %>%
-  knitr::kable( digits = 1 )
-
 if ( FALSE ) {
   filter( combined, UniqueID == "CARES_DC_CST_COMPTOT_PTH", Covariates == "best") %>%
     dplyr::select( Estimator, num_singletons, ATE_hat_std, SE_hat_std ) %>%
@@ -52,15 +41,8 @@ if ( FALSE ) {
 
 
 ## Figure 1: The Range (across 11 Estimators) of Estimates of β for {n_outcomes} Outcomes ----
-table( summary_stats$class )
-nrow( summary_stats )
-
-range( summary_stats$Range )
 n_outcomes <- n_distinct( summary_stats$UniqueID )
 n_estimators <- n_distinct( combined$Estimator )
-n_estimators
-nrow( summary_stats )
-table( table( summary_stats$UniqueID ) )
 
 range_x_range <- 0.30
 
@@ -150,11 +132,10 @@ summary_stats_estimand %>%
 
 ## SE plots excluding fully interacted models ----
 
-n_est_noFI = combined %>% 
+n_est_noFI = combined %>%
   filter( !grepl('-FI', Estimator) ) %>%
   pull( Estimator ) %>%
   n_distinct()
-n_est_noFI
 
 summary_stats_exclFI %>%
   filter(Covariates == "best") %>%
