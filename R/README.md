@@ -16,3 +16,9 @@ This folder contains the shared R functions used throughout the project. These a
 | `MCSE_functions.R` | Monte Carlo standard error (MCSE) utilities for assessing simulation precision. |
 | `generate_nonnegative_integers.R` | Helper to sample non-negative integers with a given mean and SD, used for generating variable cluster sizes. |
 | `util.R` | Miscellaneous utility functions (e.g., `scat()` for formatted console output). |
+
+## Seeding convention
+
+- **Grid generation** (`simulation/generate_grids.R`, `generate_grids_lowdf.R`): a single global `set.seed(40444)` at the top of the script, so the scenario grid itself is reproducible.
+- **Per-scenario simulation runs** (`simulation/estimator_performance_simulation.R`, `estimator_performance_simulation_fixed_district.R`, `run_single_simulation.R`): each cloud/array job seeds with `set.seed(index^2 + index + 1)`, where `index` (or `SCENARIO_ID`) is the job's scenario index. This gives each scenario a distinct, reproducible seed derived deterministically from its index, rather than reusing one seed across all scenarios or seeding from wall-clock time.
+- The only other `set.seed()` calls in `R/` (in `util.R`, `group_estimators.R`, `generate_nonnegative_integers.R`) are fixed constants (`123`, `1039`) inside `if (FALSE) { ... }` demo/testing blocks — they don't affect any simulation run.

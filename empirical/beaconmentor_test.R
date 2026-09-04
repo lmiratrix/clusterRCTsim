@@ -12,11 +12,12 @@ library(clusterRCT)
 library(tools)
 library(writexl)
 
-
+# Secure server data root; override via env var for a different mount point.
+IES_CRT_ROOT <- Sys.getenv( "IES_CRT_DATA_ROOT", "/data/share/pse/IES CRT" )
 
 # analyze cleaned real data ----
 if ( FALSE ) {
-  f <- "/data/share/pse/IES CRT/sd7/clean study datasets/beaconmentor.RDS"
+  f <- file.path( IES_CRT_ROOT, "sd7/clean study datasets/beaconmentor.RDS" )
   assign(file_path_sans_ext(basename(f)),
          readRDS(f))
   

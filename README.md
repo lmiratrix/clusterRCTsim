@@ -16,7 +16,7 @@ This repository contains the simulation study and empirical analysis code for co
 |----------------------------|--------------------------------------------|
 | [`analysis/`](analysis/README.md) | Reports and scripts for the large multi-factor simulation study. Primary output: `Simulation_WriteUp.pdf` (the paper's simulation supplement). Also contains scripts for targeted analyses (coverage, factor importance, estimator comparisons). |
 | [`empirical/`](empirical/README.md) | Applies all estimators to a collection of real CRT datasets. Produces the empirical results reported in the paper and generates figures. The underlying individual-level data lives on a secure server; this folder stores processing scripts and exported results. |
-| [`fingerprint/`](fingerprint/README.md) | Fingerprint simulations (calibrated to real datasets) and rerandomization simulations (fixed dataset, repeated treatment assignment). Reports compare SE estimators under these conditions. |
+| [`fingerprint/`](fingerprint/README.md) | Supplementary simulations, in particular the "Fingerprint simulations" that use DGPs calibrated to the real datasets and "rerandomization simulations" that use the real datasets but permute treatment assignment to assess estimator stability. |
 | [`reports/`](reports/README.md) | Standalone technical reports: superpopulation vs. finite-population SE comparisons, and a getting-started tutorial for new contributors. |
 | [`covariate_simulations/`](covariate_simulations/README.md) | Simulations exploring covariate adjustment in blocked CRTs, including L1 vs. L2 covariates and the low-df regime. |
 
@@ -82,7 +82,7 @@ The current data generating code is adapted from two sources: the PUMP package s
 
 ## Archive
 
-The `archive/` folder holds dated snapshots of the grid-generation program and its output, saved before we change them so earlier versions are never lost.
+The [`archive/`](archive/README.md) folder holds dated snapshots of the grid-generation program and its output, saved before we change them so earlier versions are never lost.
 
 The 2025-11-20 snapshot is the version used in the initial journal submission:
 

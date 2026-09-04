@@ -2,6 +2,8 @@
 
 This folder contains small, self-contained simulation scripts used to explore specific questions or prototype ideas. Unlike the cloud simulations, these run locally in minutes and target narrow questions. Many predate the current simulation framework.
 
+These scripts are not part of the reproducible pipeline for the paper (nothing else in the repo sources or depends on them) — they're standalone, ad hoc checks kept for reference.
+
 ## Scripts
 
 | File | Purpose |

@@ -46,10 +46,9 @@ get.estimates = function( df, ... ) {
   } else {
     cat( "\nCaught error in compare_methods:\n" )
     print( ests$error )
-    browser()
-    saveRDS( df, file=here::here( "../clusterRCTsim/data_triggers_warning.rds" ) )
+    saveRDS( df, file=here::here( "data_triggers_warning.rds" ) )
     ests = data.frame( ATE.hat = c(NA),
-                       SE.hat = c(NA) )    
+                       SE.hat = c(NA) )
   }
   ests
 }

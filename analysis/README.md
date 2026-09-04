@@ -24,3 +24,12 @@ This folder contains the reports and analysis scripts for the large multi-factor
 | `coverage_investigation.R` | Focused investigation of CI coverage rates across scenarios and estimators. |
 | `compare_DBSite_to_FIRC.R` | Compares two specific estimator families: design-based site-level and fully interacted random coefficients. |
 | `calculate_paper_results.R` | Script version (non-Rmd) of the paper results calculation. |
+| `make_tree_of_sim_results.R` | Builds regression trees (via `R/create_analysis_tree.R`) explaining which simulation factors drive bias in specific method subsets. Relocated here from the repo root. |
+
+## Shared Utility Functions (`R/`)
+
+| File | Purpose |
+|------|---------|
+| `create_analysis_tree.R` | Fits an rpart tree with a `num_leaves` pruning target, a legacy column `name_map`, and a signed color scale. Used by `Simulation_WriteUp.Rmd` and `empirical/empirical_results_report.Rmd`. |
+| `create_analysis_tree_minmax.R` | A separate, non-interchangeable rpart tree fitter with a `min_leaves`/`max_leaves` pruning API. Used by `fingerprint/fingerprint_simulation_report.Rmd`. See the header comments in both files for why these are kept distinct rather than merged. |
+| `create_custom_boxplot.R` | Shared boxplot styling helper used across the simulation supplement. |

@@ -16,7 +16,6 @@ theme_set( theme_classic() )
 
 
 
-PLOT_PATH = '/data/share/pse/IES CRT/tables/'
 PLOT_PATH = paste0( here::here( "empirical", "tables" ), "/" )
 
 plot_path <- function( filename ) {

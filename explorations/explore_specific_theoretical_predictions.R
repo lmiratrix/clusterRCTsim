@@ -36,7 +36,7 @@ DGP_vars <- c("K", "J.bar", "p.bar", "sd.ATE", "ICC", "variable.p", "n.bar", "sd
               "num.cov.cluster", "cv.cluster", "num.cov.indiv", 
               "empirical", "cv.block", "nbar.J.cor", "size.intercept.cor")
 
-source( here::here( "analysis/Simulation_Write_Up/load_and_prep_data.R" ) )
+source( here::here( "analysis/load_and_prep_data.R" ) )
 
 
 simdat = sruns.clean
@@ -143,7 +143,7 @@ dd <- dat %>%
                  size.impact.cor.cluster == 0 )
 summary( dd$bias.s.estimand )
 
-source( here::here( "analysis/Simulation_Write_Up/create_analysis_tree.R" ) )
+source( here::here( "analysis/R/create_analysis_tree.R" ) )
 
 DGP_vars
 

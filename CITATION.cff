@@ -1,0 +1,53 @@
+cff-version: 1.2.0
+message: >-
+  This repository contains the simulation study and empirical analysis code
+  supporting the paper below. If you use this code, please cite the paper;
+  the estimators themselves are implemented in the companion clusterRCT
+  package (https://github.com/lmiratrix/clusterRCT), which should be cited
+  separately if used directly.
+title: >-
+  clusterRCTsim: Simulation and Empirical Analysis Code for "An Applied
+  Researchers' Guide to Estimating Effects from Blocked Cluster Randomized
+  Trials"
+authors:
+  - family-names: Miratrix
+    given-names: Luke
+    affiliation: Harvard Graduate School of Education
+  - family-names: Weiss
+    given-names: Michael J.
+    affiliation: MDRC
+  - family-names: Litschwartz
+    given-names: Sophie
+    affiliation: MDRC
+  - family-names: Hill
+    given-names: Colin
+    affiliation: MDRC
+  - family-names: Warner
+    given-names: Kayla
+    affiliation: MDRC
+license: MIT
+repository-code: https://github.com/lmiratrix/clusterRCTsim
+preferred-citation:
+  type: unpublished
+  title: >-
+    An Applied Researchers' Guide to Estimating Effects from Blocked Cluster
+    Randomized Trials: Estimands, Estimators, and Estimates
+  authors:
+    - family-names: Miratrix
+      given-names: Luke
+      affiliation: Harvard Graduate School of Education
+    - family-names: Weiss
+      given-names: Michael J.
+      affiliation: MDRC
+    - family-names: Litschwartz
+      given-names: Sophie
+      affiliation: MDRC
+    - family-names: Hill
+      given-names: Colin
+      affiliation: MDRC
+    - family-names: Warner
+      given-names: Kayla
+      affiliation: MDRC
+  notes: >-
+    Submitted to the Journal of Research on Educational Effectiveness (JREE);
+    update this entry with the journal, volume, DOI, and year once accepted.

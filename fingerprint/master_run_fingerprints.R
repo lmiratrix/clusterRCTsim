@@ -14,8 +14,11 @@ library(writexl)
 
 source( here::here( "empirical/data_processing_functions.R" ) )
 
+# Secure server data root; override via env var for a different mount point.
+IES_CRT_ROOT <- Sys.getenv( "IES_CRT_DATA_ROOT", "/data/share/pse/IES CRT" )
+
 # Where the prepped data is
-DATA_DIR = '/data/share/pse/IES CRT/sd7/clean study datasets'
+DATA_DIR = file.path( IES_CRT_ROOT, "sd7/clean study datasets" )
 
 
 # Where to save result files (one file per outcome will be generated)
@@ -382,7 +385,7 @@ compare <- grep('compare_', ls(), value = T) %>%
 
 
 
-write_xlsx(compare,  '/data/share/pse/IES CRT/sd7/master_run_fingerprints.xlsx')
-saveRDS(compare,    '/data/share/pse/IES CRT/sd7/master_run_fingerprints.RDS')
+write_xlsx(compare,  file.path( IES_CRT_ROOT, "sd7/master_run_fingerprints.xlsx" ))
+saveRDS(compare,    file.path( IES_CRT_ROOT, "sd7/master_run_fingerprints.RDS" ))
 
 

@@ -2,10 +2,19 @@
 library( rpart.plot )
 library( rpart )
 
+# Historical sibling of create_analysis_tree() in create_analysis_tree.R (same
+# directory). Both are independent rpart-based tree-fitting functions with
+# different pruning APIs (this one: min_leaves/max_leaves; the other:
+# num_leaves + a legacy column name_map + a signed color scale). They are NOT
+# interchangeable and NOT drop-in replacements for each other - this one is
+# used by fingerprint/fingerprint_simulation_report.Rmd; the other is used by
+# analysis/Simulation_WriteUp.Rmd and empirical/empirical_results_report.Rmd.
+# Deliberately kept as two files/functions rather than merged so neither
+# report's tree output changes silently.
 
-#' Make a regression tree with the simulation results 
-#' 
-create_analysis_tree <- function( data, 
+#' Make a regression tree with the simulation results
+#'
+create_analysis_tree_minmax <- function( data,
                                   outcome_var, 
                                   predictor_vars,
                                   min_leaves = 1,

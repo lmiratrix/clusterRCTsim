@@ -4,10 +4,20 @@ library(rpart)
 library( rpart.plot )
 require(RColorBrewer)
 
+# Historical sibling of create_analysis_tree_minmax() in
+# create_analysis_tree_minmax.R (same directory). Both are independent
+# rpart-based tree-fitting functions with different pruning APIs (this one:
+# num_leaves + a legacy column name_map + a signed color scale; the other:
+# min_leaves/max_leaves). They are NOT interchangeable and NOT drop-in
+# replacements for each other - this one is used by
+# analysis/Simulation_WriteUp.Rmd and empirical/empirical_results_report.Rmd;
+# the other is used by fingerprint/fingerprint_simulation_report.Rmd.
+# Deliberately kept as two files/functions rather than merged so neither
+# report's tree output changes silently.
 
-#' Make a regression tree with the simulation results 
-#' 
-create_analysis_tree <- function(data, outcome_var, 
+#' Make a regression tree with the simulation results
+#'
+create_analysis_tree <- function(data, outcome_var,
                                  predictor_vars = c("is_FI", "is_MLM", "is_cw", "is_pw", "blk_type", 
                                                     "J.bar", "cor_J_tau", "sd.clu", "ICC.clu", 
                                                     "cv.clu", "num.cov", "p.bar"),

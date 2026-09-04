@@ -18,7 +18,7 @@ theme_set( my_t )
 
 
 # Load simulation results
-source( here::here( "analysis/Simulation_Write_Up/load_and_prep_data.R" ) )
+source( here::here( "analysis/load_and_prep_data.R" ) )
 
 # Restruct to the core methods
 sruns.sub <- plot_data %>% 

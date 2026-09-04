@@ -279,9 +279,9 @@ Note: When there are multiple outcomes for the same study, these lines are overp
 
 We can fit a tree to predict when we see larger ranges across our simulation runs (we drop the TRIADScale-up study since it is a matched pairs design, which is very different from the others):
 ```{r, out.width="75%"}
-source( here::here( "create_analysis_tree.R" ) )
+source( here::here( "analysis/R/create_analysis_tree_minmax.R" ) )
 triad_id = "TRIADScale-up_rema2"
-create_analysis_tree( filter( range_dat, UniqueID != triad_id ), 
+create_analysis_tree_minmax( filter( range_dat, UniqueID != triad_id ),
                       "rangeATE",
                       c("J", "Jbar", "K", "n", "nbar", "num_singletons",
                         "num_doubletons", "ncv", "Jcv", "tx.cv", "na_SE" ),
@@ -806,8 +806,8 @@ In the above we see the clear contraction of the ratios when we look at _true_ S
 We can ask what drives these differences, making a tree that predicts which studies have greater instability in the true SE:
 
 ```{r, out.width = "50%"}
-source( here::here( "create_analysis_tree.R" ) )
-create_analysis_tree( mm, "trueSEratio",
+source( here::here( "analysis/R/create_analysis_tree_minmax.R" ) )
+create_analysis_tree_minmax( mm, "trueSEratio",
                       c("J", "Jbar", "K", "num_singletons",
                         "num_doubletons", "ncv", "Jcv", "tx.cv",
                         "p.tx", "R2.1", "cluster_ICC" ),
@@ -861,8 +861,8 @@ We can then explore across the scenarios what characteristics lead to situations
 
 ```{r, out.width = "75%"}
 
-source( here::here( "create_analysis_tree.R" ) )
-create_analysis_tree( range_dat, "ratioSE",
+source( here::here( "analysis/R/create_analysis_tree_minmax.R" ) )
+create_analysis_tree_minmax( range_dat, "ratioSE",
                       c("J", "Jbar", "K", "num_singletons",
                         "num_doubletons", "ncv", "Jcv", "tx.cv", "na_SE" ),
                       max_leaves = 7, include_counts =TRUE 

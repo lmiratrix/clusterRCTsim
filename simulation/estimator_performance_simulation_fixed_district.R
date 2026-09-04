@@ -14,8 +14,8 @@
 rm(list=ls())
 
 
-source( "R/data_generation_code.R" )
-source( "R/simulation_support_code_fixed_block.R" )
+source( here::here( "R/data_generation_code.R" ) )
+source( here::here( "R/simulation_support_code_fixed_block.R" ) )
 
 # Which set of simulation scenarios should we run?
 #

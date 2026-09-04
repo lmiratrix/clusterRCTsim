@@ -6,12 +6,13 @@
 
 source( here::here( "empirical/load_empirical_results.R" ) )
 
-
+# Secure server data root; override via env var for a different mount point.
+IES_CRT_ROOT <- Sys.getenv( "IES_CRT_DATA_ROOT", "/data/share/pse/IES CRT" )
 
 ## QC effect size estimates ----
 
 # read in Excel file with reported effect sizes
-report_es <- read_excel('/data/share/pse/IES CRT/tables/Report vs Our Outcomes 240429.xlsx') %>%
+report_es <- read_excel(file.path( IES_CRT_ROOT, "tables/Report vs Our Outcomes 240429.xlsx" )) %>%
   select(Project = `Study Name`,
          Outcome_desc = Outcome,
          ATE_hat_std_qc = `Report Effect size`) %>%
@@ -103,7 +104,7 @@ for (i in 1:nrow(report_es)) {
 
 plot_grid <- do.call('grid.arrange', qcplot_list)
 
-ggsave(filename = '/data/share/pse/IES CRT/tables/QC/QC_EffectSize_240429.png',
+ggsave(filename = file.path( IES_CRT_ROOT, "tables/QC/QC_EffectSize_240429.png" ),
        plot = plot_grid,
        width = 15,
        height = 15)

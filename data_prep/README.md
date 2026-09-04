@@ -20,5 +20,4 @@ Combines results across multiple simulation batches (e.g., different scenario gr
 
 ## Notes
 
-- `bundle_odyssey_results.R` and `clean_simulation_results.R` each have a "conflicted copy" variant from a Dropbox sync issue — use the non-conflicted versions.
 - The raw per-job result files are not committed to git (too large); they must be retrieved from the cluster or re-run.

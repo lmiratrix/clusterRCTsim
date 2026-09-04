@@ -26,11 +26,13 @@ library(writexl)
 
 source( here::here( "empirical/data_processing_functions.R" ) )
 
+# Secure server data root; override via env var for a different mount point.
+IES_CRT_ROOT <- Sys.getenv( "IES_CRT_DATA_ROOT", "/data/share/pse/IES CRT" )
 
 # load cleaned data ----
 
 # these are individual datasets for each non-clean room study, already filtered to analytic sample
-for (f in list.files('/data/share/pse/IES CRT/sd7/clean study datasets', full.names = T)) {
+for (f in list.files(file.path( IES_CRT_ROOT, "sd7/clean study datasets" ), full.names = T)) {
   assign(file_path_sans_ext(basename(f)),
          readRDS(f))
 }
@@ -341,8 +343,8 @@ describe_powerteaching <- pmap(grid_powerteaching, dc,
 ## Read in output from clean room datasets ----
 # the same helper functions were run on the three clean room studies, and the results were compiled
 
-compare_ies <- readRDS("/data/share/pse/IES CRT/sd7/iesdata_comparemethods_v3.RDS")
-describe_ies <- readRDS("/data/share/pse/IES CRT/sd7/iesdata_describeclusterrct_v3.RDS")
+compare_ies <- readRDS(file.path( IES_CRT_ROOT, "sd7/iesdata_comparemethods_v3.RDS" ))
+describe_ies <- readRDS(file.path( IES_CRT_ROOT, "sd7/iesdata_describeclusterrct_v3.RDS" ))
 
 ## Combine and save compare_methods() results ----
 
@@ -401,9 +403,11 @@ combined <- inner_join(describe %>%
   relocate(UniqueID) %>%
   relocate(ATE_hat_std, SE_hat_std, .after = SE_hat)
 
-write_xlsx(compare,  '/data/share/pse/IES CRT/sd7/master241204_compare.xlsx')
-write_xlsx(describe, '/data/share/pse/IES CRT/sd7/master241204_describe.xlsx') 
-write_xlsx(combined, '/data/share/pse/IES CRT/sd7/master241204_combined.xlsx') 
-saveRDS(combined,    '/data/share/pse/IES CRT/sd7/master241204_combined.RDS')
-saveRDS(combined,    '/data/share/pse/IES CRT/clusterRCTsim/empirical/results/master241204_combined.RDS')
+write_xlsx(compare,  file.path( IES_CRT_ROOT, "sd7/master241204_compare.xlsx" ))
+write_xlsx(describe, file.path( IES_CRT_ROOT, "sd7/master241204_describe.xlsx" ))
+write_xlsx(combined, file.path( IES_CRT_ROOT, "sd7/master241204_combined.xlsx" ))
+saveRDS(combined,    file.path( IES_CRT_ROOT, "sd7/master241204_combined.RDS" ))
+# also drop a copy into the repo itself - this is the committed, aggregated
+# file that lets empirical_results_report.Rmd rerun without server access
+saveRDS(combined,    here::here( "empirical/results/master241204_combined.RDS" ))
 

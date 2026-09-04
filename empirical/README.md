@@ -2,7 +2,9 @@
 
 This folder contains all code for applying the clusterRCT estimators to a collection of real cluster-randomized trial datasets. The goal is to show how different estimators compare on actual data and to characterize the range of estimates they produce.
 
-The underlying data lives on a secure server (`/data/share/pse/IES CRT/`) and is not stored in this repository. Clean-room datasets are processed there; results are exported to `empirical/results/`.
+The underlying data lives on a secure server (`/data/share/pse/IES CRT/`) and is not stored in this repository. Clean-room datasets are processed there; results are exported to `empirical/results/`. Scripts that touch this data read the root path from `IES_CRT_ROOT <- Sys.getenv("IES_CRT_DATA_ROOT", "/data/share/pse/IES CRT")` — set the `IES_CRT_DATA_ROOT` environment variable if your mount point differs.
+
+**Reproducibility without server access:** the empirical report (`empirical_results_report.Rmd`, via `load_and_prep_empirical_results.R`) reads from the committed, aggregated `empirical/results/*.RDS` files, not from raw data — so the main text's empirical figures/tables ARE reproducible without secure-server access. Only regenerating those aggregated `.RDS` files themselves (via `master_analyze_all_data.R`) requires server access.
 
 > **Note:** Scripts that run fingerprint simulations on these datasets (`master_run_fingerprints.R`, `master_run_fingerprints_testing.R`, `testing_fingerprint_simR.R`) live in [`fingerprint/`](../fingerprint/README.md), since they are part of the fingerprint simulation workflow.
 

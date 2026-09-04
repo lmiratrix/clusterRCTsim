@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Institution-specific: Harvard FASRC (Cannon) cluster, miratrix_lab account.
+# Adapt the account, partition, and R_LIBS_USER path for another
+# institution's HPC environment.
+
 #SBATCH -A miratrix_lab # lab account
 
 #SBATCH -n 1  #Number of cores
