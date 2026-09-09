@@ -1,6 +1,16 @@
 
 # This is a version of master_analyze_all_data.R except it loads the
-# data and runs a fingerprint simulation on each dataset.
+# data and runs the rerandomization simulation (Simulation II) on
+# each dataset, for the restricted/curated studies (the public
+# Gilbert/IRW studies' half of this same simulation is run by
+# simulationII/04_run_rerandomization_simulation.R).
+#
+# NOTE: this file (and its output) used to be named
+# master_run_fingerprints - despite that name, this does NOT run a
+# fingerprint simulation (calibrated-synthetic-data) - that's a
+# different mode, handled by master_run_fingerprints_testing.R and
+# full_fingerprint_simulation.R in this same folder. Renamed
+# 2026-09-10 to stop that being confusing.
 
 
 # load libraries ----
@@ -22,7 +32,7 @@ DATA_DIR = file.path( IES_CRT_ROOT, "sd7/clean study datasets" )
 
 
 # Where to save result files (one file per outcome will be generated)
-RESULT_DIR = here::here( "rerand_sim_results" )
+RESULT_DIR = here::here( "simulationII/rerand_sim_results" )
 
 
 # How many iterations for each outcome?
@@ -385,7 +395,7 @@ compare <- grep('compare_', ls(), value = T) %>%
 
 
 
-write_xlsx(compare,  file.path( IES_CRT_ROOT, "sd7/master_run_fingerprints.xlsx" ))
-saveRDS(compare,    file.path( IES_CRT_ROOT, "sd7/master_run_fingerprints.RDS" ))
+write_xlsx(compare,  file.path( IES_CRT_ROOT, "sd7/master_run_rerandomization.xlsx" ))
+saveRDS(compare,    file.path( IES_CRT_ROOT, "sd7/master_run_rerandomization.RDS" ))
 
 

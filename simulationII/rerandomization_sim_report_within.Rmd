@@ -20,7 +20,7 @@ knitr::opts_chunk$set(echo = FALSE,
 options(list(dplyr.summarise.inform = FALSE))
 theme_set( theme_classic() )
 
-source( here::here( "fingerprint/load_master_permutation_results.R" ) )
+source( here::here( "simulationII/load_master_rerandomization_results.R" ) )
 
 range_dat <- filter( range_dat, Covariates=="best" )
 ```

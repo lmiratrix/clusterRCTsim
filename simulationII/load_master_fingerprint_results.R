@@ -30,7 +30,7 @@ cli::cli_h1( "!!! Loading and examining results" )
 if ( FALSE ) {
   
   # Read one example result file
-  res = read_rds( here::here( "fingerprint/results_fingerprint",
+  res = read_rds( here::here( "simulationII/results_fingerprint",
                               paste0( studies$UniqueID[1], ".rds" ) ) )
   res
   table( res$runID )  
@@ -40,7 +40,7 @@ if ( FALSE ) {
 dat <- studies$UniqueID %>%
   set_names() %>%
   map( \(file) {
-    fname = here::here( "fingerprint/results_fingerprint", paste0( file, ".rds" ) )
+    fname = here::here( "simulationII/results_fingerprint", paste0( file, ".rds" ) )
     # check if file exists
     if ( file.exists( fname ) ) {
       read_rds( fname )

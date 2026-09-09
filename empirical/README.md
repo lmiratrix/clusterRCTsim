@@ -6,7 +6,7 @@ The underlying data lives on a secure server (`/data/share/pse/IES CRT/`) and is
 
 **Reproducibility without server access:** the empirical report (`empirical_results_report.Rmd`, via `load_and_prep_empirical_results.R`) reads from the committed, aggregated `empirical/results/*.RDS` files, not from raw data — so the main text's empirical figures/tables ARE reproducible without secure-server access. Only regenerating those aggregated `.RDS` files themselves (via `master_analyze_all_data.R`) requires server access.
 
-> **Note:** Scripts that run fingerprint simulations on these datasets (`master_run_fingerprints.R`, `master_run_fingerprints_testing.R`, `testing_fingerprint_simR.R`) live in [`fingerprint/`](../fingerprint/README.md), since they are part of the fingerprint simulation workflow.
+> **Note:** Scripts that run fingerprint simulations on these datasets (`master_run_fingerprints_testing.R`, `testing_fingerprint_simR.R`) — and the rerandomization simulation (Simulation II) runner for these same restricted studies, `master_run_rerandomization.R` (renamed 2026-09-10 from `master_run_fingerprints.R`) — live in [`simulationII/`](../simulationII/README.md) (renamed from `fingerprint/`), since they are part of that separate workflow.
 
 ## Reports
 
@@ -52,6 +52,6 @@ Contains exported analysis results:
 
 \- `jg_results.csv` — Results for Josh Gottlieb's study collection (`jg_describe.csv`, also referenced in some scripts, is currently unused - only a commented-out read remains in `load_and_prep_empirical_results.R` - and isn't committed)
 
-\- `study_descriptions.csv` — Summary descriptions of all included studies, produced by `load_and_prep_empirical_results.R`. Read by `fingerprint/load_master_permutation_results.R` (Simulation II's data-loading step, needed to render `analysis/Simulation_WriteUp.Rmd`) - committed for that reason, unlike most other intermediate empirical outputs.
+\- `study_descriptions.csv` — Summary descriptions of all included studies, produced by `load_and_prep_empirical_results.R`. Read by `simulationII/load_master_rerandomization_results.R` (Simulation II's data-loading step, needed to render `analysis/Simulation_WriteUp.Rmd`) - committed for that reason, unlike most other intermediate empirical outputs.
 
 \- Excel files with estimator comparison tables

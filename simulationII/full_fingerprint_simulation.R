@@ -21,7 +21,7 @@ library( digest )
 
 
 # create finger_result folder
-RESULT_DIR = here::here( "fingerprint/results_fingerprint" )
+RESULT_DIR = here::here( "simulationII/results_fingerprint" )
 dir.create( RESULT_DIR, showWarnings = FALSE )
 
 
@@ -46,7 +46,7 @@ studies
 # Drop studies already done.
 
   # Get all files in results_fingerprint directory that are rds files
-  files = list.files( here::here( "fingerprint/results_fingerprint" ),
+  files = list.files( here::here( "simulationII/results_fingerprint" ),
                       pattern = "\\.rds$" )
   files = gsub( "\\.rds$", "", files )
   cli_inform( "Found {length(files)} existing result files" )
@@ -71,7 +71,7 @@ string_to_seed <- function(str) {
 
 
 # install.packages("filelock"); install.packages("cli")
-log_file <- here::here( "fingerprint/all_output.log" )
+log_file <- here::here( "simulationII/all_output.log" )
 
 log_line <- function(text, .envir = parent.frame()) {
   #lk <- filelock::lock(lock_file, timeout = 0)  # returns NULL if already locked

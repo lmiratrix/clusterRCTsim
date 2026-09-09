@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a research repository (not an R package) containing the simulation study and empirical analysis code for comparing ATE estimators in blocked, cluster-randomized trials (CRTs). It is the simulation/analysis companion to the [`clusterRCT`](https://github.com/lmiratrix/clusterRCT) R package, which implements the estimators themselves. Scripts throughout the repo `source()` shared functions from `R/` rather than loading a package — there is no `DESCRIPTION`/`NAMESPACE`, so this is not `devtools::load_all()`-able.
 
-Start with `README.md` at the repo root — it has an up-to-date table of every folder's purpose and the canonical local/cluster workflows. Most subfolders (`R/`, `analysis/`, `empirical/`, `fingerprint/`, `data_prep/`, `cloud/`, `results/`, `results_agg/`, `demo_scripts/`) have their own `README.md` — read the relevant one before working in that folder rather than re-deriving structure from file listing.
+Start with `README.md` at the repo root — it has an up-to-date table of every folder's purpose and the canonical local/cluster workflows. Most subfolders (`R/`, `analysis/`, `empirical/`, `simulationII/`, `data_prep/`, `cloud/`, `results/`, `results_agg/`, `demo_scripts/`) have their own `README.md` — read the relevant one before working in that folder rather than re-deriving structure from file listing.
 
 **Branch structure:** this is the `main` branch — a trimmed replication package covering the code behind the paper's figures/tables (see `REPLICATION.md` for the figure/table -> script map). The `dev` branch additionally has exploratory/historical material not part of the replication package: `reports/`, `covariate_simulations/`, `small_simulations/`, `documentation/`, `attic/`, `explorations/`. If you're asked to work with any of those, check whether you're meant to be on `dev` instead.
 
@@ -39,7 +39,7 @@ Coverage: `test-DGP.R` (data generation), `test-simulation.R` (superpopulation s
 
 Both build on `R/data_generation_code.R`, the core DGP: generates cluster sizes with variable ICC, treatment-effect heterogeneity, and correlations between cluster size/treatment proportion/impact.
 
-A third mode, **fingerprint simulation** (`R/calibrated_simulation_code.R`, `R/generate_data_from_fingerprint.R`), generates synthetic data that mirrors the structure (block/cluster IDs, sample sizes) of a specific real dataset, combined with user-supplied ICC/R² parameters — used to ask "how would estimators behave on data like this real study?" A related but distinct mode, rerandomization simulation (in `fingerprint/`), fixes one generated dataset and repeatedly rerandomizes treatment assignment.
+A third mode, **fingerprint simulation** (`R/calibrated_simulation_code.R`, `R/generate_data_from_fingerprint.R`), generates synthetic data that mirrors the structure (block/cluster IDs, sample sizes) of a specific real dataset, combined with user-supplied ICC/R² parameters — used to ask "how would estimators behave on data like this real study?" A related but distinct mode, rerandomization simulation (in `simulationII/`), fixes one generated dataset and repeatedly rerandomizes treatment assignment.
 
 **End-to-end pipeline for the main grid simulation:**
 1. `simulation/generate_grids.R` (or `generate_grids_lowdf.R`) builds the scenario grid → `scenarios.rds`. Prior grids are snapshotted to `archive/` (dated) before regenerating, since `scenarios.rds` is overwritten in place — see `archive/README` note in the root README for the convention.
@@ -48,7 +48,7 @@ A third mode, **fingerprint simulation** (`R/calibrated_simulation_code.R`, `R/g
 4. Aggregation math (bias, RMSE, coverage, MCSE) lives in `R/aggregate_simulation_results.R` and `R/MCSE_functions.R`; `R/group_estimators.R` collapses estimators that produce numerically identical estimates/SEs, useful before reporting since several named estimators coincide algebraically in some regimes.
 5. `analysis/Simulation_WriteUp.Rmd` is the primary report/paper supplement consuming `results_agg/`.
 
-**Empirical side** (`empirical/`) applies the same `clusterRCT` estimators to real CRT datasets whose underlying individual-level data lives only on a secure server (`/data/share/pse/IES CRT/`) — not in this repo. `empirical/master_analyze_all_data.R` is the master entry point; fingerprint simulations *on* these empirical datasets live in `fingerprint/` (not `empirical/`) since they're part of that separate workflow, despite depending on empirical data-loading code.
+**Empirical side** (`empirical/`) applies the same `clusterRCT` estimators to real CRT datasets whose underlying individual-level data lives only on a secure server (`/data/share/pse/IES CRT/`) — not in this repo. `empirical/master_analyze_all_data.R` is the master entry point; fingerprint simulations *on* these empirical datasets live in `simulationII/` (not `empirical/`) since they're part of that separate workflow, despite depending on empirical data-loading code.
 
 **Large/derived files are git-partitioned deliberately**: raw per-job cluster output (`results/simulation_results_*.rds`) is NOT committed (regenerate via cluster reruns); processed/aggregated outputs in `results_agg/` ARE committed so reports are reproducible without rerunning the full simulation.
 
