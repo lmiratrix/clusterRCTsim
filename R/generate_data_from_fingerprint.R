@@ -114,7 +114,7 @@ generate_data_from_fingerprint <- function( structure = NULL, parameters = NULL,
   X = rnorm( n )
   
   if ( rerandomize ) {
-    structure$Z = rerandomize( structure$Z, structure$clusterID, structure$blockID )
+    structure$Z = clusterRCT::rerandomize( structure$Z, structure$clusterID, structure$blockID )
   }
   
   sdY0 = 1
