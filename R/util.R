@@ -55,33 +55,15 @@ get.estimates = function( df, ... ) {
 
 
 #' Return new treatment assignment based on passed one.
-#' 
-#' @return vector of 1s and 0s.
-rerandomize <- function( Z, clusterID, blockID = NULL ) {
-  
-  stopifnot( length( Z ) == length( clusterID ) )
-  stopifnot( is.null( blockID ) || length( Z ) == length( blockID ) )
-  
-  newZ = NA
-  if ( !is.null( blockID ) ) {
-    cnts <- tibble( clusterID = clusterID, blockID = blockID, Z = Z ) %>% 
-      group_by( blockID ) %>% 
-      mutate( p = mean( Z[ !duplicated( clusterID ) ] ) ) %>%
-      ungroup() %>%
-      mutate( Z = randomizr::block_and_cluster_ra( blocks=blockID,
-                                                   clusters=clusterID, 
-                                                   prob_unit=p) )
-    newZ = cnts$Z
-  } else {
-    # No blocking
-    p = rep( mean( Z[ !duplicated( clusterID ) ] ), length( clusterID ) )
-    newZ = randomizr::cluster_ra( clusters=clusterID, 
-                               prob_unit=p )
-  }
-  
-  return( newZ )
-  
-}
+#'
+#' NOTE: this used to be a local reimplementation of
+#' clusterRCT::rerandomize() (byte-for-byte identical, confirmed
+#' 2026-09-10) - deleted in favor of calling the package version
+#' directly below, so the two can no longer silently drift apart.
+#' Callers are qualified as clusterRCT::rerandomize() rather than
+#' relying on library(clusterRCT) being loaded, since not every
+#' simulation entry point in this repo attaches the package (they use
+#' clusterRCT::compare_methods() etc. instead).
 
 if ( FALSE ) {
   # Testing code for rerandomize
@@ -89,14 +71,14 @@ if ( FALSE ) {
   clusterID = rep( 1:6, 1:6 )
   blockID = as.numeric( clusterID <= 3 )
   Z = as.numeric( clusterID %% 2 )
-  
-  rerandomize( Z, clusterID )
-  
+
+  clusterRCT::rerandomize( Z, clusterID )
+
   rbind( clusterID, Z,
-         rerandomize( Z, clusterID ) )
-  
+         clusterRCT::rerandomize( Z, clusterID ) )
+
   rbind( blockID, clusterID, Z,
-         rerandomize( Z, clusterID, blockID ) )
+         clusterRCT::rerandomize( Z, clusterID, blockID ) )
 }
 
 
@@ -111,10 +93,10 @@ rerandomize.data = function( dat, recalc_outcomes = TRUE ) {
   grid <- attr( dat, "block_key" )
   
   if ( "did" %in% names(dat) ) {
-    dat$Z = rerandomize( dat$Z, dat$sid, dat$did )
+    dat$Z = clusterRCT::rerandomize( dat$Z, dat$sid, dat$did )
   } else {
     # No blocking
-    dat$Z = rerandomize( dat$Z, dat$sid )
+    dat$Z = clusterRCT::rerandomize( dat$Z, dat$sid )
   }
   
   if ( recalc_outcomes ) {
