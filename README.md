@@ -4,11 +4,13 @@ This repository contains the code for running both a simulation study and empiri
 
 The scripts in this repository do rely on a package `clusterRCT`, also on GitHub (at <https://github.com/lmiratrix/clusterRCT>). That package implements all the methods tested, and has various exploratory tools for people analysing blocked, cluster randomized experiments (or cluster randomized experiments) of their own. That package might be useful, in other words, for everyday work.
 
-This package is useful for verifying the results of our paper, running simulations to see how the results hold up in different contexts, and for just generating multilevel data in general.
+This collection of scripts is useful for verifying the results of our paper, running simulations to see how the results hold up in different contexts, and for just generating multilevel data in general.
 
 ## Reproducing the Paper
 
 The paper depends on a lot of complex analyses. We have used Claude to help generate some pointers and guidance for reproducing or understanding the analyses done. You can read through the structure below, but also see [REPLICATION.md](/REPLICATION.md) in this repository for more information about what code was used to generate what result in the main paper.
+
+**A note on exact reproducibility.** Our goal in sharing this code is to let others understand our approach, adapt it, and run similar simulations of their own. Unfortunately, we were not able to rerun everything useing the current code base, so the code will likely not reproduce the paper's reported numbers to the decimal. This is a research codebase that evolved over a multi-year project, and we unfortunately don't have a reliable record of exactly which version of everything (in particular, which commit of the companion `clusterRCT` package, itself under active development) produced the final numbers. Rerunning the pipeline today should give results that are qualitatively and substantively the same, but we can't guarantee an exact match to every table and figure. See [REPLICATION.md](/REPLICATION.md) for more detail on this.
 
 ## Repository Structure
 
@@ -19,8 +21,8 @@ The paper depends on a lot of complex analyses. We have used Claude to help gene
 |----------------------------|--------------------------------------------|
 | [`analysis/`](analysis/README.md) | RMarkdown reports and scripts for analyzing the results of the the large multi-factor simulation study. Primary output: `Simulation_WriteUp.pdf` (the paper's simulation supplement). Also contains scripts for targeted analyses (coverage, factor importance, estimator comparisons). All of these scripts primarily use the final, aggregated simulation results (see below). |
 | [`empirical/`](empirical/README.md) | Applies all estimators to a collection of real CRT datasets. Produces the empirical results reported in the paper and generates figures. Some of the underlying individual-level data lives on a secure server; this folder stores processing scripts and exported results. Other of the underlying data are publicly available in the [Item Response Warehouse](https://redivis.com/datasets/as2e-cv7jb41fd) (IRW, [Domingue et al., 2024](https://link.springer.com/article/10.3758/s13428-025-02796-y)) under the prefix “gilbert_meta”. |
-| [`prep_gilbert_data/`](prep_gilbert_data/README.md) | Processes that public IRW “gilbert_meta” collection end to end: item-level response data → per-outcome analytic datasets → `compare_methods()`/`describe_clusterRCT()` results and Appendix A descriptive tables → the rerandomization simulation feeding `fingerprint/`. |
-| [`fingerprint/`](fingerprint/README.md) | Supplementary simulations, in particular the "Fingerprint simulations" that use DGPs calibrated to the real datasets and "rerandomization simulations" that use the real datasets but permute treatment assignment to assess estimator stability. |
+| [`prep_gilbert_data/`](prep_gilbert_data/README.md) | Processes that public IRW “gilbert_meta” collection end to end: item-level response data → per-outcome analytic datasets → `compare_methods()`/`describe_clusterRCT()` results and Appendix A descriptive tables. |
+| [`fingerprint/`](fingerprint/README.md) | Supplementary simulations, in particular the "fingerprint simulations" that use DGPs calibrated to the real datasets (these we did not include in our final submitted paper) and "rerandomization simulations" that use the real datasets but permute treatment assignment to assess estimator stability (this is Simulation II in the final paper). |
 
 ### Simulation Infrastructure
 
@@ -57,7 +59,7 @@ The paper depends on a lot of complex analyses. We have used Claude to help gene
 ``` r
 source("install_needed_packages.R")                                      # install dependencies
 source("simulation/generate_grids.R")                                    # create scenarios.rds
-source("simulation/estimator_performance_simulation_fixed_district.R")  # run sim
+source("simulation/estimator_performance_simulation_fixed_district.R")   # run sim
 source("data_prep/clean_simulation_results.R")                           # clean output
 ```
 
