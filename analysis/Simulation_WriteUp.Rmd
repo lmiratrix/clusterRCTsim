@@ -1414,7 +1414,7 @@ scatter_plot
 
 ```{r setup, include=FALSE}
 
-source( here::here( "fingerprint/load_master_permutation_results.R" ) )
+source( here::here( "simulationII/load_master_rerandomization_results.R" ) )
 
 # Drop to "best covariate" scenarios
 meth_dat <- filter( meth_dat, 
