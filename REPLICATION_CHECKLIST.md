@@ -11,7 +11,7 @@ Two rounds of work so far, both on the git branch `cleanup/replication-prep` off
 
 **Decision (2026-09-09): rather than keep chasing an answer we don't have, we're documenting this honestly instead.** Luke: there are too many moving parts across a multi-year project to reliably reconstruct exactly which version generated the final results, and that's OK — the goal of sharing this code is to let others understand the approach and run similar simulations, not to guarantee bit-for-bit reproduction of every reported number. A polite, upfront note to that effect is now in both `README.md` ("Reproducing the Paper" section) and `REPLICATION.md` (right after its intro). No further action needed here unless you later do track down the actual commit/config, in which case the note can be updated or removed.
 
-## Done this session (uncommitted — review with `git diff` / `git status`)
+## Done this session (all committed and pushed on both `main` and `dev`)
 
 **Reconciled the duplicate `create_analysis_tree` function** (the single biggest landmine found): there were two files each defining a same-named, non-interchangeable `rpart`-based tree-fitting function — `create_analysis_tree.R` at the repo root (`min_leaves`/`max_leaves` API, used by `fingerprint/fingerprint_simulation_report.Rmd`) and `analysis/R/create_analysis_tree.R` (`num_leaves` + legacy column renaming + signed color scale, used by `analysis/Simulation_WriteUp.Rmd` and `empirical/empirical_results_report.Rmd`). Renamed the root one to `create_analysis_tree_minmax()` in `analysis/R/create_analysis_tree_minmax.R`, updated all 3 call sites in `fingerprint_simulation_report.Rmd`, added cross-reference header comments to both files so nobody "deduplicates" them again by accident, and documented the split in a new `analysis/R/README.md`. **Behavior of every existing report is unchanged** — this was a pure rename/relocation, not a logic change.
 
@@ -47,11 +47,11 @@ Two rounds of work so far, both on the git branch `cleanup/replication-prep` off
 
 **Added `CITATION.cff`** at the repo root, using the paper's actual title and author list (Miratrix, Weiss, Litschwartz, Hill, Warner) pulled directly from the submitted PDF's title page. Marked as `unpublished`/under review with a note to update once accepted (journal, volume, DOI, year).
 
-**In progress (background):** a fork is building `REPLICATION.md`, a figure/table → producing-script map covering the main text and Appendices A-C (Appendix D is pure math, no code component). This is large and will land as a separate addition once done — check for it if it's not here yet.
+**`REPLICATION.md`** (figure/table → producing-script map covering the main text and Appendices A-C; Appendix D is pure math, no code component) is done and has since been trimmed/refined further based on your own edits.
 
-## Open questions for you
+## Open questions — all resolved as of 2026-09-10
 
-These all need a judgment call only you can make — nothing was changed for any of these:
+Every item below has a recorded decision now; nothing here is still waiting on you.
 
 1.  ~~Which `clusterRCT`/`blkvar` commit produced the submitted results?~~ **Resolved as a documented limitation** — see the top of this file. Not pinned down, and we're saying so in `README.md`/`REPLICATION.md` rather than guessing.
 
