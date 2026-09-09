@@ -54,11 +54,19 @@ Two rounds of work so far, both on the git branch `cleanup/replication-prep` off
 These all need a judgment call only you can make — nothing was changed for any of these:
 
 1.  ~~Which `clusterRCT`/`blkvar` commit produced the submitted results?~~ **Resolved as a documented limitation** — see the top of this file. Not pinned down, and we're saying so in `README.md`/`REPLICATION.md` rather than guessing.
+
 2.  **`logs/` (609MB, \~2,000 files) is fully committed to git**, not gitignored at all — raw SLURM stdout/stderr with no replication value, and it's why the repo is slow to clone. `git rm -r --cached logs/` + gitignoring it is safe and reversible, but note it won't actually shrink the `.git` history/size on its own (the old blobs stay in past commits) — truly reclaiming space would need a history rewrite (e.g. `git filter-repo`), which is a much bigger, coordination-requiring operation I won't do without you explicitly asking for it. Want me to at least do the simple `git rm --cached` + gitignore part now?
+
+    TODO: I don't want the logs — they should be git ignored and stripped from the repo
+
 3.  **`util.R` reimplements `rerandomize()` locally**, byte-for-byte identical (per the earlier session's check) to `clusterRCT::rerandomize()` today — but because `util.R` is `source()`d into the global environment, every call in this repo silently uses the local copy, not the package's exported one, even with `library(clusterRCT)` loaded. They could drift apart undetected. Deleting the local copy and calling `clusterRCT::rerandomize()` directly is the fix, but since it changes which code path every simulation's rerandomization step actually runs through, I left it for your call rather than doing it unilaterally.
+
 4.  **Does `covariate_simulations/` belong to this paper at all?** Nothing in the main text or any of the 4 appendices mentions covariate-adjustment simulations, low-df matched-pairs designs, or this folder by name. Either it's for a different manuscript (say so in its README, already flagged there) or it feeds something I'm not seeing.
+
 5.  **Several committed report PDFs look force-added**, contradicting the repo's own `.gitignore` (which globally excludes `*.pdf`): `fingerprint/rerandomization_simulation_report.pdf` (649KB), `empirical/empirical_results_report.pdf` (517KB), `analysis/attic/designing_simulation2.pdf` (411KB). Intentional "here's the output" artifacts, or accidental — should they be removed and left to regenerate from source `.Rmd`?
+
 6.  ~~Which scenario `group` produced the submitted results?~~ **Resolved as a documented limitation** — see the top of this file. `simulation/estimator_performance_simulation_fixed_district.R` still selects the active scenario grid by manually commenting/uncommenting lines (`group = "full_factor"` vs. several alternatives) rather than a parameter, and we're not attempting to reconstruct which one matches the paper after the fact.
+
 7.  **`covariate_simulations/covariate_exploration_simulation.R` is untracked** (gitignored via a literal `.gitignore` entry) but present on disk — looks like it could be in-progress/scratch work rather than junk. Left it completely alone; flagging so it doesn't get lost if you're not expecting it.
 
 ## Not done — correctness findings needing your judgment (from the earlier session)
