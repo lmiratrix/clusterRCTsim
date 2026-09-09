@@ -61,3 +61,4 @@ analysis/Simulation_Writeup_files/
 *.pdf
 *.html
 *.log
+logs/
