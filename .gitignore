@@ -61,3 +61,5 @@ analysis/Simulation_Writeup_files/
 *.pdf
 *.html
 *.log
+prep_gilbert_data/data/
+prep_gilbert_data/tabfig/
