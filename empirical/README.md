@@ -50,6 +50,8 @@ Contains exported analysis results:
 
 \- `master240528_combined.RDS` — Earlier combined results (May 2024 run)
 
-\- `jg_results.csv`, `jg_describe.csv` — Results for Josh Gottlieb's study collection
+\- `jg_results.csv` — Results for Josh Gottlieb's study collection (`jg_describe.csv`, also referenced in some scripts, is currently unused - only a commented-out read remains in `load_and_prep_empirical_results.R` - and isn't committed)
 
-\- `study_descriptions.csv` — Summary descriptions of all included studies - Excel files with estimator comparison tables
+\- `study_descriptions.csv` — Summary descriptions of all included studies, produced by `load_and_prep_empirical_results.R`. Read by `fingerprint/load_master_permutation_results.R` (Simulation II's data-loading step, needed to render `analysis/Simulation_WriteUp.Rmd`) - committed for that reason, unlike most other intermediate empirical outputs.
+
+\- Excel files with estimator comparison tables
