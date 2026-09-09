@@ -1449,10 +1449,10 @@ We next systematically go through our Simulation II results, following our resea
 
 ## How do the ranges of ATE estimates we saw empirically compare to the ranges we get from the simulation?
 
-For each study, we can look at the actual range of ATEs across estimators from the empirical data (red dot) vs. the ranges we get from the permutations (the boxplot).
+First, on Figure \ref{fig:perm1}, we, for each study, compare the actual range of ATEs across estimators from the empirical data (red dot) vs. the ranges we get from the permutations (the boxplot).
 The boxplot shows what kinds of ranges we would "naturally" see when there is no treatment effect or treatment variation.
 
-```{r, fig.cap="Boxplot of the range of ATE estimates across estimators for each study, with the red dot indicating the empirical range of ATE estimates across estimators for that study. The boxplots show the distribution of ranges we would see if there were no treatment effect variation whatsoever.", include=TRUE, echo=FALSE, out.width="100%", fig.height=5}
+```{r perm1, fig.cap="Boxplot of the range of ATE estimates across estimators for each study, with the red dot indicating the empirical range of ATE estimates across estimators for that study. The boxplots show the distribution of ranges we would see if there were no treatment effect variation whatsoever.", include=TRUE, echo=FALSE, out.width="100%", fig.height=5}
 if ( FALSE ) {
   range_dat %>%
     filter( Estimand == "Overall" ) %>%
@@ -1532,12 +1532,13 @@ tmp %>%
 
 ## How does the min-max ratio of estimated SEs compare to the min-max ratio we get from the simulation?
 
-For each simulation iteration we do the following:
+We next explored whether the range of max/min SE ratios across outcomes was unusual.
+To assess this we repeatidly permuted the treatment assignement for each outcome and then did the following:
 
-1) calculate the max/min ratio of estimated standard errors across all the estimators for that trial.
-2) Calculate the inner-quartile range of these ratios.
+1) For each outcome, calculate the max/min ratio of estimated standard errors across all the estimators.
+2) Calculate the inner-quartile range across outcomes of these ratios.
 
-We then compare the distribution of these IQRs of ratios to the empirical IRQ of the empirical ratios we got from the original data.
+We then compare the distribution of these IQRs of ratios to the empirical IQR of the empirical ratios we got from the original data.
 For the empirical data (for the 35 outcomes used in this simulation), the IQR was 0.25.
 The average across our simulations was 0.27 with a standard deviation of 0.05.
 The empirical range was well within the distribution of synthetic ranges, suggesting again that the variation we saw in the empirical data is consistent with what we would see if there were no treatment effect variation whatsoever.
@@ -1614,20 +1615,21 @@ Overall, we are seeing more empirical values in the tails of the ranges--overall
 -->
 
 We note that we are intentionally keeping the exploration of estimated SEs fairly minimal.
-The permutation approach does not change within cluster variation, or block variation, meaning that the estimated standard errors for many of the estimators are remarkably stable across permutations.
+The permutation approach does not change within cluster or block variation, meaning that the estimated standard errors for many of the estimators are remarkably stable across permutations.
 This means idiosyncrasies of the initial data set cause the estimated standard errors to be systematically, larger or smaller than the true standard error as found with the permutation approach.
 This has interesting implications regarding understanding fully finite sample uncertainty in the context of a fixed data set with cluster variation.
 
-To attempt to address the stability of the SE estimators, we could extend the idea of calibrated simulation to generate new clusters and blocks with features similar to the estimated features of the empirical data.
+To more fully attempt to address the stability of the SE estimators, we could extend the idea of calibrated simulation to generate new clusters and blocks with features similar to the estimated features of the empirical data.
 We leave this for a future work.
 
 
 ## Are some of the estimators more precise across permutations than other estimators?
 
-We compare standard errors of methods by looking at the ratio of the true SE vs. median true SE within study, and then making a boxplot.
-We look across all estimators as there are no treatment impacts, so all the estimators are estimating the same estimand (an ATE, regardless of weighting, of 0).
+We compare the true standard errors (as given by the permutation of treatment assignment, holding all outcomes fixed) of the different methods by looking at the ratio of the true SE vs. median true SE within study, and then making a boxplot, grouping by estimator.
+Results are in Figure \ref{fig:se-ratios}; each dot represents a different study.
+We compare to the median SE across all estimators, not divided by targeted estimand, as there are no treatment impacts, so all the estimators are estimating the same estimand (an ATE, regardless of weighting, of 0).
 
-```{r, warning=FALSE, message=FALSE, fig.cap="Ratio of true SE to median true SE by method across all studies", include=TRUE, echo=FALSE, fig.height=4 }
+```{r se-ratios, warning=FALSE, message=FALSE, fig.cap="Ratio of method's true SE to median true SE by method. Each dot represents a different study.", include=TRUE, echo=FALSE, fig.height=4 }
 meth_dat <- meth_dat %>%
   group_by( UniqueID ) %>%
   mutate( SE_ratio = SE / median( SE, na.rm=TRUE ) ) %>%
@@ -1638,41 +1640,47 @@ ggplot( meth_dat, aes( method, SE_ratio ) ) +
   geom_jitter( width = 0.2, height=0, size=0.5 ) + 
   coord_flip() +
   geom_hline( yintercept = 1, col="red" ) +
-  labs( title = "relative SE to methods in study" )
+  labs( title = "SE relative to median SE, by estimator" )
 ```
 
-All the methods have a SE ratio that is, at the median, the same as the other methods.  This suggests that the methods all have the same average overall performance across datasets.
-That said, some methods have long right tails, meaning there are some studies where their true SEs are up to 30% larger than the median performing method.
+All the methods have an SE ratio that is, at the median, the same as the other methods.  This suggests that the methods all typically perform about the same.
+That said, some methods can have ratios well above 1, meaning there are some studies where their true SEs are up to 30% larger than the median performing method.
 
-We can organize these same values by study to see if some studies naturally lead to bigger ranges of true SE:
+We can organize these same values by study to see if some studies naturally lead to bigger ranges of true SE; see Figure \ref{fig:se-ratios-2}.
 
-```{r, fig.cap="Ratio of true SE to median SE across all estimators grouped by study"}
+```{r se-ratios-2, fig.cap="Ratio of true SE to median SE across all estimators grouped by study"}
 ggplot( meth_dat, aes( UniqueID, SE_ratio ) ) +
   facet_wrap( ~ Collection, scales="free_y" ) +
   geom_boxplot( outliers=FALSE, fill="grey", col="darkgrey" ) +
 geom_jitter( width = 0.2, height=0, size=0.5 ) + 
   geom_hline( yintercept = 1, col="red" ) +
   coord_flip() +
-  labs( title = "relative SE to methods in study", x="" )
+  labs( title = "SE relative to median SE, by study", x="", y="" )
 ```
 
-
-The second plot shows that some studies indeed have a wider range of true SEs than other studies.  For example, some estimators in `jg_crt_2` have larger SEs and some have smaller SEs.  By contrast, almost all estimators in `Beacon_S8TGPA` have the same true SE (note the very narrow boxplot).
+Figure \ref{fig:se-ratios-2} shows that some studies indeed have a wider range of true SEs than other studies.  For example, some estimators in `jg_crt_2` have larger SEs and some have smaller SEs.  By contrast, almost all estimators in `Beacon_S8TGPA` have the same true SE (note the very narrow boxplot).
 
 Using the true standard errors, we can recreate the dot plot where each dot is the max/min SE ratio for a specific outcome.
-We can compare the max/min ratio for the true SE and the estimated SE.
+See Figure \ref{fig:ratio-dot-plot}.
 
-```{r, warning=FALSE, message=FALSE, fig.height=3, fig.cap="Ratio of max to min true SE by study", include=TRUE, echo=FALSE }
+```{r ratio-dot-plot, warning=FALSE, message=FALSE, fig.height=3, fig.cap="Ratio of max to min true SE by study", include=TRUE, echo=FALSE }
 true_se <- meth_dat %>% 
   group_by( UniqueID ) %>%
   summarise( true_rat = max( SE ) / min( SE ) )
 
 ggplot( true_se, aes( true_rat ) ) +
   geom_dotplot( method = "histodot", binwidth = 0.01 ) +
-  labs( title = "Ratio of highest to lowest true SE by study" )
+  labs( title = "Ratio of highest to lowest true SE by study",
+        x = "True Ratio", y="" ) +
+  theme(
+    axis.title.y = element_blank(),
+    axis.text.y  = element_blank(),
+    axis.ticks.y = element_blank()
+  )
 ```
 
-These ratios are all inflated by simulation error (we do not fully know the true SEs), but even so, we are not seeing major ratios in the _true_ SE, even though we do see them in the _estimated_ SE; recall for the estimated SEs we had ratios well above 2.
+These ratios are inflated a bit by simulation error (we only know the true SEs up to Monte Carlo uncertainty driven by the number of simulation replicates), but even so, we are not seeing major ratios in the _true_ SE, even though we do see them in the _estimated_ SE; recall for the estimated SEs we had ratios well above 2.
+Here the ratio only gets a bit above 1.3.
 This suggests the large range we see in the empirical data is because the _estimated_ SEs vary a lot, not because the estimators are necessarily very different in terms of their precision.
 In particular, if some estimators have very poorly estimated SEs, the ratios can be driven quite high.
 
