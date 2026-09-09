@@ -29,7 +29,8 @@ table( ranges$group )
 rangesW = ranges
 rangesW  <- left_join( rangesW %>%
                          dplyr::select( group, Covariates, UniqueID, ATE_N:Estimand ),
-                       studies, by=c( "UniqueID", "Covariates") )
+                       dplyr::select( studies, -Estimand ),
+                       by=c( "UniqueID", "Covariates") )
 names(rangesW)
 
 # Massage range to big dataframe ----
@@ -74,7 +75,8 @@ rW <- ranges %>%
   pivot_wider( names_from = measure, values_from = c(Range, big), names_vary = "slowest" )
 rW
 
-ranges <- left_join( ranges, studies, by="UniqueID" )
+ranges <- left_join( ranges, 
+                     dplyr::select( studies, -Estimand ), by="UniqueID" )
 
 stopifnot( all( ranges$Covariates.x == ranges$Covariates.y ) )
 ranges <- ranges %>%

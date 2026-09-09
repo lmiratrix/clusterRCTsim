@@ -11,7 +11,7 @@
 
 # load all data
 source( here::here( "empirical/load_empirical_results.R" ) )
-source( here::here( "empirical/makeDotplot.R" ) )
+source( here::here( "empirical/R/makeDotplot.R" ) )
 
 
 if ( FALSE ) {
