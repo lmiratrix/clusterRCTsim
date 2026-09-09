@@ -63,3 +63,4 @@ analysis/Simulation_Writeup_files/
 *.log
 prep_gilbert_data/data/
 prep_gilbert_data/tabfig/
+logs/
