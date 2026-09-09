@@ -33,7 +33,7 @@ studies
 # Simulation result directory
 # This directory holds the results of some simulation, with one file
 # per dataset.
-SIM_DIR = here::here( "fingerprint/results_rerand_sim_public/" )
+SIM_DIR = here::here( "simulationII/results_rerand_sim_public/" )
 
 
 
@@ -62,7 +62,7 @@ warning( "Setting public covariate to best by hand." )
 
 # Load MDRC side ----
 
-mdrc_dat <- read_rds( here::here( "fingerprint/results_rerand_master/master_run_fingerprints.RDS" ) ) %>%
+mdrc_dat <- read_rds( here::here( "simulationII/results_rerand_master/master_run_rerandomization.RDS" ) ) %>%
   as_tibble()
 
 skimr::skim_without_charts( mdrc_dat )
