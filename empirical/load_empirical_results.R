@@ -33,17 +33,17 @@ if ( !dir.exists( PLOT_PATH ) ) {
 combined <-  read_rds( here::here( "empirical/results/master241204_combined.RDS" ) ) %>%
   as_tibble()
 
-# add in literature info for curated studies 
-# if ( FALSE ) {
-#   warning( "This needs to be restored" )
+# add in literature info for curated studies
+if ( FALSE ) {
+  warning( "This needs to be restored" )
   curated_litinfo <- read_excel(here::here("empirical/results/study_research_info.xlsx")) %>%
     filter(Collection == 'Curated')
-  
+
   combined <- left_join(combined, curated_litinfo %>%
                           select(Project, Outcome, Trt_arm, lead_author:article_url))
-  
+
   # combined
-# }
+}
 
 
 
@@ -184,8 +184,17 @@ n_defined <- studies %>%
 # Cut down full results to one row per study, and then drop the
 # estimation stuff to get the study table left ('best' covariate stats
 # only)
+#
+# NOTE: "LRi-crve"/"LRi-FE-crve" is the older naming convention still
+# used in the public (Josh) results (jg_results.csv); the curated
+# results (master241204_combined.RDS, produced by a newer clusterRCT)
+# use "LR-crve"/"LR-FE-crve" (no "i") for the same estimator. Filtering
+# on only the old names silently dropped every curated study from
+# `studies` (all curated data is blocked, so only the "-FE-" variant
+# is actually needed there, but "LR-crve" is included too for symmetry
+# in case an unblocked curated study is ever added).
 studies <- studies %>%
-  dplyr::filter( Estimator %in% c( "LRi-crve", "LRi-FE-crve" ) ) %>%
+  dplyr::filter( Estimator %in% c( "LRi-crve", "LRi-FE-crve", "LR-crve", "LR-FE-crve" ) ) %>%
   dplyr::select( -c( Estimator:disfavored ) )
 
 studies <- left_join( studies, n_defined, by="UniqueID" )
