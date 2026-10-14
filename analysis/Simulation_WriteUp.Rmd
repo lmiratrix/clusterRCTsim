@@ -159,6 +159,7 @@ These differences are much more modest than the apparent differences when we com
 
 
 
+```{=latex}
 \begin{table}[H]
 \centering
 \caption{General properties of the different estimators across the simulations. See text for details.}
@@ -221,6 +222,7 @@ Well estimated under same-block conditions; person-weighted variants can run sli
 \hline
 \end{tabular}
 \end{table}
+```
 
 
 
@@ -233,6 +235,7 @@ In general we are close to full multi-factorial designs, where we vary all facto
 
 The main simulation is a nearly fully factored experiment with the data generating parameters given on Table~\ref{tab:sim_dgp_params}.
 
+```{=latex}
 \begin{table}[H]
 \centering
 \caption{Simulation Data Generating Parameters}
@@ -276,6 +279,7 @@ Number of Cluster-Level Covariates (num.cov) & 0 (0), 1 (S), 5 (L) [$R^2$ Always
 \hline
 \end{tabular}
 \end{table}
+```
 
 One of our factors is "block type," which is a set of seven parameters that define how similar or different the blocks are from each other (see Table~\ref{tab:block_dgp_params}).
 We did not independently vary these factors so we could control the total number of simulation scenarios.
@@ -285,6 +289,7 @@ The "Messy" case pushes our simulation to the limits so we can see how various m
 
 All code is public; others can easily adapt the code to run additional scenarios that are of interest.
 
+```{=latex}
 \begin{table}[H]
 \centering
 \caption{Block-Type Parameters}
@@ -312,6 +317,7 @@ Does the proportion of clusters treated vary across blocks? & No & Yes & Yes \\
 \hline
 \end{tabular}
 \end{table}
+```
 
 
 ## The data generating process
