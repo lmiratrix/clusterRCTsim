@@ -4,9 +4,9 @@
 #
 # Rerandomization simulation on all datasets
 #
-# Output lands directly in fingerprint/results_rerand_sim_public/,
+# Output lands directly in simulationII/results_rerand_sim_public/,
 # named jg_crt_{id}.rds - this is where
-# fingerprint/load_master_permutation_results.R expects to find it
+# simulationII/load_master_rerandomization_results.R expects to find it
 # (matched against the UniqueID column of
 # empirical/results/study_descriptions.csv).
 
@@ -31,7 +31,7 @@ dfs <- dfs[ names(dfs) %in% targets$dataset_id ]
 
 ids = names(dfs)
 
-OUTPUT_DIR = here::here( "fingerprint/results_rerand_sim_public" )
+OUTPUT_DIR = here::here( "simulationII/results_rerand_sim_public" )
 dir.create( OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE )
 
 source( here::here( "prep_gilbert_data/processing_functions.R" ) )

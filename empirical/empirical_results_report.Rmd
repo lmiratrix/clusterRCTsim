@@ -29,9 +29,8 @@ theme_set( theme_classic() )
 
 source( here::here( "empirical/load_and_prep_empirical_results.R" ) )
 
-
-
 ```
+
 
 # Some statistics on the studies
 
@@ -488,8 +487,7 @@ rr <- rangesW %>%
   filter( Covariates =="best", group=="estimand" ) %>%
   mutate( cons_df_adj = ifelse( cons_df > 30, 30, cons_df ) ) 
 
-rr %>%
-ggplot( aes(cons_df_adj, Range, col=has_single ) ) +
+ggplot( rr, aes(cons_df_adj, Range, col=has_single ) ) +
   facet_wrap( . ~ Estimand,  nrow=1 ) +
   geom_point() +
   geom_smooth(method="lm", se=FALSE) +
