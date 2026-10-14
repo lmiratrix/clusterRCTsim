@@ -111,6 +111,10 @@ makeDotplot <- function(df, var,
 
 
 my_ggsave <- function( p, filename, dim ) {
+  out_dir <- dirname( paste0(PLOT_PATH, filename) )
+  if (!dir.exists(out_dir)) {
+    dir.create(out_dir, recursive = TRUE)
+  }
   if (!is.null(dim)) {
     ggsave( paste0(PLOT_PATH, filename, '.pdf'), 
             plot = p,
