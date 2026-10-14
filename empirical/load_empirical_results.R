@@ -16,7 +16,7 @@ theme_set( theme_classic() )
 
 
 
-PLOT_PATH = paste0( here::here( "empirical", "tables" ), "/" )
+PLOT_PATH = paste0( here::here( "empirical", "figures" ), "/" )
 
 plot_path <- function( filename ) {
   here::here( PLOT_PATH, filename )

@@ -3,8 +3,8 @@ title: "Nonblocked Experiment Report"
 author: "Miratrix"
 date: "2025-08-19"
 output:
-  word_document: default
   pdf_document: default
+  word_document: default
 editor_options:
   chunk_output_type: console
 ---
@@ -80,6 +80,8 @@ ss = left_join( summary_stats_estimand %>% filter( Covariates =="best" ),
   mutate( red_range = Range.x / Range.y,
           reduction = Ratio.x / Ratio.y )
 
+
+dir.create( here::here( PLOT_PATH, "nonblocked" ), recursive = TRUE, showWarnings = FALSE)
 ```
 
 This manuscript drafts the supplement on non-blocked experiments.  It also has some summary statistics printed out that motivate the written text.
@@ -111,7 +113,7 @@ range_x_range <- 0.30
               xlab     = 'Range of Point Estimates of β', 
               ylab     = 'Number of Outcomes', 
               title    = 'Figure 1', 
-              filename   = 'final paper figures/fig1_ATErange',
+              filename   = 'nonblocked/fig1_ATErange',
               subtitle = glue::glue( 'The Range (across {n_estimators} Estimators) of Estimates of β for {n_outcomes} Outcomes' ),
               binw = 0.01,
               coordratio = 0.1,
@@ -131,7 +133,7 @@ summary_stats_estimand %>%
   makeDotplot(var      = 'Range',
               xlab     = 'Range of Point Estimates of beta',
               ylab     = 'Number of Outcomes',
-              filename = 'final paper figures/fig2_ATErange_byestimand',
+              filename = 'nonblocked/fig2_ATErange_byestimand',
               title = 'Figure 2',
               subtitle = glue::glue( 'The Range of ATE Estimates for all Estimators\nTargeting a Given Estimand for {n_outcomes} Outcomes' ),
               coordratio = .15,
@@ -155,7 +157,7 @@ summary_stats %>%
               ylab     = 'Count',
               title    = 'Figure 3',
               subtitle = glue::glue( 'The Ratio (across {n_estimators} estimators) of the Largest to Smallest\nEstimates of SE(β) for {n_outcomes} outcomes' ),
-              filename = 'final paper figures/fig3_SEratio',
+              filename = 'nonblocked/fig3_SEratio',
               rmlegend = FALSE,
               binw     = 0.1,
               coordratio = 1,
@@ -217,7 +219,7 @@ summary_stats_estimand %>%
               ylab     = 'Count',
               title    = 'Figure 4',
               subtitle = glue::glue( 'The Ratio (across {n_estimators} estimators) of the Largest to Smallest Estimates of SE(β)\namong all estimators targeting a given estimand for {n_outcomes} outcomes' ),
-              filename = 'final paper figures/fig4_SEratio_byestimand',
+              filename = 'nonblocked/fig4_SEratio_byestimand',
               byest = T,
               rmlegend = T,
               binw     = 0.1,

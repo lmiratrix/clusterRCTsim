@@ -1,6 +1,6 @@
 # data_prep/ — Simulation Results Processing Pipeline
 
-This folder contains a three-step pipeline that takes raw output files from the Harvard FASRC cluster and produces cleaned, aggregated data files used in analysis.
+This folder contains a three-step pipeline that takes raw output files from the Harvard FASRC cluster and produces cleaned, aggregated data files to be used in the analysis of the simulation.
 
 ## Pipeline Steps
 

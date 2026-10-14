@@ -1,6 +1,6 @@
-# REPLICATION.md — Paper Figure/Table → Code Map
+# REPLICATION.md — A map from the Paper's Figures and Tables to the corresponding code
 
-This file maps every figure and table in the JREE submission ("An Applied Researchers' Guide to Estimating Effects from Blocked Cluster Randomized Trials: Estimands, Estimators, and Estimates," Miratrix, Weiss, Litschwartz, Hill, & Warner) — main text plus Online Appendices A–D — to the exact script or R Markdown chunk in this repository that produces it. Line numbers are approximate section/chunk anchors, not exact single lines.
+This file maps every figure and table in the JREE paper ("An Applied Researchers' Guide to Estimating Effects from Blocked Cluster Randomized Trials: Estimands, Estimators, and Estimates," Miratrix, Weiss, Litschwartz, Hill, & Warner) — main text plus Online Appendices A–D — to the exact script or R Markdown chunk in this repository that produces it. Line numbers are approximate section/chunk anchors, not exact single lines.
 
 Note that **Appendix D (Technical Supplement)** is pure mathematical derivation plus package-usage notes for the companion `clusterRCT` package; it has no simulation- or data-derived figures/tables and therefore no entry below.
 
@@ -16,6 +16,8 @@ Note that **Appendix D (Technical Supplement)** is pure mathematical derivation 
 | Figures 1–4 (pp. 39–43) | Range of ATE estimates (Fig. 1–2) and SE ratio (Fig. 3–4), across vs. within estimand, for 50 outcomes | `empirical/final_paper_figures.R`, lines ~54–149 (chunks literally titled `## Figure 1:` … `## Figure 4:`). |
 
 Both `final_paper_figures.R` and the underlying data it reads ultimately depend on `empirical/master_analyze_all_data.R` (requires secure-server access) or the committed `empirical/results/*.RDS` files (no server access needed — see `empirical/README.md`).
+
+For further numbers, etc., see empirical's `empirical_results_report` for overall information on all the studys and analyses.  This file has all the numbers in the text of the main paper, for example.
 
 ## Appendix A — Studies
 
@@ -35,11 +37,11 @@ Note: the Rmd also computes an internal "Figure 4" (SE ratio within estimand, li
 
 ## Appendix C — Simulation Supplement
 
-**`analysis/Simulation_WriteUp.Rmd` is the single source for Appendix C**. This is the main simulation supplement Rmd described in `analysis/README.md`.
+**`analysis/Simulation_WriteUp.Rmd` directly generates Appendix C**. This is the main simulation supplement Rmd described in `analysis/README.md`.
 
 **Underlying Simulation I data**: The results of simulation I were produced by the cloud pipeline (`simulation/generate_grids.R` → `cloud/run_it.slurm` → `simulation/estimator_performance_simulation_fixed_district.R` → `data_prep/` → `results_agg/`), loaded into the Rmd via `source(here::here("analysis/load_and_prep_data.R"))` at line ~90.
 
-**Underlying Simulation II data**: The second set of simulation results were produced by the rerandomization/permutation pipeline in `simulationII/` (see `simulationII/README.md`; renamed from `fingerprint/` 2026-09-10), loaded via `simulationII/load_master_rerandomization_results.R` (renamed from `load_master_permutation_results.R`).
+**Underlying Simulation II data**: The second set of simulation results were produced by the rerandomization pipeline in `simulationII/` (see `simulationII/README.md`), loaded via `simulationII/load_master_rerandomization_results.R`.
 
-**Related but distinct reports, not the source of Appendix C**: `simulationII/fingerprint_simulation_report.Rmd` and `simulationII/rerandomization_simulation_report.Rmd` explore the same Simulation II permutation results in more depth/detail than the condensed Appendix C figures, using the repo's own "fingerprint simulation" / "rerandomization simulation" terminology (see the terminology-reconciliation note in `simulationII/README.md`). They are worth reading for context but Appendix C's actual Figures 17–20 come from `Simulation_WriteUp.Rmd` directly, per above.
+
 

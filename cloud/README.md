@@ -1,6 +1,6 @@
 # cloud/ — Harvard FASRC Cluster Scripts
 
-This folder contains SLURM batch scripts for running the large-scale simulation on the Harvard FASRC (Cannon/Odyssey) cluster under the `miratrix_lab` account.
+This folder contains SLURM batch scripts for running the large-scale simulation on the Harvard FASRC (Cannon/Odyssey) cluster.
 
 ## Files
 
@@ -14,7 +14,7 @@ This folder contains SLURM batch scripts for running the large-scale simulation 
 
 ## Workflow
 
-1. Push current code and `scenarios.rds` to the cluster.
+1. Push current code and `scenarios.rds` (the data frame of simulations to run, the run ID then indexes off this) to the cluster.
 2. Run `execute_runfullsim.sh` (or submit `run_it.slurm` manually with `sbatch`).
 3. After jobs complete, run `results.slurm` to bundle outputs.
 4. Pull the bundled results back locally and run the `data_prep/` pipeline.
