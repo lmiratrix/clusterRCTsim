@@ -3,8 +3,9 @@
 This folder processes the collection of public cluster-randomized trial datasets described in the paper (Gilbert, Himmelsbach, Soland, Joshi, & Domingue 2025; publicly available via the Item Response Warehouse, prefix `gilbert_meta`, at <https://redivis.com/datasets/as2e-cv7jb41fd>). 
 
 The script turns item-level response data into per-outcome analytic datasets and builds the descriptive study tables used in Appendix A. 
-
 The rerandomization simulation (Simulation II) that depends on these data, and everything downstream of that, now lives in [`simulationII/`](../simulationII/README.md) alongside its restricted-data counterpart — see that folder's README. This is the *only* dataset source behind the paper's empirical results that isn't restricted-access — everything else in `empirical/` is not sharable.
+
+These scripts were written jointly by Josh Gilbert and Luke Miratrix.
 
 
 
