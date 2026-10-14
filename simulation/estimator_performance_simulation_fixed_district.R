@@ -115,7 +115,7 @@ ptm = proc.time()
 # load in the simulations
 # What simulation are we running?
 # 'scenarios.rds' is generated via 'generate_grids.R'
-scenarios = readRDS( "scenarios.rds" )
+scenarios = readRDS( here::here( "scenarios.rds" ) )
 nrow( scenarios )
 
 if ( TESTING ) {

@@ -30,7 +30,7 @@ OUTPUT_FILE <- here::here( glue::glue( "results/single_{SCENARIO_ID}.rds") )
 
 # ---- Load scenario grid ----
 
-scenarios <- readRDS(here::here("results/scenarios.rds"))
+scenarios <- readRDS(here::here("scenarios.rds"))
 
 table( scenarios$cv.cluster, scenarios$blocktype )
 

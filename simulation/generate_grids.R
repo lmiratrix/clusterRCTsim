@@ -156,5 +156,5 @@ scenarios[131,] %>%
 scenarios$group = group
 scenarios$date.created=format(Sys.Date(), "%m/%d/%Y")
 saveRDS( scenarios,
-         here::here( "results/scenarios.rds" ) )
+         here::here( "scenarios.rds" ) )
 
