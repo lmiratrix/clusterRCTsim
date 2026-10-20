@@ -101,6 +101,24 @@ names( combined )
 write_csv(combined, here::here( "prep_gilbert_data/data/clean/jg_results.csv") )
 
 
+# Sanity check on the results ----
+
+
+# Quick sanity checks on the final combined results
+
+comb = read_csv( here::here( "empirical/results/jg_results.csv" ) )
+head( comb )
+
+table( comb$Project, comb$blocked )
+
+dd <- comb %>%
+    dplyr::select( Project, blocked ) %>%
+    unique()
+table( dd$blocked )
+
+
+
+
 if ( FALSE ) {
 
     # copy jg_results.csv and jg_describe.csv to the final location used

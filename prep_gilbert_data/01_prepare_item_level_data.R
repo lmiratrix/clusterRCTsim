@@ -44,7 +44,7 @@ dir.create( raw, showWarnings = FALSE, recursive = TRUE )
 dir.create( clean, showWarnings = FALSE, recursive = TRUE )
 
 # load the item-level data
-load( "datasets_list.Rdata" )
+load( here::here( "prep_gilbert_data/datasets_list.Rdata" ) )
 
 # take response time out of 2 datasets
 datasets[[46]] <- datasets[[46]] |> select(-rt)
@@ -137,7 +137,10 @@ crt_clean <- function(data, num){
 
 # get number of datasets
 num <- length(datasets)
+cli::cli_inform( "Working with {num} datasets" )
 
 # map across to export as csvs
 # use walk b/c I just want the output
 walk2(datasets, 1:num, crt_clean, .progress = TRUE)
+
+
