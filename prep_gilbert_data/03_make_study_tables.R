@@ -17,7 +17,8 @@ dir.create( here::here( "prep_gilbert_data/tabfig" ), showWarnings = FALSE, recu
 
 # bring in metadata to get index on which csvs to load
 metadata <- read_xlsx( here::here( "prep_gilbert_data/study_metadata.xlsx") ) |>
-    filter(cluster_rct == 1)
+    filter(cluster_rct == 1,
+           dataset_id <= 75)
 
 # we only care about the CRTs here
 ids <- metadata |>

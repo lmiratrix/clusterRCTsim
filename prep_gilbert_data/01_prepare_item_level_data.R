@@ -43,12 +43,8 @@ clean <- here::here( "prep_gilbert_data/data/clean" )
 dir.create( raw, showWarnings = FALSE, recursive = TRUE )
 dir.create( clean, showWarnings = FALSE, recursive = TRUE )
 
-# load the item-level export (see NOTE above - not included in this repo)
-item_data_path <- Sys.getenv( "JG_ITEM_DATA_PATH", "" )
-if ( item_data_path == "" ) {
-  stop( "Set the JG_ITEM_DATA_PATH environment variable to the item-level .Rdata export before running this script." )
-}
-load( item_data_path )
+# load the item-level data
+load( "datasets_list.Rdata" )
 
 # take response time out of 2 datasets
 datasets[[46]] <- datasets[[46]] |> select(-rt)
