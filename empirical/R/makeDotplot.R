@@ -4,9 +4,92 @@
 # by Colin
 
 
+# Utility for moving legend inside plot ----
+
+legend_inside <- function(x = 0.98, y = 0.98) {
+  ggplot2::theme(
+    legend.position = "inside",
+    legend.position.inside = c(x, y),
+    legend.justification = c(1, 1),
+    legend.background = ggplot2::element_rect(
+      fill = "white", colour = "grey40", linewidth = 0.4
+    ),
+    legend.margin = ggplot2::margin(5, 7, 5, 7)
+  )
+}
+
+
+# My custom dot plot maker so I can have "x" marks ----
+
+# A version of ggplot2's dot plot that places an X inside selected dots.
+# Source this file once before calling geom_dotplot_marked().
+
+marked_dot_grob <- function(dots, marked, cross_fraction = 0.55) {
+  grid::gTree(
+    dots = dots, marked = marked, cross_fraction = cross_fraction,
+    cl = "marked_dot_grob"
+  )
+}
+
+makeContent.marked_dot_grob <- function(x) {
+  # Ask ggplot2's original dot-stack grob for the finished circles. Its
+  # coordinates include binning, stacking, dotsize, stackratio, and facets.
+  circles <- grid::makeContext(x$dots)
+  if (!any(x$marked)) {
+    return(grid::setChildren(x, grid::gList(circles)))
+  }
+  
+  cx <- grid::convertX(circles$x, "mm", valueOnly = TRUE)[x$marked]
+  cy <- grid::convertY(circles$y, "mm", valueOnly = TRUE)[x$marked]
+  half_cross <- grid::convertUnit(circles$r, "mm", valueOnly = TRUE) *
+    x$cross_fraction
+  cross_style <- grid::gpar(col = "black", lwd = 0.6)
+  
+  grid::setChildren(x, grid::gList(
+    circles,
+    grid::segmentsGrob(
+      cx - half_cross, cy - half_cross,
+      cx + half_cross, cy + half_cross,
+      default.units = "mm", gp = cross_style
+    ),
+    grid::segmentsGrob(
+      cx - half_cross, cy + half_cross,
+      cx + half_cross, cy - half_cross,
+      default.units = "mm", gp = cross_style
+    )
+  ))
+}
+
+# grid needs the method registered to use it while rendering a PDF.
+registerS3method(
+  "makeContent", "marked_dot_grob", makeContent.marked_dot_grob,
+  envir = asNamespace("grid")
+)
+
+GeomDotplotMarked <- ggplot2::ggproto(
+  "GeomDotplotMarked", ggplot2::GeomDotplot,
+  draw_group = function(data, panel_params, coord, ...) {
+    dots <- ggplot2::GeomDotplot$draw_group(data, panel_params, coord, ...)
+    marked <- as.character(data$mark) == "yes"
+    marked_dot_grob(dots, !is.na(marked) & marked)
+  }
+)
+
+geom_dotplot_marked <- function(...) {
+  layer <- ggplot2::geom_dotplot(...)
+  layer$geom <- GeomDotplotMarked
+  layer
+}
+
+
+# The wrapper for making the plots ----
+
+
+
 #' Make plot of differences and save to file
 #' 
 makeDotplot <- function(df, var, 
+                        x_mark_var = NULL,
                         xlab       = NULL, 
                         ylab       = NULL, 
                         title      = NULL, 
@@ -14,7 +97,7 @@ makeDotplot <- function(df, var,
                         binw       = NULL,
                         filename   = NULL,
                         coordratio = NULL,
-                        axisfs     = NULL,
+                        axisfs     = 12,
                         xscale     = NULL,
                         plotmargin = NULL,
                         tcbreaks   = NULL,
@@ -23,8 +106,16 @@ makeDotplot <- function(df, var,
                         rmlegend   = F,
                         byest      = F) {
   
-  p <- ggplot(df, aes(x = !!sym(var))) +
-    geom_dotplot( aes( fill = low_df ),
+  if ( !is.null( x_mark_var ) ) {
+    df$is_under = df[[x_mark_var]]
+  } else {
+    df$is_under = "no"
+  }
+  
+ 
+  
+  p <- ggplot(df, aes(x = !!sym(var), mark = is_under)) +
+    geom_dotplot_marked( aes( fill = low_df ),
                   binwidth   = binw,
                   dotsize    = 0.8,
                   stackratio = 1.2,
@@ -115,17 +206,15 @@ my_ggsave <- function( p, filename, dim ) {
   if (!dir.exists(out_dir)) {
     dir.create(out_dir, recursive = TRUE)
   }
-  if (!is.null(dim)) {
-    ggsave( paste0(PLOT_PATH, filename, '.pdf'), 
-            plot = p,
-            device = cairo_pdf,
-            width = dim[1],
-            height = dim[2])
-  } else {
-    ggsave( paste0(PLOT_PATH, filename, '.pdf'), 
-            device = cairo_pdf,
-            plot = p)
+  if (is.null(dim)) {
+    dim = c( NA, NA )
   }
+  ggsave( paste0(PLOT_PATH, filename, '.pdf'), 
+          plot = p,
+          device = cairo_pdf,
+          width = dim[1],
+          height = dim[2])
+  
 }
 
 

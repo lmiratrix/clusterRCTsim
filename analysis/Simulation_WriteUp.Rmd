@@ -1,7 +1,9 @@
 ---
-title: 'Simulation Supplement for
+title: 'Online Simulation Supplement for
 "An Applied Researchers Guide to Estimating Effects from Multisite Cluster Randomized Trials: Estimands, Estimators, and Estimates"'
 date: ''
+author: 'Litschwartz, S., Miratrix, L., and Weiss, M.'
+fontsize: 12pt
 output:
   pdf_document:
     toc: true
@@ -11,6 +13,8 @@ header-includes:
    - \usepackage{longtable}
    - \usepackage{booktabs}
    - \usepackage{float}
+   - \usepackage{placeins}
+   - \usepackage{array}
    - \usepackage{caption}
    - \captionsetup{width=\textwidth, justification=raggedright, singlelinecheck=false}
    - \usepackage{changepage}
@@ -25,16 +29,6 @@ editor_options:
     wrap: sentence
 ---
 
-```{=html}
-<!--
-author: "Sophie Litschwartz and Luke Miratrix"
-
--->
-```
-
-```{r todo, include=FALSE, echo=FALSE}
-
-```
 
 ```{r setup_sim1, include=FALSE, echo=FALSE}
 
@@ -98,13 +92,12 @@ sruns.clean <- sruns.clean %>%
 
 Blocked cluster randomized controlled trials (CRTs) are a widely used experimental evaluation design in which entire groups (clusters) such as schools or classrooms are randomly assigned to treatment or control conditions within defined strata or blocks.
 The effectiveness of the program or treatment is then typically quantified using the average treatment effect (ATE).
-However, within this relatively straightforward quantity, researchers must make a variety of choices.
-Researchers need to decide whether to target a person-weighted average or cluster-weighted average; they need to decide whether they are targeting an estimate just for the clusters in the study (finite sample) or an estimate representative of some broader population (superpopulation); and they need to decide from among different methods or estimators that can be used to estimate the ATE.
+However, within this relatively straightforward quantity, researchers must make a variety of choices: they need to decide whether to target a person-weighted average or cluster-weighted average; they need to decide whether they are targeting an estimate just for the clusters in the study (finite sample) or an estimate representative of some broader population (superpopulation); and they need to select an estimator from the many options that can be used to estimate the ATE.
 
-This manuscript contains simulations that complement research empirically examining the implications of different choices researchers make when performing CRTs (Miratrix et al., 2026).
+This manuscript contains simulations that complement research empirically examining the implications of these choices (Miratrix et al., 2026).
 Simulations, unlike empirical analyses, allow us to compare estimated quantities to their true values, which we cannot observe in empirical contexts.
 This in turn allows us to evaluate how well different statistical methods perform.
-Additionally, we can systematically vary data conditions and identify which factors impact method performance.
+Additionally, we can systematically vary data conditions to identify what impacts a method's performance.
 
 We present two collections of simulations.
 The first, Simulation I, is a multifactor simulation where we explore how a set of different estimators react to different data generating conditions, such as variation in the size of clusters or systematic differences between the blocks.
@@ -117,16 +110,16 @@ Simulation I is designed to answer the following research questions:
 5.  Why does the range in the estimates produced by the different estimators get larger as the degrees of freedom get smaller? Is the cause estimator bias or estimator instability?
 
 
-Simulation II, by contrast, is a set of calibrated simulations where, for each of our empirical examples (excepting a few due to logistical considerations), we ascertained the properties of all estimators in the very narrow context represented by those data.
+Simulation II, by contrast, is a set of calibrated simulations where, for the empirical examples in our main paper (excepting a few due to logistical considerations), we ascertained the properties of all estimators in the very narrow context represented by those data.
 These simulations were in reaction to the surprising range in both point estimates and standard errors we found in the empirical data.
 
 In Simulation II, we, for each outcome, permute treatment assignment and examine how the various treatment effect estimators react to different treatments.
 Because permutation ensures these are not any actual treatment effects, we can explore how the different estimators are similar or different in the context of no actual treatment.
-This gives insight into whether the results of the empirical study are driven by systematic variation in treatment impact or just idiosyncratic aspects of the contexts explored.
+These comparisons give insight into whether the results of the empirical study are driven by systematic variation in treatment impact or just idiosyncratic aspects of the contexts explored.
 These simulations are precisely calibrated to the structure of the data.
 In particular, by simply permuting treatment, we preserve all features such as covariate relationships and cluster sizes.
 
-Our core question for Simulation II is then:
+Our core questions for Simulation II are then:
 
 1. Are the ranges of point estimates in the empirical data consistent with what we would expect under no treatment effect?
 2. What about the range of estimated standard errors?
@@ -134,41 +127,21 @@ Our core question for Simulation II is then:
 
 Importantly, Simulation II covers a range of contexts both more broad than Simulation I and also less comprehensive.
 We simulate over the very heterogeneous set of empirical datasets we have, but we do not systematically vary data generating parameters as in Simulation I.
-Simulation II has some contexts with many numbers of very small blocks (including blocks of size 2, i.e. matched pairs experiments, which Simulation I does not cover).
-
-# Overview of Findings
-
-Before diving into the details, at a high level the answers to our core research questions from Simulation I are as follows:
-
-1.  Only under extreme conditions do we see notable bias. Fully interacted estimators have virtually no bias. Fixed effect estimators can show large bias (even up to 0.2 in size), but only under the most extreme messy-block conditions with strong correlation between block average effects and proportion treated (this is the precision-weighting bias). Some MLM estimators can exceed 0.04 bias when cluster-level ICC is zero and cluster size correlates with treatment effect, because the estimator shifts toward person-weighting.
-
-2.  Most estimators have comparable relative precision in most contexts. MLMs can be more precise than other cluster-average targeting estimators when cluster-size variation is large and cluster-level ICC is zero; in those cases the MLM largely ignores the clustering, which stabilizes estimates considerably. That said, even in this case, the MLM estimators had standard errors only 30% smaller at most.
-
-3.  Overall, all the methods give standard errors that reasonably capture the uncertainty of a superpopulation framework with fixed blocks. In particular, fully interacted estimators (except MLM-FI) produce SEs that are slightly too small relative to the true superpopulation SE; the magnitude, however, is generally negligible. Fixed effect estimators are well calibrated under typical conditions but can substantially overestimate when there is substantial variation in treatment effects across blocks. MLM estimators are generally well calibrated, with exceptions tied to unbalanced treatment and zero cluster ICC.
-
-4.  All estimated SEs are better characterized as targeting superpopulation rather than finite-population uncertainty. The two quantities diverge meaningfully only when cluster-level ICC is zero and there is substantial cross-cluster treatment effect variation.
-
-5.  The wider range of estimates across methods in low-df settings reflects greater estimator instability (larger true SEs), not greater bias. Bias shows no systematic relationship with degrees of freedom.
-
-We also, on Table \ref{tab:sim_result_summary}, show general findings on each estimator's performance across the simulations, identifying under what conditions they fail.
-
-For the calibrated simulation (Simulation II), we found general alignment between the ranges of estimates and ranges in standard errors across estimator that we saw in the simulation and what we saw in the empirical data.
-Echoing Simulation I, we also found that the true uncertainty (under permutation) of most estimators were about the same across most datasets, but that for some datasets, some estimators were up to 30% more variable than others.
-These differences are much more modest than the apparent differences when we compare the _estimated_ Standard Errors.
-
+Simulation II has some contexts with many numbers of very small blocks (including blocks of size 2, i.e. matched pairs experiments), which Simulation I does not cover.
 
 
 
 ```{=latex}
-\begin{table}[H]
+\begin{table}[htb]
 \centering
 \caption{General properties of the different estimators across the simulations. See text for details.}
 \label{tab:sim_result_summary}
-\renewcommand{\arraystretch}{2.0}
-\begin{tabular}{|p{2cm}|p{6cm}|p{6cm}|}
+\renewcommand{\arraystretch}{1.3}
+\footnotesize
+\begin{tabular}{|p{0.135\textwidth}|p{0.41\textwidth}|p{0.41\textwidth}|}
 \hline
-\rule{0pt}{4ex}\parbox[c]{2cm}{\centering\textbf{Method}}\rule[-1ex]{0pt}{0pt} & 
-\parbox[c]{6cm}{\centering\textbf{Treatment Effect}}\rule[-2ex]{0pt}{0pt} & \parbox[c]{6cm}{\centering\textbf{Standard Errors}}\rule[-2ex]{0pt}{0pt} \\
+\rule{0pt}{4ex}\parbox[c]{0.135\textwidth}{\centering\textbf{Method}}\rule[-1ex]{0pt}{0pt} &
+\parbox[c]{0.41\textwidth}{\centering\textbf{Treatment Effect}}\rule[-2ex]{0pt}{0pt} & \parbox[c]{0.41\textwidth}{\centering\textbf{Standard Errors}}\rule[-2ex]{0pt}{0pt} \\
 \hline
 \multicolumn{3}{|c|}{\textbf{Cluster Weighted}} \\
 \hline
@@ -176,13 +149,14 @@ These differences are much more modest than the apparent differences when we com
 Fully Interacted &
 Virtually no bias across all conditions. &
 Very small underestimate of the true superpopulation SE under all conditions where the SE is defined.\newline
+
 Cannot be used if any of the blocks only have two clusters. \\
 
 \hline
 
 Fixed Effect &
 
-Bias can exceed 0.05, and under the most extreme conditions (messy blocks with a high correlation between block-level proportion treated and block-level ATE, combined with unbalanced treatment assignment) can reach $-$0.2. Bias is negligible under same and reasonable block conditions. &
+Bias negligible under same and reasonable block conditions, reaching 0.05 at most. Under the most extreme conditions (messy blocks with a high correlation between block-level proportion treated and block-level ATE, combined with unbalanced treatment assignment) bias can reach 0.2.  &
 
 Well estimated under same-block conditions. Modestly elevated for reasonable blocks. Substantially overestimated in messy-block conditions due to model misfit when treatment effects vary across blocks; overestimation is sharpest when cluster-level ICC is zero. \\
 
@@ -193,7 +167,7 @@ Bias can exceed 0.04 when there is a strong correlation between cluster size and
 
 In the non-fully interacted MLM models (MLM-RE and MLM-FE), bias also can exceed 0.04 under extreme conditions akin to the fixed effect estimators discussed above.\newline
 
-More precise than other estimators under combination of large variation in cluster size and zero cluster ICCs. &
+MLMs are more precise than other estimators scenarios with a large variation in cluster size and zero cluster level ICCs. &
 
 The estimated standard errors can be substantially too large when there is a confluence of unbalanced treatment, zero cluster-level ICC, and cluster-level treatment variation.\newline
 
@@ -217,12 +191,43 @@ Fixed Effect &
 
 Bias can exceed 0.05, and under the most extreme messy-block conditions with unbalanced treatment can reach magnitudes similar to the cluster-weighted FE. Bias is negligible under same and reasonable block conditions. &
 
-Well estimated under same-block conditions; person-weighted variants can run slightly low even under typical conditions. Substantially overestimated in messy-block conditions due to the same fixed-effect model misfit as the cluster-weighted variant.
+Well estimated under same-block conditions. Can run slightly low under typical conditions. Substantially overestimated in messy-block conditions due to the same fixed-effect model misfit as the cluster-weighted variant.
 \\
 \hline
 \end{tabular}
 \end{table}
+\FloatBarrier
 ```
+
+
+
+# Overview of Findings
+
+Before diving into the details, at a high level the answers to our core research questions from Simulation I are as follows:
+
+1.  Only under extreme conditions do we see notable bias. Fully interacted estimators have virtually no bias. Fixed effect estimators can show large bias (even up to 0.2 in size), but only under the most extreme messy-block conditions with strong correlation between block average effects and proportion treated (this is the precision-weighting bias). Some MLM estimators can exceed 0.04 bias when cluster-level ICC is zero and cluster size correlates with cluster average treatment effect, because the estimator shifts toward person-weighting.
+
+2.  Most estimators have comparable precision in most contexts. MLMs can be more precise than other cluster-average targeting estimators when cluster-size variation is large and cluster-level ICC is zero; in those cases the MLM largely ignores the clustering, which stabilizes estimates considerably. That said, even in this case, the MLM estimators had standard errors only 30% smaller at most.
+
+3.  Overall, all the methods give standard errors that reasonably capture the uncertainty of a superpopulation framework with fixed blocks. In particular, fully interacted estimators (except MLM-FI) produce SEs that are slightly too small relative to the true superpopulation SE; the magnitude, however, is generally negligible. Fixed effect estimators are well calibrated under typical conditions but can substantially overestimate when there is substantial variation in treatment effects across blocks. MLM estimators are generally well calibrated, with exceptions tied to unbalanced treatment and zero cluster level ICC.
+
+4.  All estimated SEs are better characterized as targeting superpopulation rather than finite-population uncertainty. That said, the two quantities diverge meaningfully only when the cluster-level ICC is zero and there is substantial cross-cluster treatment effect variation.
+
+5.  The wider range of estimates across methods in low-df settings reflects greater estimator instability (larger true SEs), not greater bias. Bias shows no systematic relationship with degrees of freedom.
+
+Extending the above, Table \ref{tab:sim_result_summary} shows general findings on each estimator's performance across the simulations, identifying under what conditions they fail.
+
+For the calibrated simulation (Simulation II), we found general alignment between the ranges of estimates and standard errors we saw in the simulation and what we saw in the empirical data.
+Echoing Simulation I, we also found that the true uncertainty (under permutation) of most estimators were about the same across most datasets, but that for some datasets, some estimators were up to 30% more variable than others.
+These differences are much more modest than the apparent differences we see when we compare the _estimated_ Standard Errors.
+
+
+Overall, across the two simulations, we find remarkable similarity between estimator performance across a wide range of estimators and approaches.
+That said, in some circumstances, there are notable differences, but those differences tend to arise in rather extreme scenarios.
+
+
+
+
 
 
 
@@ -233,17 +238,27 @@ In general we are close to full multi-factorial designs, where we vary all facto
 
 ## The data generation parameters
 
-The main simulation is a nearly fully factored experiment with the data generating parameters given on Table~\ref{tab:sim_dgp_params}.
+The main simulation is a nearly fully factored experiment with the data generating parameters given on Table \ref{tab:sim_dgp_params}.
+
+
+One of our factors is "block type," which is a set of seven parameters that define how similar or different the blocks are from each other (see Table \ref{tab:block_dgp_params}).
+We did not independently vary these factors so we could control the total number of simulation scenarios.
+We have three levels of block type, which we call "Blocks all the same," "Blocks variation is reasonable," and "Blocks variation is messy."
+The "Same" case is where all blocks are identical in their characteristics.
+The "Reasonable" case is what we might imagine we would see in actual practice.
+The "Messy" case pushes our simulation to the limits so we can see how various methods fail in extreme circumstance.
+
 
 ```{=latex}
-\begin{table}[H]
+\begin{table}[htb]
 \centering
 \caption{Simulation Data Generating Parameters}
 \label{tab:sim_dgp_params}
 \renewcommand{\arraystretch}{1.2}
-\begin{tabular}{|p{8cm}|p{6cm}|}
+%\footnotesize
+\begin{tabular}{|p{0.54\textwidth}|p{0.41\textwidth}|}
 \hline
-\rule{0pt}{4ex}\parbox[c]{8cm}{\centering\textbf{Parameter}}\rule[-2ex]{0pt}{0pt} & \parbox[c]{6cm}{\centering\textbf{Value(s)}}\rule[-2ex]{0pt}{0pt} \\
+\rule{0pt}{4ex}\parbox[c]{0.54\textwidth}{\centering\textbf{Parameter}}\rule[-2ex]{0pt}{0pt} & \parbox[c]{0.41\textwidth}{\centering\textbf{Value(s)}}\rule[-2ex]{0pt}{0pt} \\
 \hline
 \multicolumn{2}{|c|}{\textbf{Parameters fixed across all scenarios}} \\
 \hline
@@ -279,25 +294,23 @@ Number of Cluster-Level Covariates (num.cov) & 0 (0), 1 (S), 5 (L) [$R^2$ Always
 \hline
 \end{tabular}
 \end{table}
+\FloatBarrier
 ```
 
-One of our factors is "block type," which is a set of seven parameters that define how similar or different the blocks are from each other (see Table~\ref{tab:block_dgp_params}).
-We did not independently vary these factors so we could control the total number of simulation scenarios.
-We have three levels of block type, which we call "Blocks All The Same," "Blocks All Reasonable," and "Blocks All Messy." The "Same" case is where all blocks are identical in their characteristics.
-The "Reasonable" case is what we might imagine we would see in actual practice.
-The "Messy" case pushes our simulation to the limits so we can see how various methods fail in extreme circumstance.
 
 All code is public; others can easily adapt the code to run additional scenarios that are of interest.
 
+
 ```{=latex}
-\begin{table}[H]
+\begin{table}[tb]
 \centering
-\caption{Block-Type Parameters}
+\caption{Block-Type Parameters. Same = Blocks all same; Resonable = Reasonable block variation and correlations; Messy = Extreme variation and correlations}
 \label{tab:block_dgp_params}
 \renewcommand{\arraystretch}{1.2}
-\begin{tabular}{|p{6cm}|p{2.5cm}|p{2.5cm}|p{2.5cm}|}
+%\footnotesize
+\begin{tabular}{|p{0.45\textwidth}|>{\raggedleft\arraybackslash}p{0.15\textwidth}|>{\raggedleft\arraybackslash}p{0.15\textwidth}|>{\raggedleft\arraybackslash}p{0.15\textwidth}|}
 \hline
-\rule{0pt}{4ex}\parbox[c]{6cm}{\centering\textbf{Parameter}}\rule[-2ex]{0pt}{0pt} & \parbox[c]{2.5cm}{\centering\textbf{Blocks All The Same}}\rule[-2ex]{0pt}{0pt} & \parbox[c]{2.5cm}{\centering\textbf{Blocks All Reasonable}}\rule[-2ex]{0pt}{0pt} & \parbox[c]{2.5cm}{\centering\textbf{Blocks All Messy}}\rule[-2ex]{0pt}{0pt} \\
+\textbf{Parameter} & \textbf{Same} & \textbf{Reasonable} & \textbf{Messy} \\
 \hline
 Variation across blocks of number of clusters in the blocks (coefficient of variation) & 0 (none) & .33 (average) & .85 (big) \\
 \hline
@@ -317,6 +330,7 @@ Does the proportion of clusters treated vary across blocks? & No & Yes & Yes \\
 \hline
 \end{tabular}
 \end{table}
+\FloatBarrier
 ```
 
 
@@ -353,10 +367,12 @@ We can also calculate the superpopulation estimand (both person-weighted and clu
 
 We provide more technical details of how we implement the components of the data generating process at the end of this manuscript.
 
+\clearpage
+
 
 # Simulation I Results
 
-We walk through the five research questions, providing plots showing estimator performance with respect to each question.
+To present the results, we walk through the five research questions, providing plots showing estimator performance with respect to each question.
 
 In this report, we use a set of boxplots customized for our particular data so we can see central spread more clearly.
 Below is a sample boxplot of the mean bias of an estimator relative to its target estimand across simulation runs for all methods and scenarios.
@@ -1450,12 +1466,12 @@ The structure of the data, the relationship of covariates to outcome, etc., is a
 
 # Simulation II Results
 
-We next systematically go through our Simulation II results, following our research questions.
+We next systematically go through our Simulation II results, following our Simultation II research questions.
 
 
 ## How do the ranges of ATE estimates we saw empirically compare to the ranges we get from the simulation?
 
-First, on Figure \ref{fig:perm1}, we, for each study, compare the actual range of ATEs across estimators from the empirical data (red dot) vs. the ranges we get from the permutations (the boxplot).
+On Figure \ref{fig:perm1}, we, for each study, compare the actual range of ATEs across estimators from the empirical data (red dot) vs. the ranges we get from the permutations (the boxplot).
 The boxplot shows what kinds of ranges we would "naturally" see when there is no treatment effect or treatment variation.
 
 ```{r perm1, fig.cap="Boxplot of the range of ATE estimates across estimators for each study, with the red dot indicating the empirical range of ATE estimates across estimators for that study. The boxplots show the distribution of ranges we would see if there were no treatment effect variation whatsoever.", include=TRUE, echo=FALSE, out.width="100%", fig.height=5}
@@ -1693,11 +1709,6 @@ In particular, if some estimators have very poorly estimated SEs, the ratios can
 
 
 
-
-# Conclusion
-
-Overall, across the two simulations, we find remarkable similarity between estimator performance across a wide range of estimators and approaches.
-That said, in some circumstances, there are notable differences, but those differences tend to arise in rather extreme scenarios.
 
 \clearpage
 \newpage

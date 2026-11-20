@@ -56,7 +56,8 @@ plt <- summary_stats %>%
               binw = 0.01,
               coordratio = 0.1,
               rmlegend = FALSE) +
-  scale_x_continuous( limits=c(0, range_x_range ), breaks = seq( 0, range_x_range, 0.05 ) )
+  scale_x_continuous( limits=c(0, range_x_range ), breaks = seq( 0, range_x_range, 0.05 ) ) +
+  legend_inside()
 plt
 
 my_ggsave( plt,               
@@ -80,7 +81,8 @@ plt <- summary_stats_estimand %>%
               rmlegend = F,
               byest    = TRUE,
               xscale = c(0, 0.3))  +
-  scale_x_continuous( limits=c(0, range_x_range ), breaks = seq( 0, range_x_range, 0.1 ) )
+  scale_x_continuous( limits=c(0, range_x_range ), breaks = seq( 0, range_x_range, 0.1 ) )+
+  legend_inside()
 plt
 
 my_ggsave( plt,               
@@ -91,42 +93,49 @@ my_ggsave( plt,
 
 ## Figure 3: The Ratio (across 19 estimators) of the Largest to Smallest Estimates of SE(β) for {n_outcomes} outcomes. ----
 
-summary_stats %>%
+plt <- summary_stats %>%
   filter(Covariates == "best") %>%
   makeDotplot(var      = 'Ratio',
               xlab     = 'Ratio of Largest to Smallest SE across Point Estimates',
               ylab     = 'Count',
               title    = 'Figure 3',
               subtitle = glue::glue( 'The Ratio (across {n_estimators} estimators) of the Largest to Smallest\nEstimates of SE(β) for {n_outcomes} outcomes' ),
-              filename = 'final paper figures/fig3_SEratio',
               rmlegend = FALSE,
               binw     = 0.1,
               coordratio = 1.25,
               axisfs = 14,
               tcratio  = T,
               dim = c( 6, 3 ),
-              tcbreaks = c(1:4))
+              tcbreaks = c(1:4))+
+  legend_inside()
+
+my_ggsave( plt,               
+           filename = 'final paper figures/fig3_SEratio',
+           dim = c( 7, 3 ) )
 
 
 
 ## Figure 4: The Ratio (across 19 estimators) of the Largest to Smallest Estimates of SE(β) among all estimators targeting a given estimand for {n_outcomes} outcomes ----
 
-summary_stats_estimand %>%
+plt <- summary_stats_estimand %>%
   filter(Covariates == "best") %>%
   makeDotplot(var      = 'Ratio',
               xlab     = 'Ratio of Largest to Smallest SE across Point Estimates',
               ylab     = 'Count',
               title    = 'Figure 4',
               subtitle = glue::glue( 'The Ratio (across {n_estimators} estimators) of the Largest to Smallest Estimates of SE(β)\namong all estimators targeting a given estimand for {n_outcomes} outcomes' ),
-              filename = 'final paper figures/fig4_SEratio_byestimand',
               byest = T,
               rmlegend = T,
               binw     = 0.1,
               coordratio = 2,
               tcratio  = T,
-              tcbreaks = c(1:4))
+              tcbreaks = c(1:4))+
+  legend_inside()
 
 
+my_ggsave( plt,               
+           filename = 'final paper figures/fig4_SEratio_byestimand',
+           dim = c( 7, 3 ) )
 
 
 
@@ -137,17 +146,25 @@ n_est_noFI = combined %>%
   pull( Estimator ) %>%
   n_distinct()
 
-summary_stats_exclFI %>%
+plt <- summary_stats_exclFI %>%
   filter(Covariates == "best") %>%
   makeDotplot(var      = 'Ratio',
               xlab     = 'Ratio of Largest to Smallest SE across Point Estimates',
               ylab     = 'Count',
               title    = 'Figure 3a',
               subtitle = glue::glue( 'The Ratio (across {n_est_noFI} estimators) of the Largest to Smallest\nEstimates of SE(β) for {n_outcomes} outcomes\n(excluding fully interacted models)' ),
-              filename = 'final paper figures/fig3a_SEratio_exclFI',
               rmlegend = T,
               binw     = 0.05,
-              coordratio = 0.8)
+              coordratio = 0.8) +
+  legend_inside()
+
+
+my_ggsave( plt,               
+           filename = 'final paper figures/fig3a_SEratio_exclFI',
+           dim = c( 7, 3 ) )
+
+
+
 
 ### Figure 5: Figure 4 without fully-interactive models ----
 summary_stats_estimand_exclFI %>%
@@ -157,15 +174,19 @@ summary_stats_estimand_exclFI %>%
               ylab     = 'Count',
               title    = 'Figure 5',
               subtitle = glue::glue( 'The Ratio (across {n_est_noFI} estimators) of the Largest to Smallest Estimates of SE(β)\namong all estimators targeting a given estimand for {n_outcomes} outcomes\n(excluding fully interacted models)' ),
-              filename = 'final paper figures/fig5_SEratio_byestimand_exclFI',
               byest = T,
               rmlegend = T,
               binw     = 0.1,
               coordratio = 2.2,
               tcratio  = T,
-              tcbreaks = c(1:5))
+              tcbreaks = c(1:5))+
+  legend_inside()
 
 
+
+my_ggsave( plt,               
+           filename = 'final paper figures/fig5_SEratio_byestimand_exclFI',
+           dim = c( 7, 3 ) )
 
 
 
