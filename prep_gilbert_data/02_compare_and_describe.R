@@ -45,6 +45,15 @@ if ( FALSE ) {
 
 # Describe all the datasets that were analyzed ----
 
+if ( !file.exists( here::here( "prep_gilbert_data/data/clean/jg_compare.csv") ) ) {
+    cli::cli_abort( c(
+        "Can't find {.file jg_compare.csv}.",
+        "i" = "This file is produced by the {.code if (FALSE) {{ ... }} } block above (lines ~18-43), which is disabled by default because it is slow (it runs {.code compare_methods()} on every dataset).",
+        "i" = "On a fresh checkout, open this script, temporarily flip that block to {.code if (TRUE)}, and run it once to generate {.file jg_compare.csv}. You can set {.code size_threshold} (inside that block) to a number like 5000 to skip large/slow datasets for a quicker test run.",
+        "i" = "Once {.file jg_compare.csv} exists, flip the block back to {.code if (FALSE)} so you don't accidentally re-run the expensive step on every source()."
+    ) )
+}
+
 compare_tab <- read_csv( here::here( "prep_gilbert_data/data/clean/jg_compare.csv") )
 dim( compare_tab )
 head( compare_tab )
@@ -77,6 +86,14 @@ over_d = intersect( vars_c, vars_d )
 over_d <- setdiff( over_d,
                    c( "Project", "Covariates") )
 over_m = intersect( vars_c, vars_m )
+# compare_tab's "Outcome" is just the internal standardized outcome
+# variable name (always "y_std"), not the human-readable outcome label.
+# The case-sensitive intersect() above doesn't catch it against
+# metadata's "outcome" column, so it survives into combined and later
+# collides with the rename() below (which is trying to bring in
+# metadata's real, human-readable outcome name as "Outcome"). Drop it
+# here so metadata's "outcome" wins.
+over_m <- union( over_m, "Outcome" )
 over_m <- setdiff( over_m,
                    c( "dataset_id") )
 
